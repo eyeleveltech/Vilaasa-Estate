@@ -1,0 +1,50 @@
+
+> vite_react_shadcn_ts@0.0.0 lint
+> eslint .
+
+
+/media/kido1/Windows1/kido/akmal/eyelevel/Vilaasa-estate-main/src/components/Gallery.tsx
+   4:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  71:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/media/kido1/Windows1/kido/akmal/eyelevel/Vilaasa-estate-main/src/components/SplashGateway.tsx
+  30:8  error  Unexpected constant truthiness on the left-hand side of a `&&` expression  no-constant-binary-expression
+
+/media/kido1/Windows1/kido/akmal/eyelevel/Vilaasa-estate-main/src/components/ui/badge.tsx
+  29:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/media/kido1/Windows1/kido/akmal/eyelevel/Vilaasa-estate-main/src/components/ui/button.tsx
+  49:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/media/kido1/Windows1/kido/akmal/eyelevel/Vilaasa-estate-main/src/components/ui/command.tsx
+  24:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/media/kido1/Windows1/kido/akmal/eyelevel/Vilaasa-estate-main/src/components/ui/form.tsx
+  129:10  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/media/kido1/Windows1/kido/akmal/eyelevel/Vilaasa-estate-main/src/components/ui/navigation-menu.tsx
+  111:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/media/kido1/Windows1/kido/akmal/eyelevel/Vilaasa-estate-main/src/components/ui/sidebar.tsx
+  636:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/media/kido1/Windows1/kido/akmal/eyelevel/Vilaasa-estate-main/src/components/ui/sonner.tsx
+  27:19  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/media/kido1/Windows1/kido/akmal/eyelevel/Vilaasa-estate-main/src/components/ui/textarea.tsx
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/media/kido1/Windows1/kido/akmal/eyelevel/Vilaasa-estate-main/src/components/ui/toggle.tsx
+  37:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/media/kido1/Windows1/kido/akmal/eyelevel/Vilaasa-estate-main/src/contexts/CurrencyContext.tsx
+  116:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/media/kido1/Windows1/kido/akmal/eyelevel/Vilaasa-estate-main/src/pages/WealthProjector.tsx
+  81:6  warning  React Hook useEffect has a missing dependency: 'displayValue'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/media/kido1/Windows1/kido/akmal/eyelevel/Vilaasa-estate-main/tailwind.config.ts
+  111:13  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+✖ 15 problems (6 errors, 9 warnings)
+

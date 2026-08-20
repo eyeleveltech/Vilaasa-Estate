@@ -1,0 +1,1229 @@
+Token obtained for superadmin
+Using Channel ID: Q2hhbm5lbDox
+Getting/Creating 'Real Estate' Category...
+Using Category ID: Q2F0ZWdvcnk6Mg==
+=== Creating Property Type dropdown values ===
+Creating 'Residential' value...
+{"data": {"attributeValueCreate": {"attributeValue": {"id": "QXR0cmlidXRlVmFsdWU6MTE1", "name": "Residential", "slug": "residential-12"}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}
+Creating 'Commercial' value...
+{"data": {"attributeValueCreate": {"attributeValue": {"id": "QXR0cmlidXRlVmFsdWU6MTE2", "name": "Commercial", "slug": "commercial-12"}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}
+Creating 'Luxury Villa' value...
+{"data": {"attributeValueCreate": {"attributeValue": {"id": "QXR0cmlidXRlVmFsdWU6MTE3", "name": "Luxury Villa", "slug": "luxury-villa-12"}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}
+
+=== Creating Status dropdown values ===
+Creating 'Ready to Move' value...
+{"data": {"attributeValueCreate": {"attributeValue": {"id": "QXR0cmlidXRlVmFsdWU6MTE4", "name": "Ready to Move", "slug": "ready-to-move-12"}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}
+Creating 'Under Construction' value...
+{"data": {"attributeValueCreate": {"attributeValue": {"id": "QXR0cmlidXRlVmFsdWU6MTE5", "name": "Under Construction", "slug": "under-construction-12"}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}
+
+=== Getting attribute value IDs ===
+Residential value ID: QXR0cmlidXRlVmFsdWU6MQ==
+QXR0cmlidXRlVmFsdWU6NjU=
+QXR0cmlidXRlVmFsdWU6NzA=
+QXR0cmlidXRlVmFsdWU6NzU=
+Ready to Move value ID: QXR0cmlidXRlVmFsdWU6NA==
+QXR0cmlidXRlVmFsdWU6Njg=
+QXR0cmlidXRlVmFsdWU6NzM=
+QXR0cmlidXRlVmFsdWU6Nzg=
+QXR0cmlidXRlVmFsdWU6ODM=
+Under Construction value ID: QXR0cmlidXRlVmFsdWU6NQ==
+QXR0cmlidXRlVmFsdWU6Njk=
+QXR0cmlidXRlVmFsdWU6NzQ=
+QXR0cmlidXRlVmFsdWU6Nzk=
+QXR0cmlidXRlVmFsdWU6ODQ=
+
+=== Creating Products ===
+Creating The Aurum Residence...
+Created Product ID: 
+Product 'The Aurum Residence' may already exist. Fetching ID by slug...
+Fetched Existing Product ID: UHJvZHVjdDo5
+Updating Category for existing product...
+{"data": {"productUpdate": {"product": {"id": "UHJvZHVjdDo5"}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}Ensuring Variant exists...
+Variant already exists: UHJvZHVjdFZhcmlhbnQ6MQ==
+Setting Price (7000000)...
+Result: {"errors": [{"message": "Cannot query field \"productVariant\" on type \"ProductVariantChannelListingUpdate\".", "locations": [{"line": 1, "column": 157}], "extensions": {"exception": {"code": "GraphQLError", "stacktrace": ["graphql.error.base.GraphQLError: Cannot query field \"productVariant\" on type \"ProductVariantChannelListingUpdate\"."]}}}], "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}
+Publishing to Channel ID: Q2hhbm5lbDox...
+{"data": {"productChannelListingUpdate": {"product": {"id": "UHJvZHVjdDo5"}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}Published.
+
+Creating Palm Royale Villa...
+Created Product ID: 
+Product 'Palm Royale Villa' may already exist. Fetching ID by slug...
+Fetched Existing Product ID: UHJvZHVjdDoxMA==
+Updating Category for existing product...
+{"data": {"productUpdate": {"product": {"id": "UHJvZHVjdDoxMA=="}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}Ensuring Variant exists...
+Variant already exists: UHJvZHVjdFZhcmlhbnQ6Mg==
+Setting Price (15000000)...
+Result: {"errors": [{"message": "Cannot query field \"productVariant\" on type \"ProductVariantChannelListingUpdate\".", "locations": [{"line": 1, "column": 159}], "extensions": {"exception": {"code": "GraphQLError", "stacktrace": ["graphql.error.base.GraphQLError: Cannot query field \"productVariant\" on type \"ProductVariantChannelListingUpdate\"."]}}}], "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}
+Publishing to Channel ID: Q2hhbm5lbDox...
+{"data": {"productChannelListingUpdate": {"product": {"id": "UHJvZHVjdDoxMA=="}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}Published.
+
+Creating Manhattan Heights...
+Created Product ID: 
+Product 'Manhattan Heights' may already exist. Fetching ID by slug...
+Fetched Existing Product ID: UHJvZHVjdDoxMQ==
+Updating Category for existing product...
+{"data": {"productUpdate": {"product": {"id": "UHJvZHVjdDoxMQ=="}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}Ensuring Variant exists...
+Variant already exists: UHJvZHVjdFZhcmlhbnQ6Mw==
+Setting Price (12000000)...
+Result: {"errors": [{"message": "Cannot query field \"productVariant\" on type \"ProductVariantChannelListingUpdate\".", "locations": [{"line": 1, "column": 159}], "extensions": {"exception": {"code": "GraphQLError", "stacktrace": ["graphql.error.base.GraphQLError: Cannot query field \"productVariant\" on type \"ProductVariantChannelListingUpdate\"."]}}}], "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}
+Publishing to Channel ID: Q2hhbm5lbDox...
+{"data": {"productChannelListingUpdate": {"product": {"id": "UHJvZHVjdDoxMQ=="}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}Published.
+
+Creating Beverly Hills Estate...
+Created Product ID: 
+Product 'Beverly Hills Estate' may already exist. Fetching ID by slug...
+Fetched Existing Product ID: UHJvZHVjdDoxMg==
+Updating Category for existing product...
+{"data": {"productUpdate": {"product": {"id": "UHJvZHVjdDoxMg=="}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}Ensuring Variant exists...
+Variant already exists: UHJvZHVjdFZhcmlhbnQ6NA==
+Setting Price (25000000)...
+Result: {"errors": [{"message": "Cannot query field \"productVariant\" on type \"ProductVariantChannelListingUpdate\".", "locations": [{"line": 1, "column": 159}], "extensions": {"exception": {"code": "GraphQLError", "stacktrace": ["graphql.error.base.GraphQLError: Cannot query field \"productVariant\" on type \"ProductVariantChannelListingUpdate\"."]}}}], "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}
+Publishing to Channel ID: Q2hhbm5lbDox...
+{"data": {"productChannelListingUpdate": {"product": {"id": "UHJvZHVjdDoxMg=="}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}Published.
+
+Creating Marina Bay Penthouse...
+Created Product ID: 
+Product 'Marina Bay Penthouse' may already exist. Fetching ID by slug...
+Fetched Existing Product ID: UHJvZHVjdDoxMw==
+Updating Category for existing product...
+{"data": {"productUpdate": {"product": {"id": "UHJvZHVjdDoxMw=="}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}Ensuring Variant exists...
+Variant already exists: UHJvZHVjdFZhcmlhbnQ6NQ==
+Setting Price (18000000)...
+Result: {"errors": [{"message": "Cannot query field \"productVariant\" on type \"ProductVariantChannelListingUpdate\".", "locations": [{"line": 1, "column": 159}], "extensions": {"exception": {"code": "GraphQLError", "stacktrace": ["graphql.error.base.GraphQLError: Cannot query field \"productVariant\" on type \"ProductVariantChannelListingUpdate\"."]}}}], "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}
+Publishing to Channel ID: Q2hhbm5lbDox...
+{"data": {"productChannelListingUpdate": {"product": {"id": "UHJvZHVjdDoxMw=="}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}Published.
+
+Creating Monaco Harbour Residence...
+Created Product ID: 
+Product 'Monaco Harbour Residence' may already exist. Fetching ID by slug...
+Fetched Existing Product ID: UHJvZHVjdDoxNA==
+Updating Category for existing product...
+{"data": {"productUpdate": {"product": {"id": "UHJvZHVjdDoxNA=="}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}Ensuring Variant exists...
+Variant already exists: UHJvZHVjdFZhcmlhbnQ6Ng==
+Setting Price (35000000)...
+Result: {"errors": [{"message": "Cannot query field \"productVariant\" on type \"ProductVariantChannelListingUpdate\".", "locations": [{"line": 1, "column": 159}], "extensions": {"exception": {"code": "GraphQLError", "stacktrace": ["graphql.error.base.GraphQLError: Cannot query field \"productVariant\" on type \"ProductVariantChannelListingUpdate\"."]}}}], "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}
+Publishing to Channel ID: Q2hhbm5lbDox...
+{"data": {"productChannelListingUpdate": {"product": {"id": "UHJvZHVjdDoxNA=="}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}Published.
+
+Creating Swiss Alps Chalet...
+Created Product ID: 
+Product 'Swiss Alps Chalet' may already exist. Fetching ID by slug...
+Fetched Existing Product ID: UHJvZHVjdDoxNQ==
+Updating Category for existing product...
+{"data": {"productUpdate": {"product": {"id": "UHJvZHVjdDoxNQ=="}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}Ensuring Variant exists...
+Variant already exists: UHJvZHVjdFZhcmlhbnQ6Nw==
+Setting Price (10000000)...
+Result: {"errors": [{"message": "Cannot query field \"productVariant\" on type \"ProductVariantChannelListingUpdate\".", "locations": [{"line": 1, "column": 159}], "extensions": {"exception": {"code": "GraphQLError", "stacktrace": ["graphql.error.base.GraphQLError: Cannot query field \"productVariant\" on type \"ProductVariantChannelListingUpdate\"."]}}}], "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}
+Publishing to Channel ID: Q2hhbm5lbDox...
+{"data": {"productChannelListingUpdate": {"product": {"id": "UHJvZHVjdDoxNQ=="}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}Published.
+
+Creating Sea Link Towers...
+Created Product ID: 
+Product 'Sea Link Towers' may already exist. Fetching ID by slug...
+Fetched Existing Product ID: UHJvZHVjdDoxNg==
+Updating Category for existing product...
+{"data": {"productUpdate": {"product": {"id": "UHJvZHVjdDoxNg=="}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}Ensuring Variant exists...
+Variant already exists: UHJvZHVjdFZhcmlhbnQ6OA==
+Setting Price (4500000)...
+Result: {"errors": [{"message": "Cannot query field \"productVariant\" on type \"ProductVariantChannelListingUpdate\".", "locations": [{"line": 1, "column": 157}], "extensions": {"exception": {"code": "GraphQLError", "stacktrace": ["graphql.error.base.GraphQLError: Cannot query field \"productVariant\" on type \"ProductVariantChannelListingUpdate\"."]}}}], "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}
+Publishing to Channel ID: Q2hhbm5lbDox...
+{"data": {"productChannelListingUpdate": {"product": {"id": "UHJvZHVjdDoxNg=="}, "errors": []}}, "extensions": {"cost": {"requestedQueryCost": 0, "maximumAvailable": 50000}}}Published.
+
+
+=== Verifying Created Products ===
+{
+    "data": {
+        "products": {
+            "edges": [
+                {
+                    "node": {
+                        "id": "UHJvZHVjdDoxMg==",
+                        "name": "Beverly Hills Estate",
+                        "slug": "beverly-estate",
+                        "productType": {
+                            "name": "Luxury Property"
+                        },
+                        "attributes": [
+                            {
+                                "attribute": {
+                                    "name": "Location"
+                                },
+                                "values": [
+                                    {
+                                        "name": "Los Angeles, USA",
+                                        "plainText": "Los Angeles, USA"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Country"
+                                },
+                                "values": [
+                                    {
+                                        "name": "USA",
+                                        "plainText": "USA"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Property Type"
+                                },
+                                "values": [
+                                    {
+                                        "name": "QXR0cmlidXRlVmFsdWU6MQ==",
+                                        "plainText": null
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Status"
+                                },
+                                "values": [
+                                    {
+                                        "name": "QXR0cmlidXRlVmFsdWU6NA==",
+                                        "plainText": null
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Total Area"
+                                },
+                                "values": [
+                                    {
+                                        "name": "18,500 Sq. Ft.",
+                                        "plainText": "18,500 Sq. Ft."
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Configuration"
+                                },
+                                "values": [
+                                    {
+                                        "name": "7 BHK + Staff Quarters",
+                                        "plainText": "7 BHK + Staff Quarters"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Possession"
+                                },
+                                "values": [
+                                    {
+                                        "name": "Immediate",
+                                        "plainText": "Immediate"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Furnishing"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Rental Yield"
+                                },
+                                "values": [
+                                    {
+                                        "name": "2.5% p.a.",
+                                        "plainText": "2.5% p.a."
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "5-Year Appreciation"
+                                },
+                                "values": [
+                                    {
+                                        "name": "20-25%",
+                                        "plainText": "20-25%"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Amenities"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Nearby Locations"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Investment Verdict"
+                                },
+                                "values": []
+                            }
+                        ]
+                    }
+                },
+                {
+                    "node": {
+                        "id": "UHJvZHVjdDoxMQ==",
+                        "name": "Manhattan Heights",
+                        "slug": "manhattan-heights",
+                        "productType": {
+                            "name": "Luxury Property"
+                        },
+                        "attributes": [
+                            {
+                                "attribute": {
+                                    "name": "Location"
+                                },
+                                "values": [
+                                    {
+                                        "name": "New York, USA",
+                                        "plainText": "New York, USA"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Country"
+                                },
+                                "values": [
+                                    {
+                                        "name": "USA",
+                                        "plainText": "USA"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Property Type"
+                                },
+                                "values": [
+                                    {
+                                        "name": "QXR0cmlidXRlVmFsdWU6MQ==",
+                                        "plainText": null
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Status"
+                                },
+                                "values": [
+                                    {
+                                        "name": "QXR0cmlidXRlVmFsdWU6NA==",
+                                        "plainText": null
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Total Area"
+                                },
+                                "values": [
+                                    {
+                                        "name": "3,200 - 5,800 Sq. Ft.",
+                                        "plainText": "3,200 - 5,800 Sq. Ft."
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Configuration"
+                                },
+                                "values": [
+                                    {
+                                        "name": "3 & 4 BHK",
+                                        "plainText": "3 & 4 BHK"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Possession"
+                                },
+                                "values": [
+                                    {
+                                        "name": "Immediate",
+                                        "plainText": "Immediate"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Furnishing"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Rental Yield"
+                                },
+                                "values": [
+                                    {
+                                        "name": "3.8% p.a.",
+                                        "plainText": "3.8% p.a."
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "5-Year Appreciation"
+                                },
+                                "values": [
+                                    {
+                                        "name": "15-20%",
+                                        "plainText": "15-20%"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Amenities"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Nearby Locations"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Investment Verdict"
+                                },
+                                "values": []
+                            }
+                        ]
+                    }
+                },
+                {
+                    "node": {
+                        "id": "UHJvZHVjdDoxMw==",
+                        "name": "Marina Bay Penthouse",
+                        "slug": "marina-bay-penthouse",
+                        "productType": {
+                            "name": "Luxury Property"
+                        },
+                        "attributes": [
+                            {
+                                "attribute": {
+                                    "name": "Location"
+                                },
+                                "values": [
+                                    {
+                                        "name": "Singapore",
+                                        "plainText": "Singapore"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Country"
+                                },
+                                "values": [
+                                    {
+                                        "name": "Singapore",
+                                        "plainText": "Singapore"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Property Type"
+                                },
+                                "values": [
+                                    {
+                                        "name": "QXR0cmlidXRlVmFsdWU6MQ==",
+                                        "plainText": null
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Status"
+                                },
+                                "values": [
+                                    {
+                                        "name": "QXR0cmlidXRlVmFsdWU6NA==",
+                                        "plainText": null
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Total Area"
+                                },
+                                "values": [
+                                    {
+                                        "name": "6,200 Sq. Ft.",
+                                        "plainText": "6,200 Sq. Ft."
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Configuration"
+                                },
+                                "values": [
+                                    {
+                                        "name": "4 BHK + Study",
+                                        "plainText": "4 BHK + Study"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Possession"
+                                },
+                                "values": [
+                                    {
+                                        "name": "Immediate",
+                                        "plainText": "Immediate"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Furnishing"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Rental Yield"
+                                },
+                                "values": [
+                                    {
+                                        "name": "3.2% p.a.",
+                                        "plainText": "3.2% p.a."
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "5-Year Appreciation"
+                                },
+                                "values": [
+                                    {
+                                        "name": "12-18%",
+                                        "plainText": "12-18%"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Amenities"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Nearby Locations"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Investment Verdict"
+                                },
+                                "values": []
+                            }
+                        ]
+                    }
+                },
+                {
+                    "node": {
+                        "id": "UHJvZHVjdDoxNA==",
+                        "name": "Monaco Harbour Residence",
+                        "slug": "monaco-harbour",
+                        "productType": {
+                            "name": "Luxury Property"
+                        },
+                        "attributes": [
+                            {
+                                "attribute": {
+                                    "name": "Location"
+                                },
+                                "values": [
+                                    {
+                                        "name": "Monte Carlo, Monaco",
+                                        "plainText": "Monte Carlo, Monaco"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Country"
+                                },
+                                "values": [
+                                    {
+                                        "name": "Monaco",
+                                        "plainText": "Monaco"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Property Type"
+                                },
+                                "values": [
+                                    {
+                                        "name": "QXR0cmlidXRlVmFsdWU6MQ==",
+                                        "plainText": null
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Status"
+                                },
+                                "values": [
+                                    {
+                                        "name": "QXR0cmlidXRlVmFsdWU6NA==",
+                                        "plainText": null
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Total Area"
+                                },
+                                "values": [
+                                    {
+                                        "name": "2,800 Sq. Ft.",
+                                        "plainText": "2,800 Sq. Ft."
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Configuration"
+                                },
+                                "values": [
+                                    {
+                                        "name": "3 BHK",
+                                        "plainText": "3 BHK"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Possession"
+                                },
+                                "values": [
+                                    {
+                                        "name": "Immediate",
+                                        "plainText": "Immediate"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Furnishing"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Rental Yield"
+                                },
+                                "values": [
+                                    {
+                                        "name": "2.8% p.a.",
+                                        "plainText": "2.8% p.a."
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "5-Year Appreciation"
+                                },
+                                "values": [
+                                    {
+                                        "name": "15-20%",
+                                        "plainText": "15-20%"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Amenities"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Nearby Locations"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Investment Verdict"
+                                },
+                                "values": []
+                            }
+                        ]
+                    }
+                },
+                {
+                    "node": {
+                        "id": "UHJvZHVjdDoxNg==",
+                        "name": "Sea Link Towers",
+                        "slug": "mumbai-sea-link",
+                        "productType": {
+                            "name": "Luxury Property"
+                        },
+                        "attributes": [
+                            {
+                                "attribute": {
+                                    "name": "Location"
+                                },
+                                "values": [
+                                    {
+                                        "name": "Mumbai, India",
+                                        "plainText": "Mumbai, India"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Country"
+                                },
+                                "values": [
+                                    {
+                                        "name": "India",
+                                        "plainText": "India"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Property Type"
+                                },
+                                "values": [
+                                    {
+                                        "name": "QXR0cmlidXRlVmFsdWU6MQ==",
+                                        "plainText": null
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Status"
+                                },
+                                "values": [
+                                    {
+                                        "name": "QXR0cmlidXRlVmFsdWU6NQ==",
+                                        "plainText": null
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Total Area"
+                                },
+                                "values": [
+                                    {
+                                        "name": "4,500 - 8,000 Sq. Ft.",
+                                        "plainText": "4,500 - 8,000 Sq. Ft."
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Configuration"
+                                },
+                                "values": [
+                                    {
+                                        "name": "4 & 5 BHK",
+                                        "plainText": "4 & 5 BHK"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Possession"
+                                },
+                                "values": [
+                                    {
+                                        "name": "Q2 2026",
+                                        "plainText": "Q2 2026"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Furnishing"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Rental Yield"
+                                },
+                                "values": [
+                                    {
+                                        "name": "2.8% p.a.",
+                                        "plainText": "2.8% p.a."
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "5-Year Appreciation"
+                                },
+                                "values": [
+                                    {
+                                        "name": "35-45%",
+                                        "plainText": "35-45%"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Amenities"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Nearby Locations"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Investment Verdict"
+                                },
+                                "values": []
+                            }
+                        ]
+                    }
+                },
+                {
+                    "node": {
+                        "id": "UHJvZHVjdDoxMA==",
+                        "name": "Palm Royale Villa",
+                        "slug": "palm-royale",
+                        "productType": {
+                            "name": "Luxury Property"
+                        },
+                        "attributes": [
+                            {
+                                "attribute": {
+                                    "name": "Location"
+                                },
+                                "values": [
+                                    {
+                                        "name": "Dubai, UAE",
+                                        "plainText": "Dubai, UAE"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Country"
+                                },
+                                "values": [
+                                    {
+                                        "name": "UAE",
+                                        "plainText": "UAE"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Property Type"
+                                },
+                                "values": [
+                                    {
+                                        "name": "QXR0cmlidXRlVmFsdWU6MQ==",
+                                        "plainText": null
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Status"
+                                },
+                                "values": [
+                                    {
+                                        "name": "QXR0cmlidXRlVmFsdWU6NQ==",
+                                        "plainText": null
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Total Area"
+                                },
+                                "values": [
+                                    {
+                                        "name": "8,500 - 15,000 Sq. Ft.",
+                                        "plainText": "8,500 - 15,000 Sq. Ft."
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Configuration"
+                                },
+                                "values": [
+                                    {
+                                        "name": "5 & 6 BHK",
+                                        "plainText": "5 & 6 BHK"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Possession"
+                                },
+                                "values": [
+                                    {
+                                        "name": "Q4 2025",
+                                        "plainText": "Q4 2025"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Furnishing"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Rental Yield"
+                                },
+                                "values": [
+                                    {
+                                        "name": "5.8% p.a.",
+                                        "plainText": "5.8% p.a."
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "5-Year Appreciation"
+                                },
+                                "values": [
+                                    {
+                                        "name": "25-30%",
+                                        "plainText": "25-30%"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Amenities"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Nearby Locations"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Investment Verdict"
+                                },
+                                "values": []
+                            }
+                        ]
+                    }
+                },
+                {
+                    "node": {
+                        "id": "UHJvZHVjdDoxNQ==",
+                        "name": "Swiss Alps Chalet",
+                        "slug": "swiss-alps-chalet",
+                        "productType": {
+                            "name": "Luxury Property"
+                        },
+                        "attributes": [
+                            {
+                                "attribute": {
+                                    "name": "Location"
+                                },
+                                "values": [
+                                    {
+                                        "name": "Verbier, Switzerland",
+                                        "plainText": "Verbier, Switzerland"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Country"
+                                },
+                                "values": [
+                                    {
+                                        "name": "Switzerland",
+                                        "plainText": "Switzerland"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Property Type"
+                                },
+                                "values": [
+                                    {
+                                        "name": "QXR0cmlidXRlVmFsdWU6MQ==",
+                                        "plainText": null
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Status"
+                                },
+                                "values": [
+                                    {
+                                        "name": "QXR0cmlidXRlVmFsdWU6NA==",
+                                        "plainText": null
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Total Area"
+                                },
+                                "values": [
+                                    {
+                                        "name": "8,500 Sq. Ft.",
+                                        "plainText": "8,500 Sq. Ft."
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Configuration"
+                                },
+                                "values": [
+                                    {
+                                        "name": "6 BHK",
+                                        "plainText": "6 BHK"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Possession"
+                                },
+                                "values": [
+                                    {
+                                        "name": "Immediate",
+                                        "plainText": "Immediate"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Furnishing"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Rental Yield"
+                                },
+                                "values": [
+                                    {
+                                        "name": "4.5% p.a.",
+                                        "plainText": "4.5% p.a."
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "5-Year Appreciation"
+                                },
+                                "values": [
+                                    {
+                                        "name": "10-15%",
+                                        "plainText": "10-15%"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Amenities"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Nearby Locations"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Investment Verdict"
+                                },
+                                "values": []
+                            }
+                        ]
+                    }
+                },
+                {
+                    "node": {
+                        "id": "UHJvZHVjdDo5",
+                        "name": "The Aurum Residence",
+                        "slug": "the-aurum",
+                        "productType": {
+                            "name": "Luxury Property"
+                        },
+                        "attributes": [
+                            {
+                                "attribute": {
+                                    "name": "Location"
+                                },
+                                "values": [
+                                    {
+                                        "name": "London, UK",
+                                        "plainText": "London, UK"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Country"
+                                },
+                                "values": [
+                                    {
+                                        "name": "UK",
+                                        "plainText": "UK"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Property Type"
+                                },
+                                "values": [
+                                    {
+                                        "name": "QXR0cmlidXRlVmFsdWU6MQ==",
+                                        "plainText": null
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Status"
+                                },
+                                "values": [
+                                    {
+                                        "name": "QXR0cmlidXRlVmFsdWU6NA==",
+                                        "plainText": null
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Total Area"
+                                },
+                                "values": [
+                                    {
+                                        "name": "2,800 - 6,500 Sq. Ft.",
+                                        "plainText": "2,800 - 6,500 Sq. Ft."
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Configuration"
+                                },
+                                "values": [
+                                    {
+                                        "name": "3, 4 & 5 BHK",
+                                        "plainText": "3, 4 & 5 BHK"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Possession"
+                                },
+                                "values": [
+                                    {
+                                        "name": "Immediate",
+                                        "plainText": "Immediate"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Furnishing"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Rental Yield"
+                                },
+                                "values": [
+                                    {
+                                        "name": "4.2% p.a.",
+                                        "plainText": "4.2% p.a."
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "5-Year Appreciation"
+                                },
+                                "values": [
+                                    {
+                                        "name": "18-22%",
+                                        "plainText": "18-22%"
+                                    }
+                                ]
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Amenities"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Nearby Locations"
+                                },
+                                "values": []
+                            },
+                            {
+                                "attribute": {
+                                    "name": "Investment Verdict"
+                                },
+                                "values": []
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    },
+    "extensions": {
+        "cost": {
+            "requestedQueryCost": 50,
+            "maximumAvailable": 50000
+        }
+    }
+}
+
+=== COMPLETE ===

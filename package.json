@@ -1,0 +1,25 @@
+{
+  "name": "vilaasa-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vilaasa Estates Luxury Real Estate Monorepo (Frontend & Backend)",
+  "workspaces": [
+    "vilaasa-frontend",
+    "vilaasa-backend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n \"FRONTEND,BACKEND\" -c \"cyan,magenta\" \"npm run dev --prefix vilaasa-frontend\" \"npm run dev --prefix vilaasa-backend\"",
+    "dev:frontend": "npm run dev --prefix vilaasa-frontend",
+    "dev:backend": "npm run dev --prefix vilaasa-backend",
+    "build": "npm run build --prefix vilaasa-backend && npm run build --prefix vilaasa-frontend",
+    "build:frontend": "npm run build --prefix vilaasa-frontend",
+    "build:backend": "npm run build --prefix vilaasa-backend",
+    "db:migrate": "npm run db:migrate --prefix vilaasa-backend",
+    "db:generate": "npm run db:generate --prefix vilaasa-backend",
+    "db:seed": "npm run db:seed --prefix vilaasa-backend",
+    "db:studio": "npm run db:studio --prefix vilaasa-backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

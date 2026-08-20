@@ -1,0 +1,276 @@
+export type Role = "SUPER_ADMIN" | "CHANNEL_PARTNER";
+
+export type PropertyType =
+  | "RESIDENTIAL_VILLA"
+  | "RESIDENTIAL_APARTMENT"
+  | "PENTHOUSE"
+  | "HERITAGE_ESTATE"
+  | "COMMERCIAL"
+  | "FRANCHISE"
+  | "FARMLAND";
+
+export type PropertyStatus =
+  | "AVAILABLE"
+  | "UNDER_CONSTRUCTION"
+  | "OFF_PLAN"
+  | "READY_TO_MOVE"
+  | "SOLD"
+  | "RESERVED";
+
+export type FurnishingStatus =
+  | "UNFURNISHED"
+  | "SEMI_FURNISHED"
+  | "FULLY_FURNISHED"
+  | "DESIGNER_FURNISHED";
+
+export type Currency = "INR" | "AED" | "USD" | "EUR" | "GBP" | "SGD";
+
+export type InquiryStatus =
+  | "NEW"
+  | "CONTACTED"
+  | "QUALIFIED"
+  | "SITE_VISIT_SCHEDULED"
+  | "NEGOTIATING"
+  | "CLOSED_WON"
+  | "CLOSED_LOST";
+
+export type LeadSource =
+  | "HERO_INQUIRY"
+  | "PROPERTY_DETAIL"
+  | "FRANCHISE_DETAIL"
+  | "SITE_VISIT_MODAL"
+  | "CALENDAR_PAGE"
+  | "CONTACT_FORM"
+  | "CHANNEL_PARTNER_FORM"
+  | "VAULT_CONCIERGE";
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string | null;
+  phoneCode?: string | null;
+  role: Role;
+  avatar?: string | null;
+  licenseNumber?: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface Location {
+  id?: string;
+  city: string;
+  country: string;
+  community?: string | null;
+  addressLine?: string | null;
+  postalCode?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  googleMapUrl?: string | null;
+  mapEmbedUrl?: string | null;
+}
+
+export interface PropertyConfiguration {
+  id?: string;
+  propertyId?: string;
+  unitType: string;
+  areaSqFt: number;
+  viewType?: string | null;
+  price: number;
+  isAvailable: boolean;
+  floorPlanUrl?: string | null;
+}
+
+export interface PropertyMedia {
+  id?: string;
+  propertyId?: string;
+  mediaType: string;
+  url: string;
+  thumbnailUrl?: string | null;
+  altText?: string | null;
+  orderIndex: number;
+  isFeatured: boolean;
+  createdAt?: string;
+}
+
+export interface Amenity {
+  id: string;
+  name: string;
+  iconKey: string;
+  category?: string | null;
+}
+
+export interface PropertyOnAmenity {
+  propertyId: string;
+  amenityId: string;
+  description?: string | null;
+  amenity: Amenity;
+}
+
+export interface NearbyPlace {
+  id?: string;
+  propertyId?: string;
+  name: string;
+  distance: string;
+  category?: string | null;
+}
+
+export interface PropertyFinancialMetric {
+  id?: string;
+  propertyId?: string;
+  label: string;
+  value: string;
+  note?: string | null;
+  icon?: string | null;
+}
+
+export interface ConstructionMilestone {
+  id?: string;
+  name: string;
+  status: "COMPLETED" | "IN_PROGRESS" | "UPCOMING" | string;
+  targetDate: string;
+}
+
+export interface ConstructionGalleryItem {
+  id?: string;
+  imageUrl: string;
+  date: string;
+  caption?: string | null;
+}
+
+export interface ConstructionAsset {
+  id?: string;
+  propertyId?: string;
+  structureProgress: number;
+  interiorProgress: number;
+  overallProgress: number;
+  lastUpdate: string;
+  milestones?: ConstructionMilestone[];
+  gallery?: ConstructionGalleryItem[];
+}
+
+export interface Property {
+  id: string;
+  slug: string;
+  name: string;
+  tagline?: string | null;
+  description: string;
+  visionHeadline?: string | null;
+  type: PropertyType;
+  status: PropertyStatus;
+  isDeleted: boolean;
+  views: number;
+  price: number | string;
+  currency: Currency;
+  priceOnApplication: boolean;
+  rentalYieldPercent?: number | null;
+  expectedIrrPercent?: number | null;
+  appreciationPercent?: number | null;
+  totalAreaSqFt?: number | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  furnishingStatus: FurnishingStatus;
+  possessionDate?: string | null;
+  reraNumber?: string | null;
+  ownershipType?: string | null;
+  paymentPlan?: unknown;
+  virtualTour360Url?: string | null;
+  brochureUrl?: string | null;
+  maintenanceFeePerSqFt?: number | null;
+  verdictQuote?: string | null;
+  verdictAuthor?: string | null;
+  verdictTitle?: string | null;
+  locationId: string;
+  location: Location;
+  adminId?: string | null;
+  admin?: {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string | null;
+    avatar?: string | null;
+    licenseNumber?: string | null;
+  } | null;
+  configurations?: PropertyConfiguration[];
+  media?: PropertyMedia[];
+  amenities?: PropertyOnAmenity[];
+  nearbyPlaces?: NearbyPlace[];
+  financialMetrics?: PropertyFinancialMetric[];
+  constructionAsset?: ConstructionAsset | null;
+  _count?: {
+    configurations?: number;
+    media?: number;
+    amenities?: number;
+    inquiries?: number;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Inquiry {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  investmentType: string;
+  investmentRange: string;
+  currency: Currency;
+  status: InquiryStatus;
+  source: LeadSource;
+  notes?: string | null;
+  utmSource?: string | null;
+  utmCampaign?: string | null;
+  propertyId?: string | null;
+  property?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+  assignedAgentId?: string | null;
+  assignedAgent?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PropertyStats {
+  totalProperties: number;
+  byStatus: Record<string, number>;
+  byType: Record<string, number>;
+  byCountry: Record<string, number>;
+  totalInquiries: number;
+  recentInquiries: Inquiry[];
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: T;
+  meta?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
+export interface PropertyFilterParams {
+  status?: PropertyStatus | "";
+  type?: PropertyType | "";
+  country?: string;
+  city?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  bedrooms?: number;
+  furnishingStatus?: FurnishingStatus | "";
+  search?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: "price_asc" | "price_desc" | "newest" | "oldest" | "area_asc" | "area_desc";
+}

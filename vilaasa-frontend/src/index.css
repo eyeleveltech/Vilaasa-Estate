@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 150 20% 97%;
+    --foreground: 150 30% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 150 30% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 150 30% 10%;
+
+    --primary: 145 84% 45%;
+    --primary-foreground: 150 40% 5%;
+
+    --secondary: 150 10% 92%;
+    --secondary-foreground: 150 30% 10%;
+
+    --muted: 150 10% 92%;
+    --muted-foreground: 150 10% 45%;
+
+    --accent: 43 74% 52%;
+    --accent-foreground: 150 40% 5%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 150 10% 88%;
+    --input: 150 10% 88%;
+    --ring: 145 84% 45%;
+
+    --radius: 0.25rem;
+
+    --gold: 43 74% 52%;
+    --gold-foreground: 150 40% 5%;
+  }
+
+  .dark {
+    --background: 150 30% 4%;
+    --foreground: 0 0% 98%;
+
+    --card: 150 25% 6%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 150 25% 6%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 145 84% 45%;
+    --primary-foreground: 150 40% 5%;
+
+    --secondary: 150 20% 12%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 150 20% 12%;
+    --muted-foreground: 150 10% 55%;
+
+    --accent: 43 74% 52%;
+    --accent-foreground: 150 40% 5%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 150 20% 15%;
+    --input: 150 20% 15%;
+    --ring: 145 84% 45%;
+
+    --gold: 43 74% 52%;
+    --gold-foreground: 150 40% 5%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-display antialiased;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(150 30% 20%);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary));
+  }
+
+  ::selection {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+}
+
+@layer utilities {
+  .text-shadow-sm {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  }
+
+  .text-shadow-lg {
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  }
+
+  .gradient-overlay {
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.2), hsl(var(--background)));
+  }
+
+  .glass {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-light {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}

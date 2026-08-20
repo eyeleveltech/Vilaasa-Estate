@@ -1,0 +1,420 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ----------------------------------------------------
+// ENUMS
+// ----------------------------------------------------
+
+enum Role {
+  SUPER_ADMIN
+  CHANNEL_PARTNER
+}
+
+enum PropertyType {
+  RESIDENTIAL_VILLA
+  RESIDENTIAL_APARTMENT
+  PENTHOUSE
+  HERITAGE_ESTATE
+  COMMERCIAL
+  FRANCHISE
+  FARMLAND
+}
+
+enum PropertyStatus {
+  AVAILABLE
+  UNDER_CONSTRUCTION
+  OFF_PLAN
+  READY_TO_MOVE
+  SOLD
+  RESERVED
+}
+
+enum FurnishingStatus {
+  UNFURNISHED
+  SEMI_FURNISHED
+  FULLY_FURNISHED
+  DESIGNER_FURNISHED
+}
+
+enum Currency {
+  INR
+  AED
+  USD
+  EUR
+  GBP
+  SGD
+}
+
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  SITE_VISIT_SCHEDULED
+  NEGOTIATING
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum LeadSource {
+  HERO_INQUIRY
+  PROPERTY_DETAIL
+  FRANCHISE_DETAIL
+  SITE_VISIT_MODAL
+  CALENDAR_PAGE
+  CONTACT_FORM
+  CHANNEL_PARTNER_FORM
+  VAULT_CONCIERGE
+}
+
+// ----------------------------------------------------
+// USER MODEL (Super Admin & Channel Partner)
+// ----------------------------------------------------
+
+model User {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  passwordHash  String
+  name          String
+  phone         String?
+  phoneCode     String?      @default("+91")
+  role          Role         @default(CHANNEL_PARTNER)
+  avatar        String?
+  licenseNumber String?      // Broker License Number / RERA Agent No.
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  assignedProperties Property[]   @relation("AdminProperties")
+  assignedInquiries  Inquiry[]    @relation("AssignedInquiries")
+  vaultAssets        VaultAsset[]
+
+  @@index([role, isActive])
+  @@index([email])
+}
+
+// ----------------------------------------------------
+// PROPERTY MODEL
+// ----------------------------------------------------
+
+model Property {
+  id                  String           @id @default(cuid())
+  slug                String           @unique
+  name                String
+  tagline             String?
+  description         String           @db.Text
+  visionHeadline      String?
+  type                PropertyType     @default(RESIDENTIAL_VILLA)
+  status              PropertyStatus   @default(AVAILABLE)
+  isDeleted           Boolean          @default(false)
+  views               Int              @default(0)
+
+  // Pricing
+  price               Decimal          @db.Decimal(15, 2)
+  currency            Currency         @default(INR)
+  priceOnApplication  Boolean          @default(false)
+
+  // Financial Estimates & Projections
+  rentalYieldPercent  Decimal?         @db.Decimal(5, 2)
+  expectedIrrPercent  Decimal?         @db.Decimal(5, 2)
+  appreciationPercent Decimal?         @db.Decimal(5, 2)
+
+  // Specifications
+  totalAreaSqFt       Float?
+  bedrooms            Int?
+  bathrooms           Int?
+  furnishingStatus    FurnishingStatus @default(FULLY_FURNISHED)
+  possessionDate      DateTime?
+  reraNumber          String?          // Dubai Trakheesi Permit / India RERA Reg No.
+  ownershipType       String?          // "Freehold" | "Leasehold"
+  paymentPlan         Json?            // Structured payment breakdown { milestones: [] }
+  virtualTour360Url   String?
+  brochureUrl         String?          // Direct PDF Brochure URL (e.g. Cloudinary PDF link)
+  maintenanceFeePerSqFt Decimal?       @db.Decimal(10, 2)
+
+  // Editorial Verdict
+  verdictQuote        String?          @db.Text
+  verdictAuthor       String?
+  verdictTitle        String?
+
+  // Relations
+  locationId          String
+  location            Location         @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  adminId             String?
+  admin               User?            @relation("AdminProperties", fields: [adminId], references: [id], onDelete: SetNull)
+
+  configurations      PropertyConfiguration[]
+  media               PropertyMedia[]
+  amenities           PropertyOnAmenity[]
+  nearbyPlaces        NearbyPlace[]
+  financialMetrics    PropertyFinancialMetric[]
+  constructionAsset   ConstructionAsset?
+  inquiries           Inquiry[]
+  siteVisits          SiteVisit[]
+  vaultAssets         VaultAsset[]
+
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  @@index([isDeleted, status, type])
+  @@index([locationId])
+  @@index([price])
+}
+
+// ----------------------------------------------------
+// LOCATION MODEL
+// ----------------------------------------------------
+
+model Location {
+  id           String     @id @default(cuid())
+  city         String     // e.g. "Dubai", "Hyderabad", "Goa", "Mumbai"
+  country      String     // e.g. "UAE", "India", "UK", "USA"
+  community    String?    // e.g. "Palm Jumeirah", "Downtown Dubai", "Bandra"
+  addressLine  String?
+  postalCode   String?
+  latitude     Float?
+  longitude    Float?
+  googleMapUrl String?
+  mapEmbedUrl  String?
+
+  properties   Property[]
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([country, city])
+}
+
+// ----------------------------------------------------
+// PROPERTY CONFIGURATIONS / UNITS
+// ----------------------------------------------------
+
+model PropertyConfiguration {
+  id           String   @id @default(cuid())
+  propertyId   String
+  property     Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  unitType     String   // e.g. "3 BHK Presidential Suite", "4 BHK Penthouse"
+  areaSqFt     Float
+  viewType     String?  // e.g. "Arabian Gulf Sea View", "Golf Course View"
+  price        Decimal  @db.Decimal(15, 2)
+  isAvailable  Boolean  @default(true)
+  floorPlanUrl String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([propertyId])
+}
+
+// ----------------------------------------------------
+// MEDIA (Cloudinary Assets)
+// ----------------------------------------------------
+
+model PropertyMedia {
+  id           String   @id @default(cuid())
+  propertyId   String
+  property     Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  mediaType    String   // "HERO_IMAGE" | "GALLERY" | "BROCHURE_PDF" | "VIDEO_MP4" | "TOUR_360" | "FLOOR_PLAN"
+  url          String
+  thumbnailUrl String?
+  altText      String?
+  orderIndex   Int      @default(0)
+  isFeatured   Boolean  @default(false)
+
+  createdAt    DateTime @default(now())
+
+  @@index([propertyId, mediaType])
+  @@index([propertyId, isFeatured])
+}
+
+// ----------------------------------------------------
+// AMENITY CATALOG & M2M RELATION
+// ----------------------------------------------------
+
+model Amenity {
+  id         String              @id @default(cuid())
+  name       String              @unique // e.g. "Private Infinity Pool"
+  iconKey    String              // Material Symbols icon name
+  category   String?             // "Wellness", "Security", "Sports", "Lifestyle"
+
+  properties PropertyOnAmenity[]
+}
+
+model PropertyOnAmenity {
+  propertyId  String
+  amenityId   String
+  description String?           // Custom property-specific amenity description
+
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  amenity     Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([propertyId, amenityId])
+  @@index([amenityId])
+}
+
+// ----------------------------------------------------
+// NEARBY PLACES / CONNECTIVITY
+// ----------------------------------------------------
+
+model NearbyPlace {
+  id         String   @id @default(cuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  name       String   // "Dubai International Airport"
+  distance   String   // "15 Mins Drive"
+  category   String?  // "Airport", "Metro", "School", "Hospital", "Shopping"
+
+  @@index([propertyId])
+}
+
+// ----------------------------------------------------
+// FINANCIAL METRICS
+// ----------------------------------------------------
+
+model PropertyFinancialMetric {
+  id         String   @id @default(cuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  label      String   // "Projected Net Yield", "5-Year Capital Gain"
+  value      String   // "6.5% p.a.", "₹8.2 Cr"
+  note       String?
+  icon       String?  // Material icon identifier
+
+  @@index([propertyId])
+}
+
+// ----------------------------------------------------
+// CONSTRUCTION ASSET & MILESTONES
+// ----------------------------------------------------
+
+model ConstructionAsset {
+  id                String                    @id @default(cuid())
+  propertyId        String                    @unique
+  property          Property                  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  structureProgress Int                       @default(0)
+  interiorProgress  Int                       @default(0)
+  overallProgress   Int                       @default(0)
+  lastUpdate        DateTime                  @default(now())
+
+  milestones        ConstructionMilestone[]
+  gallery           ConstructionGalleryItem[]
+
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+}
+
+model ConstructionMilestone {
+  id                  String            @id @default(cuid())
+  constructionAssetId String
+  constructionAsset   ConstructionAsset @relation(fields: [constructionAssetId], references: [id], onDelete: Cascade)
+
+  name                String            // "Foundation & Piling", "Superstructure"
+  status              String            // "COMPLETED" | "IN_PROGRESS" | "UPCOMING"
+  targetDate          DateTime
+
+  @@index([constructionAssetId])
+}
+
+model ConstructionGalleryItem {
+  id                  String            @id @default(cuid())
+  constructionAssetId String
+  constructionAsset   ConstructionAsset @relation(fields: [constructionAssetId], references: [id], onDelete: Cascade)
+
+  imageUrl            String
+  date                DateTime
+  caption             String?
+
+  @@index([constructionAssetId])
+}
+
+// ----------------------------------------------------
+// INQUIRIES & LEAD MANAGEMENT
+// ----------------------------------------------------
+
+model Inquiry {
+  id              String        @id @default(cuid())
+  name            String
+  email           String
+  phone           String
+  investmentType  String        // "real-estate" | "franchise"
+  investmentRange String
+  currency        Currency      @default(INR)
+  status          InquiryStatus @default(NEW)
+  source          LeadSource    @default(HERO_INQUIRY)
+  notes           String?       @db.Text
+  utmSource       String?
+  utmCampaign     String?
+
+  propertyId      String?
+  property        Property?     @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  assignedAgentId String?
+  assignedAgent   User?         @relation("AssignedInquiries", fields: [assignedAgentId], references: [id], onDelete: SetNull)
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([status, propertyId])
+  @@index([email])
+}
+
+// ----------------------------------------------------
+// SITE VISITS
+// ----------------------------------------------------
+
+model SiteVisit {
+  id            String   @id @default(cuid())
+  propertyId    String
+  property      Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  name          String
+  email         String
+  phone         String
+  scheduledDate DateTime
+  scheduledTime String   // e.g. "11:00 AM"
+  timezone      String   @default("Asia/Kolkata")
+  visitType     String   // "real-estate-india" | "real-estate-international"
+  status        String   @default("CONFIRMED")
+  notes         String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([propertyId, scheduledDate])
+}
+
+// ----------------------------------------------------
+// THE VAULT (Investor Portfolios)
+// ----------------------------------------------------
+
+model VaultAsset {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  propertyId         String
+  property           Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+
+  unitNumber         String
+  purchaseDate       DateTime
+  purchasePrice      Decimal  @db.Decimal(15, 2)
+  currentValuation   Decimal  @db.Decimal(15, 2)
+  monthlyRentalYield Decimal? @db.Decimal(15, 2)
+  occupancyStatus    String   @default("OCCUPIED")
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([userId])
+  @@index([propertyId])
+}
