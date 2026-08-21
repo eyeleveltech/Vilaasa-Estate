@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   Building2,
   MapPin,
@@ -21,6 +22,9 @@ import {
   Currency,
   ApiResponse,
 } from "../types/admin.types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const AdminPropertyForm: React.FC = () => {
   const navigate = useNavigate();
@@ -72,14 +76,12 @@ export const AdminPropertyForm: React.FC = () => {
       const fetchPropertyForEdit = async () => {
         setLoading(true);
         try {
-          // Check by id or slug
           const res = await api.get<ApiResponse<Property[]>>("/properties", {
             params: { limit: 50 },
           });
           const match = res.data.data.find((p) => p.id === id || p.slug === id);
-          
+
           if (match) {
-            // Load full slug details
             const detailRes = await api.get<ApiResponse<Property>>(
               `/properties/${match.slug}`,
             );
@@ -104,7 +106,6 @@ export const AdminPropertyForm: React.FC = () => {
             );
             setVirtualTour360Url(prop.virtualTour360Url || "");
             setBrochureUrl(prop.brochureUrl || "");
-
             setPrice(prop.price?.toString() || "");
             setCurrency(prop.currency);
             setPriceOnApplication(prop.priceOnApplication);
@@ -250,31 +251,44 @@ export const AdminPropertyForm: React.FC = () => {
   if (loading) {
     return (
       <div className="flex h-96 flex-col items-center justify-center space-y-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#D4AF37] border-t-transparent" />
-        <p className="text-xs text-[#a0a0a0]">Loading property details...</p>
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <p className="text-xs text-muted-foreground">Loading property details...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto">
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="space-y-8 max-w-5xl mx-auto"
+    >
       {/* Header & Step Indicator */}
       <div className="space-y-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-4">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-              {isEditMode ? "Edit Luxury Property" : "Add New Luxury Property"}
+            <div className="flex items-center gap-3 text-primary/80 mb-1">
+              <span className="h-px w-6 bg-current" />
+              <span className="uppercase tracking-[0.2em] text-[11px] font-bold">
+                Estate Configuration
+              </span>
+            </div>
+            <h2 className="text-2xl font-light tracking-tight text-foreground sm:text-3xl">
+              {isEditMode ? "Edit Luxury Estate" : "Add New Luxury Estate"}
             </h2>
-            <p className="text-xs text-[#a0a0a0]">
-              Step {currentStep} of 3 — Complete listing specifications and media assets
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Step {currentStep} of 3 — Complete listing specifications and high-resolution media assets
             </p>
           </div>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => navigate("/admin/properties")}
-            className="text-xs text-[#a0a0a0] hover:text-white transition-colors"
+            className="text-xs"
           >
             ← Back to Property List
-          </button>
+          </Button>
         </div>
 
         {/* Wizard Progress Bar */}
@@ -294,25 +308,25 @@ export const AdminPropertyForm: React.FC = () => {
                 }}
                 className={`flex items-center space-x-3 rounded-xl border p-3.5 transition-all cursor-pointer ${
                   isCurrent
-                    ? "border-[#D4AF37] bg-[#1a1a1a] text-white shadow-lg shadow-black/40"
+                    ? "border-primary bg-primary/10 text-foreground shadow-lg"
                     : isDone
-                    ? "border-[#22c55e]/40 bg-[#141414] text-[#22c55e]"
-                    : "border-[#222222] bg-[#0f0f0f] text-[#666666]"
+                    ? "border-emerald-500/40 bg-card text-emerald-400"
+                    : "border-border bg-card/60 text-muted-foreground"
                 }`}
               >
                 <div
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
                     isCurrent
-                      ? "bg-[#D4AF37] text-black"
+                      ? "bg-primary text-primary-foreground"
                       : isDone
-                      ? "bg-[#22c55e]/20 text-[#22c55e]"
-                      : "bg-[#1f1f1f] text-[#666666]"
+                      ? "bg-emerald-500/20 text-emerald-400"
+                      : "bg-secondary text-muted-foreground"
                   }`}
                 >
                   {isDone ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
                 </div>
                 <div className="hidden sm:block">
-                  <p className="text-[10px] uppercase tracking-wider font-semibold text-[#a0a0a0]">
+                  <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Step {step.num}
                   </p>
                   <p className="text-xs font-bold">{step.title}</p>
@@ -324,53 +338,54 @@ export const AdminPropertyForm: React.FC = () => {
       </div>
 
       {/* Form Container */}
-      <div className="rounded-2xl border border-[#2a2a2a] bg-[#111111] p-6 sm:p-8 shadow-2xl">
+      <div className="rounded-xl border border-border bg-card p-6 sm:p-8 shadow-2xl">
         {/* ================= STEP 1 ================= */}
         {currentStep === 1 && (
           <div className="space-y-6">
-            <h3 className="text-base font-bold text-white border-b border-[#222222] pb-3">
+            <h3 className="text-base font-semibold text-foreground border-b border-border pb-3">
               Step 1: Core Specifications & Details
             </h3>
 
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               {/* Name */}
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
-                  Property Name <span className="text-[#D4AF37]">*</span>
-                </label>
-                <input
-                  type="text"
+                <Label htmlFor="name" className="text-xs font-semibold">
+                  Property Name <span className="text-primary">*</span>
+                </Label>
+                <Input
+                  id="name"
                   required
                   placeholder="e.g. Palm Royale Signature Villa"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+                  className="bg-secondary/40 h-10"
                 />
               </div>
 
               {/* Tagline */}
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
+                <Label htmlFor="tagline" className="text-xs font-semibold">
                   Tagline / Catchphrase
-                </label>
-                <input
-                  type="text"
+                </Label>
+                <Input
+                  id="tagline"
                   placeholder="e.g. Ultra-Prime Waterfront Living on Palm Jumeirah"
                   value={tagline}
                   onChange={(e) => setTagline(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+                  className="bg-secondary/40 h-10"
                 />
               </div>
 
               {/* Type */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
-                  Property Type <span className="text-[#D4AF37]">*</span>
-                </label>
+                <Label htmlFor="type" className="text-xs font-semibold">
+                  Property Type <span className="text-primary">*</span>
+                </Label>
                 <select
+                  id="type"
                   value={type}
                   onChange={(e) => setType(e.target.value as PropertyType)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
+                  className="w-full rounded-md border border-input bg-secondary/40 px-3 py-2 text-xs sm:text-sm text-foreground focus:border-primary focus:outline-none"
                 >
                   <option value="RESIDENTIAL_VILLA">Residential Villa</option>
                   <option value="RESIDENTIAL_APARTMENT">Residential Apartment</option>
@@ -384,13 +399,14 @@ export const AdminPropertyForm: React.FC = () => {
 
               {/* Status */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
-                  Listing Status <span className="text-[#D4AF37]">*</span>
-                </label>
+                <Label htmlFor="status" className="text-xs font-semibold">
+                  Listing Status <span className="text-primary">*</span>
+                </Label>
                 <select
+                  id="status"
                   value={status}
                   onChange={(e) => setStatus(e.target.value as PropertyStatus)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
+                  className="w-full rounded-md border border-input bg-secondary/40 px-3 py-2 text-xs sm:text-sm text-foreground focus:border-primary focus:outline-none"
                 >
                   <option value="AVAILABLE">Available</option>
                   <option value="UNDER_CONSTRUCTION">Under Construction</option>
@@ -403,76 +419,81 @@ export const AdminPropertyForm: React.FC = () => {
 
               {/* Description */}
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
-                  Architectural Description <span className="text-[#D4AF37]">*</span>
-                </label>
+                <Label htmlFor="desc" className="text-xs font-semibold">
+                  Architectural Description <span className="text-primary">*</span>
+                </Label>
                 <textarea
+                  id="desc"
                   rows={4}
                   required
                   placeholder="Detailed description of finishes, architectural vision, views..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+                  className="w-full rounded-md border border-input bg-secondary/40 px-3.5 py-2.5 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                 />
-                <p className="text-[11px] text-[#777777]">
+                <p className="text-[11px] text-muted-foreground">
                   Minimum 20 characters. Current: {description.length}
                 </p>
               </div>
 
               {/* Bedrooms & Bathrooms */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
+                <Label htmlFor="beds" className="text-xs font-semibold">
                   Bedrooms
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="beds"
                   type="number"
                   min="0"
                   placeholder="e.g. 5"
                   value={bedrooms}
                   onChange={(e) => setBedrooms(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+                  className="bg-secondary/40 h-10"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
+                <Label htmlFor="baths" className="text-xs font-semibold">
                   Bathrooms
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="baths"
                   type="number"
                   min="0"
                   placeholder="e.g. 7"
                   value={bathrooms}
                   onChange={(e) => setBathrooms(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+                  className="bg-secondary/40 h-10"
                 />
               </div>
 
               {/* Total Area & Furnishing */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
+                <Label htmlFor="sqft" className="text-xs font-semibold">
                   Total Built-up Area (Sq.Ft.)
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="sqft"
                   type="number"
                   min="1"
                   placeholder="e.g. 14500"
                   value={totalAreaSqFt}
                   onChange={(e) => setTotalAreaSqFt(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+                  className="bg-secondary/40 h-10"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
+                <Label htmlFor="furnishing" className="text-xs font-semibold">
                   Furnishing Status
-                </label>
+                </Label>
                 <select
+                  id="furnishing"
                   value={furnishingStatus}
                   onChange={(e) =>
                     setFurnishingStatus(e.target.value as FurnishingStatus)
                   }
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
+                  className="w-full rounded-md border border-input bg-secondary/40 px-3 py-2 text-xs sm:text-sm text-foreground focus:border-primary focus:outline-none"
                 >
                   <option value="UNFURNISHED">Unfurnished</option>
                   <option value="SEMI_FURNISHED">Semi-Furnished</option>
@@ -483,26 +504,28 @@ export const AdminPropertyForm: React.FC = () => {
 
               {/* RERA Number & Ownership */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
+                <Label htmlFor="rera" className="text-xs font-semibold">
                   RERA / Trakheesi Permit No.
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="rera"
                   type="text"
                   placeholder="e.g. DLD-TRAKHEESI-662819"
                   value={reraNumber}
                   onChange={(e) => setReraNumber(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+                  className="bg-secondary/40 h-10"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
+                <Label htmlFor="ownership" className="text-xs font-semibold">
                   Ownership Type
-                </label>
+                </Label>
                 <select
+                  id="ownership"
                   value={ownershipType}
                   onChange={(e) => setOwnershipType(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
+                  className="w-full rounded-md border border-input bg-secondary/40 px-3 py-2 text-xs sm:text-sm text-foreground focus:border-primary focus:outline-none"
                 >
                   <option value="Freehold">Freehold</option>
                   <option value="Leasehold">Leasehold</option>
@@ -511,27 +534,29 @@ export const AdminPropertyForm: React.FC = () => {
 
               {/* Possession Date & 360 Tour */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
+                <Label htmlFor="possession" className="text-xs font-semibold">
                   Expected Possession Date
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="possession"
                   type="date"
                   value={possessionDate}
                   onChange={(e) => setPossessionDate(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
+                  className="bg-secondary/40 h-10 text-xs"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
+                <Label htmlFor="tour" className="text-xs font-semibold">
                   Virtual Tour 360 URL (Matterport / Polycam)
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="tour"
                   type="url"
                   placeholder="https://my.matterport.com/show/?m=..."
                   value={virtualTour360Url}
                   onChange={(e) => setVirtualTour360Url(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+                  className="bg-secondary/40 h-10"
                 />
               </div>
 
@@ -545,17 +570,17 @@ export const AdminPropertyForm: React.FC = () => {
             </div>
 
             {/* Step 1 Actions */}
-            <div className="flex justify-end pt-4 border-t border-[#222222]">
-              <button
+            <div className="flex justify-end pt-4 border-t border-border">
+              <Button
                 type="button"
                 onClick={() => {
                   if (validateStep1()) setCurrentStep(2);
                 }}
-                className="flex items-center space-x-2 rounded-lg bg-[#D4AF37] px-6 py-2.5 text-sm font-bold text-black shadow-lg shadow-[#D4AF37]/20 hover:bg-[#b8952b] transition-all"
+                className="gap-2"
               >
                 <span>Continue to Location & Pricing</span>
                 <ChevronRight className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -563,7 +588,7 @@ export const AdminPropertyForm: React.FC = () => {
         {/* ================= STEP 2 ================= */}
         {currentStep === 2 && (
           <div className="space-y-6">
-            <h3 className="text-base font-bold text-white border-b border-[#222222] pb-3">
+            <h3 className="text-base font-semibold text-foreground border-b border-border pb-3">
               Step 2: Pricing & Geographic Location
             </h3>
 
@@ -571,37 +596,39 @@ export const AdminPropertyForm: React.FC = () => {
               {/* Price & Currency */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-[#dcdcdc]">
-                    Property Price <span className="text-[#D4AF37]">*</span>
-                  </label>
-                  <label className="flex items-center space-x-1.5 text-xs text-[#D4AF37] cursor-pointer">
+                  <Label htmlFor="price" className="text-xs font-semibold">
+                    Property Price <span className="text-primary">*</span>
+                  </Label>
+                  <label className="flex items-center space-x-1.5 text-xs text-primary cursor-pointer">
                     <input
                       type="checkbox"
                       checked={priceOnApplication}
                       onChange={(e) => setPriceOnApplication(e.target.checked)}
-                      className="rounded border-[#333333] text-[#D4AF37] focus:ring-0"
+                      className="rounded border-input text-primary focus:ring-0"
                     />
                     <span>Price On Application (POA)</span>
                   </label>
                 </div>
-                <input
+                <Input
+                  id="price"
                   type="number"
                   disabled={priceOnApplication}
                   placeholder={priceOnApplication ? "POA (Price hidden)" : "e.g. 185000000"}
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none disabled:opacity-40"
+                  className="bg-secondary/40 h-10 font-mono disabled:opacity-40"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
-                  Currency <span className="text-[#D4AF37]">*</span>
-                </label>
+                <Label htmlFor="curr" className="text-xs font-semibold">
+                  Currency <span className="text-primary">*</span>
+                </Label>
                 <select
+                  id="curr"
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value as Currency)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
+                  className="w-full rounded-md border border-input bg-secondary/40 px-3 py-2 text-xs sm:text-sm text-foreground focus:border-primary focus:outline-none font-mono"
                 >
                   <option value="INR">INR (₹)</option>
                   <option value="AED">AED (د.إ)</option>
@@ -614,10 +641,11 @@ export const AdminPropertyForm: React.FC = () => {
 
               {/* Rental Yield & Expected IRR */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
+                <Label htmlFor="yield" className="text-xs font-semibold">
                   Projected Net Rental Yield (% p.a.)
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="yield"
                   type="number"
                   step="0.1"
                   min="0"
@@ -625,15 +653,16 @@ export const AdminPropertyForm: React.FC = () => {
                   placeholder="e.g. 6.8"
                   value={rentalYieldPercent}
                   onChange={(e) => setRentalYieldPercent(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+                  className="bg-secondary/40 h-10 font-mono"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
+                <Label htmlFor="irr" className="text-xs font-semibold">
                   Expected IRR (%)
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="irr"
                   type="number"
                   step="0.1"
                   min="0"
@@ -641,126 +670,134 @@ export const AdminPropertyForm: React.FC = () => {
                   placeholder="e.g. 21.5"
                   value={expectedIrrPercent}
                   onChange={(e) => setExpectedIrrPercent(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+                  className="bg-secondary/40 h-10 font-mono"
                 />
               </div>
 
               {/* City & Country */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
-                  City <span className="text-[#D4AF37]">*</span>
-                </label>
-                <input
+                <Label htmlFor="city" className="text-xs font-semibold">
+                  City <span className="text-primary">*</span>
+                </Label>
+                <Input
+                  id="city"
                   type="text"
                   required
                   placeholder="e.g. Dubai"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+                  className="bg-secondary/40 h-10"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
-                  Country <span className="text-[#D4AF37]">*</span>
-                </label>
-                <input
+                <Label htmlFor="country" className="text-xs font-semibold">
+                  Country <span className="text-primary">*</span>
+                </Label>
+                <Input
+                  id="country"
                   type="text"
                   required
                   placeholder="e.g. UAE"
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+                  className="bg-secondary/40 h-10"
                 />
               </div>
 
               {/* Community & Address */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
+                <Label htmlFor="community" className="text-xs font-semibold">
                   Community / Neighbourhood
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="community"
                   type="text"
                   placeholder="e.g. Palm Jumeirah, Frond G"
                   value={community}
                   onChange={(e) => setCommunity(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+                  className="bg-secondary/40 h-10"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
+                <Label htmlFor="address" className="text-xs font-semibold">
                   Address Line
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="address"
                   type="text"
                   placeholder="e.g. Billionaires Row Enclave"
                   value={addressLine}
                   onChange={(e) => setAddressLine(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+                  className="bg-secondary/40 h-10"
                 />
               </div>
 
               {/* Latitude & Longitude */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
+                <Label htmlFor="lat" className="text-xs font-semibold">
                   Latitude
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="lat"
                   type="number"
                   step="any"
                   placeholder="e.g. 25.1124"
                   value={latitude}
                   onChange={(e) => setLatitude(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+                  className="bg-secondary/40 h-10 font-mono"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
+                <Label htmlFor="lng" className="text-xs font-semibold">
                   Longitude
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="lng"
                   type="number"
                   step="any"
                   placeholder="e.g. 55.1390"
                   value={longitude}
                   onChange={(e) => setLongitude(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+                  className="bg-secondary/40 h-10 font-mono"
                 />
               </div>
 
               {/* Google Map URL */}
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-xs font-semibold text-[#dcdcdc]">
+                <Label htmlFor="mapUrl" className="text-xs font-semibold">
                   Google Maps URL
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="mapUrl"
                   type="url"
                   placeholder="https://maps.google.com/?q=..."
                   value={googleMapUrl}
                   onChange={(e) => setGoogleMapUrl(e.target.value)}
-                  className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+                  className="bg-secondary/40 h-10"
                 />
               </div>
             </div>
 
             {/* Step 2 Actions */}
-            <div className="flex items-center justify-between pt-4 border-t border-[#222222]">
-              <button
+            <div className="flex items-center justify-between pt-4 border-t border-border">
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => setCurrentStep(1)}
-                className="flex items-center space-x-1.5 rounded-lg border border-[#2a2a2a] bg-[#181818] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#252525] transition-colors"
+                className="gap-1.5"
               >
                 <ChevronLeft className="h-4 w-4" />
                 <span>Back</span>
-              </button>
+              </Button>
 
-              <button
+              <Button
                 type="button"
                 disabled={saving}
                 onClick={handleSaveBasicAndLocation}
-                className="flex items-center space-x-2 rounded-lg bg-[#D4AF37] px-6 py-2.5 text-sm font-bold text-black shadow-lg shadow-[#D4AF37]/20 hover:bg-[#b8952b] transition-all disabled:opacity-50"
+                className="gap-2"
               >
                 {saving ? (
                   <span>Saving Property...</span>
@@ -775,7 +812,7 @@ export const AdminPropertyForm: React.FC = () => {
                     <ChevronRight className="h-4 w-4" />
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -783,22 +820,24 @@ export const AdminPropertyForm: React.FC = () => {
         {/* ================= STEP 3 ================= */}
         {currentStep === 3 && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between border-b border-[#222222] pb-3">
+            <div className="flex items-center justify-between border-b border-border pb-3">
               <div>
-                <h3 className="text-base font-bold text-white">
+                <h3 className="text-base font-semibold text-foreground">
                   Step 3: Media Upload & Gallery Management
                 </h3>
-                <p className="text-xs text-[#a0a0a0]">
-                  Property ID: <span className="font-mono text-[#D4AF37]">{createdPropertyId}</span>
+                <p className="text-xs text-muted-foreground">
+                  Property ID: <span className="font-mono text-primary font-medium">{createdPropertyId}</span>
                 </p>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setCurrentStep(2)}
-                className="text-xs text-[#a0a0a0] hover:text-white"
+                className="text-xs"
               >
                 ← Back to Details
-              </button>
+              </Button>
             </div>
 
             {createdPropertyId ? (
@@ -811,13 +850,13 @@ export const AdminPropertyForm: React.FC = () => {
                 }}
               />
             ) : (
-              <div className="p-8 text-center text-xs text-[#ef4444]">
+              <div className="p-8 text-center text-xs text-destructive">
                 Please complete Steps 1 and 2 to create the property record first.
               </div>
             )}
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };

@@ -11,6 +11,7 @@ export const CreateInquirySchema = z.object({
   propertyId: z.string().optional(),
   source: z.nativeEnum(LeadSource).default(LeadSource.HERO_INQUIRY),
   utmSource: z.string().optional(),
+  utmMedium: z.string().optional(),
   utmCampaign: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -19,6 +20,16 @@ export const UpdateInquiryStatusSchema = z.object({
   status: z.nativeEnum(InquiryStatus),
   assignedAgentId: z.string().optional(),
   notes: z.string().optional(),
+});
+
+export const ScheduleFollowUpSchema = z.object({
+  followUpDate: z.string().min(1, "Follow-up date is required"),
+  followUpNotes: z.string().optional(),
+});
+
+export const AddTimelineNoteSchema = z.object({
+  note: z.string().min(1, "Timeline note is required"),
+  toStatus: z.nativeEnum(InquiryStatus).optional(),
 });
 
 export const InquiryFilterSchema = z.object({
@@ -32,4 +43,6 @@ export const InquiryFilterSchema = z.object({
 
 export type CreateInquiryInput = z.infer<typeof CreateInquirySchema>;
 export type UpdateInquiryStatusInput = z.infer<typeof UpdateInquiryStatusSchema>;
+export type ScheduleFollowUpInput = z.infer<typeof ScheduleFollowUpSchema>;
+export type AddTimelineNoteInput = z.infer<typeof AddTimelineNoteSchema>;
 export type InquiryFilterQuery = z.infer<typeof InquiryFilterSchema>;

@@ -160,3 +160,134 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
     ApiResponse.ok(user, "User profile retrieved successfully"),
   );
 });
+
+/**
+ * @desc    Send 6-digit OTP code to email for authentication / login / Vault access
+ * @route   POST /api/v1/auth/otp/send
+ * @access  Public
+ */
+export const sendOtp = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  // Generate 6-digit numeric OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+
+  // Invalidate any previous unverified OTPs for this email
+  await prisma.otpRecord.deleteMany({
+    where: { email, verified: false },
+  });
+
+  // Create new OTP record
+  await prisma.otpRecord.create({
+    data: {
+      email,
+      otp,
+      expiresAt,
+    },
+  });
+
+  // Dispatch luxury email
+  const { sendOtpEmail } = await import("../../services/email.service");
+  await sendOtpEmail(email, otp);
+
+  return res.status(200).json(
+    ApiResponse.ok(
+      { email, expiresAt },
+      "One-time password sent successfully to your email",
+    ),
+  );
+});
+
+/**
+ * @desc    Verify 6-digit OTP code and authenticate user
+ * @route   POST /api/v1/auth/otp/verify
+ * @access  Public
+ */
+export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
+  const { email, otp } = req.body;
+
+  const record = await prisma.otpRecord.findFirst({
+    where: {
+      email,
+      verified: false,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!record) {
+    throw ApiError.badRequest(
+      "No active OTP found for this email. Request a new code.",
+    );
+  }
+
+  if (new Date() > record.expiresAt) {
+    throw ApiError.badRequest(
+      "OTP has expired. Please request a new security code.",
+    );
+  }
+
+  if (record.attempts >= 5) {
+    throw ApiError.forbidden(
+      "Maximum OTP verification attempts exceeded. Request a new code.",
+    );
+  }
+
+  if (record.otp !== otp) {
+    await prisma.otpRecord.update({
+      where: { id: record.id },
+      data: { attempts: { increment: 1 } },
+    });
+    throw ApiError.badRequest("Invalid OTP code. Please check and try again.");
+  }
+
+  // Mark OTP as verified
+  await prisma.otpRecord.update({
+    where: { id: record.id },
+    data: { verified: true },
+  });
+
+  // Check if existing user or auto-provision client user record
+  let user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    const dummyPasswordHash = await bcrypt.hash(
+      `OtpClient@${Date.now()}_${Math.random()}`,
+      10,
+    );
+    const defaultName = email
+      .split("@")[0]
+      .replace(/[._-]/g, " ")
+      .replace(/\b\w/g, (c: string) => c.toUpperCase());
+
+    user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: dummyPasswordHash,
+        name: defaultName,
+        role: "CHANNEL_PARTNER",
+      },
+    });
+  }
+
+  const token = generateToken(user.id, user.email, user.role);
+
+  return res.status(200).json(
+    ApiResponse.ok(
+      {
+        verified: true,
+        email,
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        },
+      },
+      "OTP verified successfully",
+    ),
+  );
+});

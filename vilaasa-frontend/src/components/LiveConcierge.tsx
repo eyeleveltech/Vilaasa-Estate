@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface DeskOption {
@@ -39,6 +40,12 @@ const desks: DeskOption[] = [
 
 export const LiveConcierge = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+
+  // Do not render live concierge widget inside admin portal
+  if (location.pathname.startsWith("/admin")) {
+    return null;
+  }
 
   const handleDeskClick = (desk: DeskOption) => {
     const encodedMessage = encodeURIComponent(desk.message);

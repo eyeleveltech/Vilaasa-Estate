@@ -11,6 +11,8 @@ import {
 import toast from "react-hot-toast";
 import api from "../../api/axios";
 import { PropertyMedia, ApiResponse } from "../types/admin.types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface QueuedFile {
   id: string;
@@ -99,61 +101,57 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
         `/media/upload/${propertyId}`,
         formData,
         {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         },
       );
 
       if (res.data.success && res.data.data) {
         updateQueueItem(item.id, { status: "success", progress: 100 });
-        toast.success(`Uploaded ${item.file.name}`);
-        setUploadedMedia((prev) => [...prev, res.data.data]);
-        if (onMediaUploaded) onMediaUploaded(res.data.data);
-        
-        // Remove from queue after brief delay
-        setTimeout(() => {
-          removeQueueItem(item.id);
-        }, 1200);
+        const newMedia = res.data.data;
+        setUploadedMedia((prev) => [...prev, newMedia]);
+        if (onMediaUploaded) onMediaUploaded(newMedia);
+        toast.success(`Uploaded: ${item.file.name}`);
+      } else {
+        throw new Error(res.data.message || "Upload failed");
       }
     } catch (err: unknown) {
-      const errMsg =
+      const errorMsg =
         (err as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Upload failed";
-      updateQueueItem(item.id, { status: "error", error: errMsg, progress: 0 });
-      toast.error(`Error uploading ${item.file.name}: ${errMsg}`);
+          ?.data?.message || "Failed to upload file";
+      updateQueueItem(item.id, { status: "error", error: errorMsg });
+      toast.error(`Error uploading ${item.file.name}: ${errorMsg}`);
     }
   };
 
   const uploadAll = async () => {
-    const idleItems = queuedFiles.filter(
+    const pendingItems = queuedFiles.filter(
       (item) => item.status === "idle" || item.status === "error",
     );
-    for (const item of idleItems) {
+    if (pendingItems.length === 0) return;
+
+    for (const item of pendingItems) {
       await uploadItem(item);
     }
   };
 
   const handleDeleteUploaded = async (mediaId: string) => {
-    if (!confirm("Are you sure you want to delete this media asset?")) return;
     try {
-      const res = await api.delete<ApiResponse<{ id: string }>>(
-        `/media/${mediaId}`,
-      );
+      const res = await api.delete(`/media/${mediaId}`);
       if (res.data.success) {
-        toast.success("Media deleted successfully");
         setUploadedMedia((prev) => prev.filter((m) => m.id !== mediaId));
         if (onMediaDeleted) onMediaDeleted(mediaId);
+        toast.success("Media asset removed");
       }
-    } catch (err: unknown) {
-      const errMsg =
-        (err as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Failed to delete media";
-      toast.error(errMsg);
+    } catch {
+      toast.error("Failed to delete media asset");
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Drag and Drop Box */}
+      {/* Drag & Drop Upload Zone */}
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -163,59 +161,64 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
         onDrop={handleDrop}
         className={`relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-all ${
           isDragging
-            ? "border-[#D4AF37] bg-[#D4AF37]/10"
-            : "border-[#2a2a2a] bg-[#111111] hover:border-[#D4AF37]/50"
+            ? "border-primary bg-primary/10"
+            : "border-border bg-secondary/20 hover:border-primary/50"
         }`}
       >
-        <div className="flex h-14 w-14 items-center justify-center rounded-full border border-[#D4AF37]/30 bg-[#1a1a1a] text-[#D4AF37] mb-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-primary shadow mb-3">
           <Upload className="h-6 w-6" />
         </div>
-        <h4 className="text-base font-semibold text-white">
-          Drag & drop luxury media assets here
+        <h4 className="text-sm font-semibold text-foreground">
+          Drag and drop ultra-HD media files here
         </h4>
-        <p className="mt-1 text-xs text-[#a0a0a0]">
-          Supports high-res JPG, PNG, WebP, MP4 Video, and PDF brochures (up to
-          100MB per file)
+        <p className="mt-1 text-xs text-muted-foreground">
+          Supports JPG, PNG, WEBP, MP4, and PDF brochures (Up to 50MB per file)
         </p>
 
-        <label className="mt-4 inline-flex cursor-pointer items-center rounded-lg border border-[#D4AF37] bg-[#D4AF37] px-4 py-2 text-xs font-semibold text-black hover:bg-[#b8952b] transition-all">
-          <span>Browse Files</span>
+        <label className="mt-4 inline-flex cursor-pointer items-center justify-center rounded-md bg-primary px-4 py-2 text-xs uppercase tracking-[0.1em] font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-sm">
+          Browse Files
           <input
             type="file"
             multiple
-            accept="image/*,application/pdf,video/mp4"
-            className="hidden"
+            accept="image/*,video/mp4,application/pdf"
             onChange={(e) => handleFiles(e.target.files)}
+            className="hidden"
           />
         </label>
       </div>
 
-      {/* Upload Queue Section */}
+      {/* Upload Queue */}
       {queuedFiles.length > 0 && (
-        <div className="space-y-4 rounded-xl border border-[#2a2a2a] bg-[#141414] p-5">
-          <div className="flex items-center justify-between">
-            <h5 className="text-sm font-semibold text-white">
-              Files to Upload ({queuedFiles.length})
-            </h5>
-            <button
+        <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-xl">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <div>
+              <h4 className="text-sm font-semibold text-foreground">
+                Upload Queue ({queuedFiles.length} files)
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                Configure asset types and metadata before upload
+              </p>
+            </div>
+            <Button
+              size="sm"
               onClick={uploadAll}
-              className="rounded-lg bg-[#D4AF37] px-4 py-1.5 text-xs font-bold text-black hover:bg-[#b8952b] transition-colors"
+              className="text-xs"
             >
               Upload All Files
-            </button>
+            </Button>
           </div>
 
           <div className="space-y-3">
             {queuedFiles.map((item) => (
               <div
                 key={item.id}
-                className="flex flex-col gap-3 rounded-lg border border-[#262626] bg-[#1a1a1a] p-4 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 rounded-lg border border-border bg-secondary/30 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 {/* Preview Thumbnail & Name */}
                 <div className="flex items-center space-x-3">
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-[#333333] bg-[#0f0f0f]">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-secondary">
                     {item.file.type === "application/pdf" ? (
-                      <FileText className="h-8 w-8 text-[#D4AF37]" />
+                      <FileText className="h-7 w-7 text-primary" />
                     ) : (
                       <img
                         src={item.previewUrl}
@@ -225,10 +228,10 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                     )}
                   </div>
                   <div className="overflow-hidden">
-                    <p className="truncate text-xs font-medium text-white max-w-[200px]">
+                    <p className="truncate text-xs font-semibold text-foreground max-w-[200px]">
                       {item.file.name}
                     </p>
-                    <p className="text-[11px] text-[#a0a0a0]">
+                    <p className="text-[11px] text-muted-foreground font-mono">
                       {(item.file.size / (1024 * 1024)).toFixed(2)} MB
                     </p>
                   </div>
@@ -242,7 +245,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                     onChange={(e) =>
                       updateQueueItem(item.id, { mediaType: e.target.value })
                     }
-                    className="rounded border border-[#333333] bg-[#111111] px-2.5 py-1.5 text-xs text-white focus:border-[#D4AF37] focus:outline-none"
+                    className="rounded-md border border-input bg-secondary/50 px-2.5 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
                   >
                     <option value="HERO_IMAGE">Hero Image</option>
                     <option value="GALLERY">Gallery Photo</option>
@@ -253,18 +256,18 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                   </select>
 
                   {/* Alt Text */}
-                  <input
+                  <Input
                     type="text"
-                    placeholder="Alt text caption"
+                    placeholder="Alt caption"
                     value={item.altText}
                     onChange={(e) =>
                       updateQueueItem(item.id, { altText: e.target.value })
                     }
-                    className="w-36 rounded border border-[#333333] bg-[#111111] px-2.5 py-1.5 text-xs text-white focus:border-[#D4AF37] focus:outline-none"
+                    className="w-32 bg-secondary/50 text-xs h-8"
                   />
 
                   {/* Featured Toggle */}
-                  <label className="flex items-center space-x-1.5 text-xs text-[#a0a0a0] cursor-pointer">
+                  <label className="flex items-center space-x-1.5 text-xs text-muted-foreground cursor-pointer">
                     <input
                       type="checkbox"
                       checked={item.isFeatured}
@@ -273,7 +276,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                           isFeatured: e.target.checked,
                         })
                       }
-                      className="rounded border-[#333333] text-[#D4AF37] focus:ring-0"
+                      className="rounded border-input text-primary focus:ring-0"
                     />
                     <span>Featured</span>
                   </label>
@@ -281,28 +284,30 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                   {/* Action / Status */}
                   <div className="flex items-center space-x-2">
                     {item.status === "uploading" && (
-                      <div className="flex items-center space-x-2 text-xs text-[#D4AF37]">
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#D4AF37] border-t-transparent" />
+                      <div className="flex items-center space-x-2 text-xs text-primary">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                         <span>Uploading...</span>
                       </div>
                     )}
                     {item.status === "success" && (
-                      <CheckCircle2 className="h-5 w-5 text-[#22c55e]" />
+                      <CheckCircle2 className="h-5 w-5 text-emerald-400" />
                     )}
                     {item.status === "error" && (
-                      <AlertCircle className="h-5 w-5 text-[#ef4444]" />
+                      <AlertCircle className="h-5 w-5 text-destructive" />
                     )}
                     {item.status === "idle" && (
-                      <button
+                      <Button
+                        size="sm"
+                        variant="outline"
                         onClick={() => uploadItem(item)}
-                        className="rounded border border-[#D4AF37]/50 bg-[#1f1a0e] px-3 py-1.5 text-xs font-semibold text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-colors"
+                        className="text-[11px] h-7 px-2.5"
                       >
                         Upload
-                      </button>
+                      </Button>
                     )}
                     <button
                       onClick={() => removeQueueItem(item.id)}
-                      className="text-[#a0a0a0] hover:text-[#ef4444] p-1"
+                      className="text-muted-foreground hover:text-destructive p-1 transition-colors"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -317,20 +322,20 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       {/* Uploaded Media Grid */}
       {uploadedMedia.length > 0 && (
         <div className="space-y-3">
-          <h5 className="text-sm font-semibold text-white">
+          <h5 className="text-sm font-semibold text-foreground">
             Current Media Assets ({uploadedMedia.length})
           </h5>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {uploadedMedia.map((media) => (
               <div
                 key={media.id}
-                className="group relative overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#111111] shadow-lg"
+                className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-md hover:border-primary/40 transition-colors"
               >
-                <div className="aspect-[4/3] w-full bg-[#181818]">
+                <div className="aspect-[4/3] w-full bg-secondary">
                   {media.mediaType === "BROCHURE_PDF" ? (
                     <div className="flex h-full w-full flex-col items-center justify-center p-3 text-center">
-                      <FileText className="h-8 w-8 text-[#D4AF37]" />
-                      <span className="mt-1 line-clamp-1 text-[11px] text-[#a0a0a0]">
+                      <FileText className="h-8 w-8 text-primary" />
+                      <span className="mt-1 line-clamp-1 text-[11px] text-muted-foreground">
                         {media.altText || "PDF Brochure"}
                       </span>
                     </div>
@@ -344,21 +349,21 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                 </div>
 
                 {media.isFeatured && (
-                  <span className="absolute left-2 top-2 flex items-center space-x-1 rounded bg-[#D4AF37] px-2 py-0.5 text-[10px] font-bold text-black shadow-md">
-                    <Star className="h-2.5 w-2.5 fill-black" />
+                  <span className="absolute left-2 top-2 flex items-center space-x-1 rounded bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground shadow-md">
+                    <Star className="h-2.5 w-2.5 fill-current" />
                     <span>Featured</span>
                   </span>
                 )}
 
-                <div className="p-2 flex items-center justify-between border-t border-[#222222]">
-                  <span className="text-[10px] font-mono uppercase text-[#a0a0a0]">
-                    {media.mediaType.replace("_", " ")}
+                <div className="p-2 flex items-center justify-between border-t border-border bg-secondary/30">
+                  <span className="text-[10px] font-mono uppercase text-muted-foreground">
+                    {media.mediaType.replace(/_/g, " ")}
                   </span>
                   {media.id && (
                     <button
                       onClick={() => handleDeleteUploaded(media.id!)}
                       title="Delete asset"
-                      className="rounded p-1 text-[#a0a0a0] hover:bg-[#222222] hover:text-[#ef4444] transition-colors"
+                      className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -372,14 +377,14 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
       {/* Finish & View Property Button */}
       {onFinish && (
-        <div className="flex justify-end pt-4 border-t border-[#2a2a2a]">
-          <button
+        <div className="flex justify-end pt-4 border-t border-border">
+          <Button
             type="button"
             onClick={onFinish}
-            className="rounded-lg bg-[#D4AF37] px-6 py-2.5 text-sm font-bold text-black shadow-lg shadow-[#D4AF37]/20 hover:bg-[#b8952b] transition-all"
+            className="uppercase tracking-[0.1em] font-semibold text-xs"
           >
             Finish & View Property
-          </button>
+          </Button>
         </div>
       )}
     </div>

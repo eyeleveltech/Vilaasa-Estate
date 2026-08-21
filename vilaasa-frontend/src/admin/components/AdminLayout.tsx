@@ -4,6 +4,8 @@ import {
   LayoutDashboard,
   Building2,
   Inbox,
+  CalendarCheck,
+  Users,
   LogOut,
   Menu,
   X,
@@ -11,13 +13,14 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useAdminAuth } from "../hooks/useAdminAuth";
+import vilaasaLogo from "@/assets/vilaasa-logo.svg";
 
 export const AdminLayout: React.FC = () => {
   const location = useLocation();
   const { user, logout } = useAdminAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navItems = [
+  const allNavItems = [
     {
       label: "Dashboard",
       path: "/admin/dashboard",
@@ -33,7 +36,22 @@ export const AdminLayout: React.FC = () => {
       path: "/admin/inquiries",
       icon: Inbox,
     },
+    {
+      label: "Site Visits",
+      path: "/admin/site-visits",
+      icon: CalendarCheck,
+    },
+    {
+      label: "Partners",
+      path: "/admin/channel-partners",
+      icon: Users,
+      superAdminOnly: true,
+    },
   ];
+
+  const navItems = allNavItems.filter(
+    (item) => !item.superAdminOnly || user?.role === "SUPER_ADMIN",
+  );
 
   const getPageTitle = () => {
     const path = location.pathname;
@@ -42,11 +60,13 @@ export const AdminLayout: React.FC = () => {
     if (path.startsWith("/admin/properties/")) return "Property Details";
     if (path === "/admin/properties") return "Property Management";
     if (path === "/admin/inquiries") return "Client Inquiries Pipeline";
+    if (path === "/admin/site-visits") return "Private Estate Site Inspections";
+    if (path === "/admin/channel-partners") return "Channel Partner Directory";
     return "Executive Dashboard";
   };
 
   return (
-    <div className="flex min-h-screen bg-[#0a0a0a] text-white antialiased font-sans">
+    <div className="flex min-h-screen bg-background text-foreground antialiased font-display">
       {/* Mobile Backdrop */}
       {mobileOpen && (
         <div
@@ -57,35 +77,40 @@ export const AdminLayout: React.FC = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[240px] flex-col justify-between border-r border-[#2a2a2a] bg-[#111111] transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col justify-between border-r border-border bg-card transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div>
           {/* Logo Brand */}
-          <div className="flex h-16 items-center justify-between border-b border-[#2a2a2a] px-6">
+          <div className="flex h-16 items-center justify-between border-b border-border px-4">
             <Link
               to="/admin/dashboard"
-              className="flex items-center space-x-2"
+              className="flex items-center gap-2 min-w-0"
               onClick={() => setMobileOpen(false)}
             >
-              <span className="font-serif text-xl tracking-[0.2em] text-[#D4AF37] font-bold">
-                VILAASA
-              </span>
-              <span className="text-[10px] uppercase tracking-widest text-[#a0a0a0] font-mono">
-                ADMIN
+              <img
+                src={vilaasaLogo}
+                alt="Vilaasa"
+                className="h-[18px] w-auto max-w-[150px] object-contain shrink-0"
+              />
+              <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary border border-primary/30 shrink-0">
+                Admin
               </span>
             </Link>
             <button
               onClick={() => setMobileOpen(false)}
-              className="text-[#a0a0a0] hover:text-white lg:hidden"
+              className="text-muted-foreground hover:text-foreground lg:hidden p-1"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </button>
           </div>
 
           {/* Navigation Items */}
-          <nav className="space-y-1.5 p-4">
+          <nav className="space-y-1 p-3">
+            <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/70">
+              Management
+            </p>
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive =
@@ -98,17 +123,17 @@ export const AdminLayout: React.FC = () => {
                   key={item.path}
                   to={item.path}
                   onClick={() => setMobileOpen(false)}
-                  className={`group flex items-center space-x-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200 ${
+                  className={`group flex items-center space-x-3 rounded-md px-3.5 py-2.5 text-xs uppercase tracking-[0.1em] font-medium transition-all duration-200 ${
                     isActive
-                      ? "border border-[#D4AF37]/30 bg-[#1a1a1a] text-[#D4AF37] shadow-lg shadow-black/40 font-semibold"
-                      : "text-[#a0a0a0] hover:bg-[#181818] hover:text-white"
+                      ? "border border-primary/30 bg-primary/10 text-primary shadow-sm font-semibold"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   }`}
                 >
                   <Icon
-                    className={`h-5 w-5 transition-colors ${
+                    className={`h-4 w-4 transition-colors ${
                       isActive
-                        ? "text-[#D4AF37]"
-                        : "text-[#a0a0a0] group-hover:text-white"
+                        ? "text-primary"
+                        : "text-muted-foreground group-hover:text-foreground"
                     }`}
                   />
                   <span>{item.label}</span>
@@ -119,28 +144,28 @@ export const AdminLayout: React.FC = () => {
         </div>
 
         {/* Bottom Actions & User Profile */}
-        <div className="border-t border-[#2a2a2a] p-4 space-y-3">
+        <div className="border-t border-border p-3 space-y-2.5">
           <Link
             to="/home"
             target="_blank"
-            className="flex items-center justify-between rounded-lg px-3 py-2 text-xs font-medium text-[#a0a0a0] hover:bg-[#1a1a1a] hover:text-white transition-colors"
+            className="flex items-center justify-between rounded-md px-3 py-2 text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           >
             <span className="flex items-center space-x-2">
-              <ExternalLink className="h-4 w-4 text-[#D4AF37]" />
+              <ExternalLink className="h-3.5 w-3.5 text-primary" />
               <span>Public Website</span>
             </span>
           </Link>
 
-          <div className="flex items-center justify-between rounded-lg bg-[#181818] p-3 border border-[#262626]">
+          <div className="flex items-center justify-between rounded-lg bg-secondary/50 p-2.5 border border-border">
             <div className="flex items-center space-x-2.5 overflow-hidden">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#D4AF37]/10 text-xs font-bold text-[#D4AF37] border border-[#D4AF37]/30">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary border border-primary/20">
                 {user?.name ? user.name.charAt(0).toUpperCase() : "A"}
               </div>
               <div className="overflow-hidden">
-                <p className="truncate text-xs font-semibold text-white">
+                <p className="truncate text-xs font-semibold text-foreground">
                   {user?.name || "Super Admin"}
                 </p>
-                <div className="flex items-center space-x-1 text-[10px] text-[#D4AF37]">
+                <div className="flex items-center space-x-1 text-[10px] text-primary">
                   <ShieldCheck className="h-3 w-3" />
                   <span>{user?.role || "SUPER_ADMIN"}</span>
                 </div>
@@ -149,7 +174,7 @@ export const AdminLayout: React.FC = () => {
             <button
               onClick={logout}
               title="Logout"
-              className="text-[#a0a0a0] hover:text-[#ef4444] transition-colors p-1.5 rounded hover:bg-[#222222]"
+              className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded hover:bg-secondary"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -158,31 +183,34 @@ export const AdminLayout: React.FC = () => {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex flex-1 flex-col lg:pl-[240px]">
+      <div className="flex flex-1 flex-col lg:pl-[260px]">
         {/* Top Bar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#2a2a2a] bg-[#0a0a0a]/90 px-6 backdrop-blur-md">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/90 px-6 backdrop-blur-md">
           <div className="flex items-center space-x-4">
             <button
               onClick={() => setMobileOpen(true)}
-              className="rounded-lg border border-[#2a2a2a] p-2 text-[#a0a0a0] hover:bg-[#181818] hover:text-white lg:hidden"
+              className="rounded-md border border-border p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground lg:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>
-            <h1 className="text-lg font-bold tracking-tight text-white md:text-xl">
-              {getPageTitle()}
-            </h1>
+            <div className="flex items-center gap-3">
+              <span className="hidden sm:inline-block h-px w-6 bg-primary/60" />
+              <h1 className="text-base font-light tracking-tight text-foreground sm:text-lg">
+                {getPageTitle()}
+              </h1>
+            </div>
           </div>
 
           <div className="flex items-center space-x-3">
-            <div className="hidden sm:flex items-center space-x-2 rounded-full border border-[#2a2a2a] bg-[#141414] px-3.5 py-1 text-xs text-[#a0a0a0]">
-              <span className="h-2 w-2 rounded-full bg-[#22c55e] animate-pulse" />
-              <span>Production API: Connected</span>
+            <div className="hidden sm:flex items-center space-x-2 rounded-full border border-border bg-secondary/40 px-3.5 py-1 text-[11px] text-muted-foreground">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Production Live</span>
             </div>
           </div>
         </header>
 
         {/* Page Content View */}
-        <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 w-full max-w-[1600px] mx-auto">
           <Outlet />
         </main>
       </div>

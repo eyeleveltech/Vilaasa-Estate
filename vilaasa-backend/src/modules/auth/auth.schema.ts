@@ -33,3 +33,25 @@ export const LoginSchema = z.object({
 
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;
+
+export const SendOtpSchema = z.object({
+  email: z
+    .string({ required_error: "Email is required" })
+    .email("Invalid email format")
+    .toLowerCase()
+    .trim(),
+});
+
+export const VerifyOtpSchema = z.object({
+  email: z
+    .string({ required_error: "Email is required" })
+    .email("Invalid email format")
+    .toLowerCase()
+    .trim(),
+  otp: z
+    .string({ required_error: "OTP is required" })
+    .length(6, "OTP must be exactly 6 digits"),
+});
+
+export type SendOtpInput = z.infer<typeof SendOtpSchema>;
+export type VerifyOtpInput = z.infer<typeof VerifyOtpSchema>;

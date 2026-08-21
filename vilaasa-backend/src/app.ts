@@ -17,6 +17,9 @@ import amenityRoutes from "./modules/amenity/amenity.routes";
 import constructionRoutes from "./modules/construction/construction.routes";
 import mediaRoutes from "./modules/media/media.routes";
 import inquiryRoutes from "./modules/inquiry/inquiry.routes";
+import channelPartnerRoutes from "./modules/channelPartner/channelPartner.routes";
+import siteVisitRoutes from "./modules/siteVisit/siteVisit.routes";
+import vaultRoutes from "./modules/vault/vault.routes";
 
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
@@ -103,6 +106,10 @@ app.get("/api/v1/health", (_req: Request, res: Response) => {
   );
 });
 
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 // ----------------------------------------------------
 // Mount Versioned API Routes (/api/v1)
 // ----------------------------------------------------
@@ -112,6 +119,10 @@ app.use("/api/v1/amenities", amenityRoutes);
 app.use("/api/v1/construction", constructionRoutes);
 app.use("/api/v1/media", mediaRoutes);
 app.use("/api/v1/inquiries", inquiryRoutes);
+app.use("/api/v1/channel-partners", channelPartnerRoutes);
+app.use("/api/v1/partners", channelPartnerRoutes);
+app.use("/api/v1/site-visits", siteVisitRoutes);
+app.use("/api/v1/vault", vaultRoutes);
 
 // ----------------------------------------------------
 // 404 Route Handler

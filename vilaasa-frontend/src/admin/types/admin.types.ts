@@ -207,6 +207,22 @@ export interface Property {
   updatedAt: string;
 }
 
+export interface InquiryTimeline {
+  id: string;
+  inquiryId: string;
+  fromStatus?: string | null;
+  toStatus: string;
+  note?: string | null;
+  changedById?: string | null;
+  changedByName?: string | null;
+  changedBy?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  createdAt: string;
+}
+
 export interface Inquiry {
   id: string;
   name: string;
@@ -219,12 +235,21 @@ export interface Inquiry {
   source: LeadSource;
   notes?: string | null;
   utmSource?: string | null;
+  utmMedium?: string | null;
   utmCampaign?: string | null;
+  followUpDate?: string | null;
+  followUpNotes?: string | null;
   propertyId?: string | null;
   property?: {
     id: string;
     name: string;
     slug: string;
+    price?: number | string;
+    currency?: Currency;
+    location?: {
+      city: string;
+      country: string;
+    };
   } | null;
   assignedAgentId?: string | null;
   assignedAgent?: {
@@ -232,6 +257,46 @@ export interface Inquiry {
     name: string;
     email: string;
   } | null;
+  timeline?: InquiryTimeline[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SiteVisit {
+  id: string;
+  propertyId: string;
+  property?: {
+    id: string;
+    name: string;
+    slug: string;
+    location?: {
+      city: string;
+      country: string;
+    };
+  };
+  name: string;
+  email: string;
+  phone: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  timezone: string;
+  visitType: string;
+  status: "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW" | string;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface ChannelPartner {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  company?: string | null;
+  experience?: string | null;
+  city?: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  approvedById?: string | null;
+  userId?: string | null;
   createdAt: string;
   updatedAt: string;
 }

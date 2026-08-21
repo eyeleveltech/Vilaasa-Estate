@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../api/axios";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface BrochureUploaderProps {
   value: string;
@@ -30,7 +32,7 @@ export const BrochureUploader: React.FC<BrochureUploaderProps> = ({
   const handleFileUpload = async (file: File) => {
     if (!file) return;
 
-    // Validate PDF / Document format
+    // Validate PDF format
     const validTypes = [
       "application/pdf",
       "application/msword",
@@ -101,14 +103,14 @@ export const BrochureUploader: React.FC<BrochureUploaderProps> = ({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-xs font-semibold text-[#dcdcdc] flex items-center space-x-1.5">
-          <FileText className="h-3.5 w-3.5 text-[#D4AF37]" />
+        <Label className="text-xs font-semibold flex items-center space-x-1.5">
+          <FileText className="h-3.5 w-3.5 text-primary" />
           <span>Official Brochure PDF Document</span>
-        </label>
+        </Label>
         <button
           type="button"
           onClick={() => setShowManualUrl(!showManualUrl)}
-          className="text-[11px] text-[#a0a0a0] hover:text-[#D4AF37] transition-colors flex items-center space-x-1"
+          className="text-[11px] text-muted-foreground hover:text-primary transition-colors flex items-center space-x-1 uppercase tracking-wider"
         >
           <LinkIcon className="h-3 w-3" />
           <span>{showManualUrl ? "Upload File" : "Paste URL"}</span>
@@ -117,19 +119,19 @@ export const BrochureUploader: React.FC<BrochureUploaderProps> = ({
 
       {/* Uploaded File Card */}
       {value && !showManualUrl ? (
-        <div className="flex items-center justify-between rounded-xl border border-[#D4AF37]/30 bg-[#161616] p-3.5 shadow-lg">
+        <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-secondary/40 p-3 shadow-sm">
           <div className="flex items-center space-x-3 overflow-hidden">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#D4AF37]/10 text-[#D4AF37]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <FileText className="h-5 w-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center space-x-1.5">
-                <p className="truncate text-xs font-bold text-white">
+                <p className="truncate text-xs font-semibold text-foreground">
                   {value.split("/").pop() || "Official Property Brochure"}
                 </p>
-                <CheckCircle className="h-3.5 w-3.5 text-[#22c55e] shrink-0" />
+                <CheckCircle className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
               </div>
-              <p className="truncate font-mono text-[10px] text-[#a0a0a0]">
+              <p className="truncate font-mono text-[10px] text-muted-foreground">
                 {value}
               </p>
             </div>
@@ -140,16 +142,16 @@ export const BrochureUploader: React.FC<BrochureUploaderProps> = ({
               href={value}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center space-x-1 rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] px-2.5 py-1.5 text-xs text-white hover:border-[#D4AF37] transition-colors"
+              className="flex items-center space-x-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs text-foreground hover:border-primary transition-colors uppercase tracking-wider font-semibold"
             >
-              <ExternalLink className="h-3 w-3 text-[#D4AF37]" />
+              <ExternalLink className="h-3 w-3 text-primary" />
               <span>Preview</span>
             </a>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               title="Replace PDF"
-              className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] p-1.5 text-[#a0a0a0] hover:text-white hover:border-[#D4AF37] transition-colors"
+              className="rounded-md border border-border bg-card p-1.5 text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
             >
               <RefreshCw className="h-3.5 w-3.5" />
             </button>
@@ -157,7 +159,7 @@ export const BrochureUploader: React.FC<BrochureUploaderProps> = ({
               type="button"
               onClick={() => onChange("")}
               title="Remove brochure"
-              className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] p-1.5 text-[#a0a0a0] hover:text-[#ef4444] transition-colors"
+              className="rounded-md border border-border bg-card p-1.5 text-muted-foreground hover:text-destructive transition-colors"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
@@ -166,14 +168,14 @@ export const BrochureUploader: React.FC<BrochureUploaderProps> = ({
       ) : showManualUrl ? (
         /* Manual URL Entry Mode */
         <div className="space-y-1">
-          <input
+          <Input
             type="url"
             placeholder="https://res.cloudinary.com/vilaasa/sample-brochure.pdf"
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] px-3.5 py-2.5 text-sm text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+            className="bg-secondary/40 h-10"
           />
-          <p className="text-[11px] text-[#777777]">
+          <p className="text-[11px] text-muted-foreground">
             Paste external PDF dossier or architectural catalogue URL
           </p>
         </div>
@@ -186,23 +188,23 @@ export const BrochureUploader: React.FC<BrochureUploaderProps> = ({
           onClick={() => !isUploading && fileInputRef.current?.click()}
           className={`group flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center transition-all ${
             isDragOver
-              ? "border-[#D4AF37] bg-[#D4AF37]/5"
-              : "border-[#2a2a2a] bg-[#141414] hover:border-[#D4AF37]/60 hover:bg-[#181818]"
+              ? "border-primary bg-primary/5"
+              : "border-border bg-secondary/20 hover:border-primary/60 hover:bg-secondary/40"
           }`}
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1e1e1e] text-[#D4AF37] shadow group-hover:scale-105 transition-transform mb-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-primary shadow group-hover:scale-105 transition-transform mb-2">
             {isUploading ? (
-              <RefreshCw className="h-5 w-5 animate-spin text-[#D4AF37]" />
+              <RefreshCw className="h-5 w-5 animate-spin text-primary" />
             ) : (
               <UploadCloud className="h-5 w-5" />
             )}
           </div>
-          <p className="text-xs font-semibold text-white">
+          <p className="text-xs font-semibold text-foreground">
             {isUploading
               ? "Uploading to Cloudinary..."
               : "Click to upload or drag & drop Brochure PDF"}
           </p>
-          <p className="text-[11px] text-[#777777] mt-0.5">
+          <p className="text-[11px] text-muted-foreground mt-0.5">
             Supports high-res PDF Dossiers (Up to 10MB)
           </p>
         </div>

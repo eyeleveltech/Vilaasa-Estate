@@ -8,6 +8,7 @@ import {
   PropertyStatus,
   FurnishingStatus,
   Currency,
+  LeadSource,
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
@@ -18,7 +19,9 @@ async function main() {
 
   // 1. Clean existing data
   await prisma.vaultAsset.deleteMany();
+  await prisma.channelPartner.deleteMany();
   await prisma.siteVisit.deleteMany();
+  await prisma.inquiryTimeline.deleteMany();
   await prisma.inquiry.deleteMany();
   await prisma.constructionGalleryItem.deleteMany();
   await prisma.constructionMilestone.deleteMany();
@@ -31,6 +34,7 @@ async function main() {
   await prisma.property.deleteMany();
   await prisma.location.deleteMany();
   await prisma.amenity.deleteMany();
+  await prisma.otpRecord.deleteMany();
   await prisma.user.deleteMany();
 
   // 2. Create Users
@@ -49,7 +53,7 @@ async function main() {
     },
   });
 
-  const channelPartner = await prisma.user.create({
+  const channelPartnerUser = await prisma.user.create({
     data: {
       email: "partner@luxuryestates.com",
       passwordHash: partnerHash,
@@ -61,7 +65,62 @@ async function main() {
     },
   });
 
-  console.log(` Created Super Admin (${superAdmin.email}) & Channel Partner (${channelPartner.email})`);
+  console.log(` Created Super Admin (${superAdmin.email}) & Channel Partner (${channelPartnerUser.email})`);
+
+  // Create Channel Partner Directory Records
+  await prisma.channelPartner.createMany({
+    data: [
+      {
+        name: "Apex Global Capital Partners",
+        email: "partner@luxuryestates.com",
+        phone: "+919876543210",
+        company: "Apex Global Realty",
+        experience: "10+ years",
+        city: "Mumbai",
+        status: "APPROVED",
+        userId: channelPartnerUser.id,
+        approvedById: superAdmin.id,
+      },
+      {
+        name: "Elysian International Realty",
+        email: "contact@elysianrealty.ae",
+        phone: "+971509988776",
+        company: "Elysian Real Estate LLC",
+        experience: "8 years",
+        city: "Dubai",
+        status: "PENDING",
+      },
+      {
+        name: "Sovereign Prime Advisory",
+        email: "vikram.mehta@sovereigncapital.in",
+        phone: "+919811223344",
+        company: "Sovereign Asset Partners",
+        experience: "5-7 years",
+        city: "New Delhi",
+        status: "PENDING",
+      },
+      {
+        name: "Gulf Coast Luxury Estates",
+        email: "tariq@gulfcoastprime.com",
+        phone: "+971554433221",
+        company: "Gulf Coast Brokerage",
+        experience: "6 years",
+        city: "Abu Dhabi",
+        status: "APPROVED",
+        approvedById: superAdmin.id,
+      },
+      {
+        name: "Nordic Heritage Investments",
+        email: "invest@nordicestates.se",
+        phone: "+4681234567",
+        company: "Nordic Private Clients",
+        experience: "1-2 years",
+        city: "Stockholm",
+        status: "REJECTED",
+      },
+    ],
+  });
+  console.log(" Seeded 5 Channel Partner Directory Applications (2 Approved, 2 Pending, 1 Rejected).");
 
   // 3. Create Master Amenities
   const amenitiesList = [
@@ -491,6 +550,114 @@ async function main() {
       },
     },
   });
+
+  // 6. Seed Site Visits
+  const allProps = await prisma.property.findMany({ select: { id: true, name: true } });
+  if (allProps.length > 0) {
+    await prisma.siteVisit.createMany({
+      data: [
+        {
+          propertyId: allProps[0].id,
+          name: "Lord Alistair Sterling",
+          email: "sterling@mayfair-investments.co.uk",
+          phone: "+447911123456",
+          scheduledDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+          scheduledTime: "11:00 AM",
+          visitType: "real-estate-international",
+          status: "CONFIRMED",
+          notes: "Requires private chauffeur transfer from Burj Al Arab.",
+        },
+        {
+          propertyId: allProps[1] ? allProps[1].id : allProps[0].id,
+          name: "Dr. Ananya Singhania",
+          email: "ananya@singhania-familyoffice.com",
+          phone: "+919820011223",
+          scheduledDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000),
+          scheduledTime: "03:00 PM",
+          visitType: "real-estate-india",
+          status: "CONFIRMED",
+          notes: "Family office principal reviewing trophy estate.",
+        },
+        {
+          propertyId: allProps[2] ? allProps[2].id : allProps[0].id,
+          name: "Sheikh Mansoor Al Qasimi",
+          email: "mansoor@qasimi-holdings.ae",
+          phone: "+971501239876",
+          scheduledDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+          scheduledTime: "05:00 PM",
+          visitType: "real-estate-international",
+          status: "COMPLETED",
+          notes: "Completed private yacht viewing.",
+        },
+      ],
+    });
+    console.log(" Seeded 3 Private Site Inspection Bookings.");
+
+    // 7. Seed Inquiries with Timelines
+    const inq1 = await prisma.inquiry.create({
+      data: {
+        name: "Vikramaditya Birla",
+        email: "v.birla@birlacapital.com",
+        phone: "+919988776655",
+        investmentType: "real-estate",
+        investmentRange: "$10M - $25M",
+        currency: Currency.AED,
+        status: "QUALIFIED",
+        source: LeadSource.PROPERTY_DETAIL,
+        notes: "Interested in Palm Jumeirah and Emirates Hills.",
+        propertyId: allProps[0].id,
+        timeline: {
+          create: [
+            {
+              fromStatus: null,
+              toStatus: "NEW",
+              note: "Inquiry submitted via property dossier.",
+              changedById: superAdmin.id,
+            },
+            {
+              fromStatus: "NEW",
+              toStatus: "CONTACTED",
+              note: "Senior Managing Director held introductory advisory call.",
+              changedById: superAdmin.id,
+            },
+            {
+              fromStatus: "CONTACTED",
+              toStatus: "QUALIFIED",
+              note: "Verified HNW liquidity proof. Scheduled private viewing itinerary.",
+              changedById: superAdmin.id,
+            },
+          ],
+        },
+      },
+    });
+
+    const inq2 = await prisma.inquiry.create({
+      data: {
+        name: "Helena Rothschild-Vance",
+        email: "h.vance@genevacapital.ch",
+        phone: "+41228190000",
+        investmentType: "real-estate",
+        investmentRange: "$25M+",
+        currency: Currency.AED,
+        status: "NEW",
+        source: LeadSource.CHANNEL_PARTNER_FORM,
+        notes: "Swiss family trust seeking trophy oceanfront compound.",
+        propertyId: allProps[1] ? allProps[1].id : allProps[0].id,
+        timeline: {
+          create: [
+            {
+              fromStatus: null,
+              toStatus: "NEW",
+              note: "Private referral via Apex Global Capital Partners.",
+              changedById: superAdmin.id,
+            },
+          ],
+        },
+      },
+    });
+
+    console.log(" Seeded Client Inquiries with complete audit timelines.");
+  }
 
   console.log(" Seeded 6 Ultra-Luxury Estates across Dubai and India.");
   console.log(" Database Seeding Completed Successfully!");

@@ -7,8 +7,10 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import {
   CreateInquiryInput,
   UpdateInquiryStatusInput,
+  ScheduleFollowUpInput,
   InquiryFilterQuery,
 } from "./inquiry.schema";
+import { sendInquiryConfirmationEmail } from "../../services/email.service";
 
 /**
  * @desc    Submit a new property / investment inquiry
@@ -19,15 +21,18 @@ export const createInquiry = asyncHandler(
   async (req: Request, res: Response) => {
     const data = req.body as CreateInquiryInput;
 
+    let propertyName: string | undefined = undefined;
     if (data.propertyId) {
       const property = await prisma.property.findUnique({
         where: { id: data.propertyId },
+        select: { id: true, name: true },
       });
       if (!property) {
         throw ApiError.badRequest(
           `Referenced property with id '${data.propertyId}' does not exist`,
         );
       }
+      propertyName = property.name;
     }
 
     const inquiry = await prisma.inquiry.create({
@@ -41,8 +46,17 @@ export const createInquiry = asyncHandler(
         propertyId: data.propertyId,
         source: data.source,
         utmSource: data.utmSource,
+        utmMedium: data.utmMedium,
         utmCampaign: data.utmCampaign,
         notes: data.notes,
+        timeline: {
+          create: {
+            fromStatus: null,
+            toStatus: "NEW",
+            note: `Inquiry submitted via ${data.source.replace(/_/g, " ")}`,
+            changedById: req.user?.id || null,
+          },
+        },
       },
       include: {
         property: {
@@ -52,8 +66,18 @@ export const createInquiry = asyncHandler(
             slug: true,
           },
         },
+        timeline: true,
       },
     });
+
+    // Send confirmation email asynchronously (non-blocking)
+    sendInquiryConfirmationEmail({
+      name: inquiry.name,
+      email: inquiry.email,
+      investmentType: inquiry.investmentType,
+      investmentRange: inquiry.investmentRange,
+      propertyName,
+    }).catch((err) => console.error("Email dispatch failed:", err));
 
     return res.status(201).json(
       ApiResponse.created(
@@ -126,6 +150,10 @@ export const getInquiries = asyncHandler(
               email: true,
             },
           },
+          timeline: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
         },
       }),
     ]);
@@ -146,7 +174,44 @@ export const getInquiries = asyncHandler(
 );
 
 /**
- * @desc    Update inquiry status & assigned agent
+ * @desc    Get single inquiry with full CRM timeline history
+ * @route   GET /api/v1/inquiries/:id
+ * @access  Protected (Admin and Channel Partner)
+ */
+export const getInquiryById = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const inquiry = await prisma.inquiry.findUnique({
+      where: { id },
+      include: {
+        property: true,
+        assignedAgent: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
+        timeline: {
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    });
+
+    if (!inquiry) {
+      throw ApiError.notFound(`Inquiry with id '${id}' not found`);
+    }
+
+    return res.status(200).json(
+      ApiResponse.ok(inquiry, "Inquiry details retrieved successfully"),
+    );
+  },
+);
+
+/**
+ * @desc    Update inquiry status & assigned agent, recording timeline entry
  * @route   PATCH /api/v1/inquiries/:id/status
  * @access  Protected (Admin only)
  */
@@ -175,6 +240,17 @@ export const updateInquiryStatus = asyncHandler(
       }
     }
 
+    // Record timeline transition if status changed or note provided
+    const timelineEntry = await prisma.inquiryTimeline.create({
+      data: {
+        inquiryId: id,
+        fromStatus: inquiry.status,
+        toStatus: status,
+        note: notes || `Status updated from ${inquiry.status} to ${status}`,
+        changedById: req.user?.id || null,
+      },
+    });
+
     const updated = await prisma.inquiry.update({
       where: { id },
       data: {
@@ -197,11 +273,141 @@ export const updateInquiryStatus = asyncHandler(
             email: true,
           },
         },
+        timeline: {
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
 
     return res.status(200).json(
-      ApiResponse.ok(updated, "Inquiry status updated successfully"),
+      ApiResponse.ok(
+        { inquiry: updated, timeline: timelineEntry },
+        "Inquiry status updated successfully",
+      ),
+    );
+  },
+);
+
+/**
+ * @desc    Schedule next follow-up touchpoint date and notes
+ * @route   PATCH /api/v1/inquiries/:id/follow-up
+ * @access  Protected (Admin only)
+ */
+export const scheduleFollowUp = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { followUpDate, followUpNotes } = req.body as ScheduleFollowUpInput;
+
+    const inquiry = await prisma.inquiry.findUnique({
+      where: { id },
+    });
+
+    if (!inquiry) {
+      throw ApiError.notFound(`Inquiry with id '${id}' not found`);
+    }
+
+    const parsedDate = new Date(followUpDate);
+    if (isNaN(parsedDate.getTime())) {
+      throw ApiError.badRequest("Invalid follow-up date format");
+    }
+
+    // Record timeline entry for scheduled follow-up
+    await prisma.inquiryTimeline.create({
+      data: {
+        inquiryId: id,
+        fromStatus: inquiry.status,
+        toStatus: inquiry.status,
+        note: `Follow-up scheduled for ${parsedDate.toLocaleDateString()}${followUpNotes ? `: ${followUpNotes}` : ""}`,
+        changedById: req.user?.id || null,
+      },
+    });
+
+    const updated = await prisma.inquiry.update({
+      where: { id },
+      data: {
+        followUpDate: parsedDate,
+        followUpNotes,
+      },
+      include: {
+        timeline: {
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    return res.status(200).json(
+      ApiResponse.ok(updated, "Follow-up scheduled successfully"),
+    );
+  },
+);
+
+/**
+ * @desc    Get full CRM timeline for an inquiry
+ * @route   GET /api/v1/inquiries/:id/timeline
+ * @access  Protected (Admin only)
+ */
+export const getInquiryTimeline = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const timeline = await prisma.inquiryTimeline.findMany({
+      where: { inquiryId: id },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return res.status(200).json(
+      ApiResponse.ok(timeline, "Inquiry timeline retrieved successfully"),
+    );
+  },
+);
+
+/**
+ * @desc    Get inquiry analytics & conversion KPIs
+ * @route   GET /api/v1/inquiries/stats
+ * @access  Protected (Super Admin & Channel Partner)
+ */
+export const getInquiryStats = asyncHandler(
+  async (_req: Request, res: Response) => {
+    const [
+      totalInquiries,
+      newInquiries,
+      contactedInquiries,
+      qualifiedInquiries,
+      siteVisitsScheduled,
+      negotiatingInquiries,
+      closedWonInquiries,
+      closedLostInquiries,
+    ] = await Promise.all([
+      prisma.inquiry.count(),
+      prisma.inquiry.count({ where: { status: "NEW" } }),
+      prisma.inquiry.count({ where: { status: "CONTACTED" } }),
+      prisma.inquiry.count({ where: { status: "QUALIFIED" } }),
+      prisma.inquiry.count({ where: { status: "SITE_VISIT_SCHEDULED" } }),
+      prisma.inquiry.count({ where: { status: "NEGOTIATING" } }),
+      prisma.inquiry.count({ where: { status: "CLOSED_WON" } }),
+      prisma.inquiry.count({ where: { status: "CLOSED_LOST" } }),
+    ]);
+
+    const conversionRate =
+      totalInquiries > 0
+        ? parseFloat(((closedWonInquiries / totalInquiries) * 100).toFixed(1))
+        : 0;
+
+    return res.status(200).json(
+      ApiResponse.ok(
+        {
+          totalInquiries,
+          newInquiries,
+          contactedInquiries,
+          qualifiedInquiries,
+          siteVisitsScheduled,
+          negotiatingInquiries,
+          closedWonInquiries,
+          closedLostInquiries,
+          conversionRate,
+        },
+        "Inquiry statistics retrieved successfully",
+      ),
     );
   },
 );

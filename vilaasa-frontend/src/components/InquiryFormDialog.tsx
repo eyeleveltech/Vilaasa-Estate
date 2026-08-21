@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CountryCodeSelect } from "./CountryCodeSelect";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { markOtpVerified } from "@/lib/otpAccess";
+import api from "@/api/axios";
 
 interface InquiryFormDialogProps {
   open: boolean;
@@ -58,29 +59,32 @@ export const InquiryFormDialog = ({
   projectName,
   onVerified,
 }: InquiryFormDialogProps) => {
-  const OTP_REQUEST_URL =
-    "https://automate.eyelevelstudio.in/webhook/otp/request";
-  const OTP_VERIFY_URL =
-    "https://automate.eyelevelstudio.in/webhook/otp/verify";
-  const OTP_RESEND_URL =
-    "https://automate.eyelevelstudio.in/webhook/otp/resend";
-  const INQUIRY_STORE_URL =
-    "https://automate.eyelevelstudio.in/webhook/inquires-data";
-
   const navigate = useNavigate();
   const { toast } = useToast();
   const [step, setStep] = useState<"form" | "otp" | "success">("form");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { formatAmount, currency } = useCurrency();
+  const [resendTimer, setResendTimer] = useState<number>(60);
   const [formData, setFormData] = useState({
     name: "",
     phoneCountryCode: "+91",
     phone: "",
     email: "",
-    investmentType: projectType || "",
+    investmentType: projectType || "real-estate",
     investmentRange: "",
   });
   const [otp, setOtp] = useState("");
+
+  // Resend OTP Countdown Timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (step === "otp" && resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [step, resendTimer]);
 
   const persistLeadProfile = () => {
     if (typeof window === "undefined") return;
@@ -113,85 +117,10 @@ export const InquiryFormDialog = ({
 
   const getSelectedInvestmentRangeLabel = (value: string) =>
     investmentRangeOptions.find((option) => option.value === value)?.label ||
-    "";
+    value ||
+    "Private Client Advisory";
 
-  const parseJsonSafely = async (response: Response) => {
-    const text = await response.text();
-    if (!text) return null;
-    try {
-      return JSON.parse(text) as unknown;
-    } catch {
-      return null;
-    }
-  };
-
-  const normalizeApiData = (
-    raw: unknown,
-  ): {
-    ok?: boolean;
-    success?: boolean;
-    status?: string;
-    code?: string;
-    message?: string;
-  } | null => {
-    if (!raw) return null;
-    if (Array.isArray(raw)) {
-      const first = raw[0];
-      if (first && typeof first === "object") return normalizeApiData(first);
-      return null;
-    }
-    if (typeof raw === "object") {
-      const obj = raw as Record<string, unknown>;
-      return {
-        ok: typeof obj.ok === "boolean" ? obj.ok : undefined,
-        success: typeof obj.success === "boolean" ? obj.success : undefined,
-        status:
-          typeof obj.status === "string"
-            ? obj.status
-            : typeof obj.Status === "string"
-              ? obj.Status
-              : undefined,
-        code:
-          typeof obj.code === "string"
-            ? obj.code
-            : typeof obj.Code === "string"
-              ? obj.Code
-              : undefined,
-        message:
-          typeof obj.message === "string"
-            ? obj.message
-            : typeof obj.Message === "string"
-              ? obj.Message
-              : undefined,
-      };
-    }
-    return null;
-  };
-
-  const getApiMessage = (raw: unknown) => {
-    const data = normalizeApiData(raw);
-    return typeof data?.message === "string" ? data.message : undefined;
-  };
-
-  const isApiSuccess = (
-    response: Response,
-    rawData: unknown,
-    acceptedCodes: string[] = [],
-    acceptedStatuses: string[] = [],
-  ) => {
-    const data = normalizeApiData(rawData);
-    const normalizedStatus =
-      typeof data?.status === "string" ? data.status.toUpperCase() : "";
-    return (
-      response.ok &&
-      (data?.ok === true ||
-        data?.success === true ||
-        normalizedStatus === "SUCCESS" ||
-        (typeof data?.code === "string" && acceptedCodes.includes(data.code)) ||
-        acceptedStatuses.includes(normalizedStatus))
-    );
-  };
-
+  // Step 1: Request OTP Code
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -211,7 +140,6 @@ export const InquiryFormDialog = ({
     }
 
     const numberOnlyRegex = /^[0-9]+$/;
-
     if (!numberOnlyRegex.test(formData.phone)) {
       toast({
         title: "Invalid Phone Number",
@@ -232,44 +160,26 @@ export const InquiryFormDialog = ({
     }
 
     setIsSubmitting(true);
-
     try {
-      const response = await fetch(OTP_REQUEST_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-        }),
+      const res = await api.post("/auth/otp/send", {
+        email: formData.email.trim(),
       });
 
-      const data = await parseJsonSafely(response);
-      const isSuccess = isApiSuccess(response, data, ["OTP_SENT"]);
-
-      if (!isSuccess) {
-        toast({
-          title: "Submission Error",
-          description:
-            "There was an error submitting your inquiry. Please try again later.",
-          variant: "destructive",
-        });
-      } else {
+      if (res.data.success) {
         setStep("otp");
-        const message =
-          getApiMessage(data) || "OTP has been sent to your email.";
+        setResendTimer(60);
         toast({
           title: "OTP Sent",
-          description: `${message} ${formData.email}`,
+          description: `A 6-digit security code has been sent to ${formData.email}`,
         });
       }
-    } catch (error) {
-      console.error("Error during form submission:", error);
+    } catch (error: any) {
+      console.error("Error requesting OTP:", error);
       toast({
         title: "Submission Error",
         description:
-          "There was an error submitting your inquiry. Please try again later.",
+          error?.response?.data?.message ||
+          "Something went wrong, please try again",
         variant: "destructive",
       });
     } finally {
@@ -277,6 +187,7 @@ export const InquiryFormDialog = ({
     }
   };
 
+  // Step 2: Verify OTP and Submit Full Inquiry
   const handleOtpVerify = async () => {
     if (otp.length < 6) {
       toast({
@@ -289,30 +200,16 @@ export const InquiryFormDialog = ({
 
     setIsSubmitting(true);
     try {
-      const verifyResponse = await fetch(OTP_VERIFY_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          otp,
-          email: formData.email,
-        }),
+      // 1. Verify OTP with backend
+      const verifyRes = await api.post("/auth/otp/verify", {
+        email: formData.email.trim(),
+        otp: otp.trim(),
       });
-      const verifyData = await parseJsonSafely(verifyResponse);
-      const isVerified = isApiSuccess(
-        verifyResponse,
-        verifyData,
-        ["OTP_VERIFIED"],
-        ["VERIFIED", "VERIFYED", "VERIFYED_SUCCESS"],
-      );
 
-      if (!isVerified) {
+      if (!verifyRes.data.success) {
         toast({
           title: "Verification Error",
-          description:
-            getApiMessage(verifyData) ||
-            "The OTP you entered is incorrect. Please try again.",
+          description: "Invalid OTP, please try again",
           variant: "destructive",
         });
         return;
@@ -322,123 +219,98 @@ export const InquiryFormDialog = ({
       markOtpVerified();
       onVerified?.();
 
-      const storeResponse = await fetch(INQUIRY_STORE_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phoneCountryCode + formData.phone,
-          investmentType: formData.investmentType,
-          investmentCurrency: currency,
-          investmentRange: getSelectedInvestmentRangeLabel(
-            formData.investmentRange,
-          ),
-          investmentRangeKey: formData.investmentRange,
-          projectId,
-          projectName,
-          projectType,
-          source: "inquiry-dialog",
-          submittedAt: new Date().toISOString(),
-        }),
+      // 2. Submit Inquiry directly to PostgreSQL database
+      await api.post("/inquiries", {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: `${formData.phoneCountryCode} ${formData.phone}`.trim(),
+        investmentType: formData.investmentType,
+        investmentRange: getSelectedInvestmentRangeLabel(
+          formData.investmentRange,
+        ),
+        currency: currency || "INR",
+        propertyId: projectId || undefined,
+        source: "HERO_INQUIRY",
       });
-      const storeData = await parseJsonSafely(storeResponse);
-      const isStored = isApiSuccess(storeResponse, storeData, [
-        "INQUIRY_SAVED",
-        "INQUIRY_STORED",
-      ]);
 
-      if (!isStored) {
+      setStep("success");
+      toast({
+        title: "Verified Successfully",
+        description: "Your inquiry has been submitted. Redirecting...",
+      });
+
+      setTimeout(() => {
+        onOpenChange(false);
+        if (projectId) {
+          if (projectType === "real-estate") {
+            navigate(`/property/${projectId}`);
+          } else {
+            navigate(`/franchise/${projectId}`);
+          }
+        }
+
+        setStep("form");
+        setFormData({
+          name: "",
+          phone: "",
+          phoneCountryCode: "+91",
+          email: "",
+          investmentType: projectType || "real-estate",
+          investmentRange: "",
+        });
+        setOtp("");
+      }, 1500);
+    } catch (error: any) {
+      console.error("Error during OTP verification:", error);
+      const msg = error?.response?.data?.message || "";
+      if (msg.toLowerCase().includes("expired")) {
         toast({
-          title: "Submission Error",
-          description:
-            getApiMessage(storeData) ||
-            "OTP verified, but we could not save your inquiry. Please try again.",
+          title: "OTP Expired",
+          description: "OTP expired, please request a new one",
+          variant: "destructive",
+        });
+      } else if (msg.toLowerCase().includes("invalid")) {
+        toast({
+          title: "Invalid OTP",
+          description: "Invalid OTP, please check and try again",
           variant: "destructive",
         });
       } else {
-        setStep("success");
         toast({
-          title: "Verified Successfully",
-          description: "Redirecting to project details...",
+          title: "Verification Error",
+          description: msg || "Something went wrong, please try again",
+          variant: "destructive",
         });
-
-        setTimeout(() => {
-          onOpenChange(false);
-          if (projectId) {
-            if (projectType === "real-estate") {
-              navigate(`/property/${projectId}`);
-            } else {
-              navigate(`/franchise/${projectId}`);
-            }
-          }
-
-          setStep("form");
-          setFormData({
-            name: "",
-            phone: "",
-            phoneCountryCode: "+91",
-            email: "",
-            investmentType: projectType || "",
-            investmentRange: "",
-          });
-          setOtp("");
-        }, 1500);
       }
-    } catch (error) {
-      console.error("Error during OTP verification:", error);
-      toast({
-        title: "Verification Error",
-        description:
-          "There was an error verifying your OTP. Please try again later.",
-        variant: "destructive",
-      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Step 2: Resend OTP
   const handleResendOtp = async () => {
+    if (resendTimer > 0) return;
+
     setIsSubmitting(true);
     setOtp("");
     try {
-      const response = await fetch(OTP_RESEND_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ...formData }),
+      const res = await api.post("/auth/otp/send", {
+        email: formData.email.trim(),
       });
 
-      const data = await parseJsonSafely(response);
-      const isSuccess = isApiSuccess(response, data, [
-        "OTP_SENT",
-        "OTP_RESENT",
-      ]);
-
-      if (!isSuccess) {
-        toast({
-          title: "Resend Error",
-          description:
-            "There was an error resending OTP. Please try again later.",
-          variant: "destructive",
-        });
-      } else {
-        const message =
-          getApiMessage(data) || "OTP has been resent to your email.";
+      if (res.data.success) {
+        setResendTimer(60);
         toast({
           title: "OTP Resent",
-          description: `${message} ${formData.email}`,
+          description: `A new 6-digit security code was sent to ${formData.email}`,
         });
       }
-    } catch (error) {
-      console.error("Error during OTP resend:", error);
+    } catch (error: any) {
       toast({
         title: "Resend Error",
         description:
-          "There was an error resending OTP. Please try again later.",
+          error?.response?.data?.message ||
+          "Something went wrong, please try again",
         variant: "destructive",
       });
     } finally {
@@ -452,17 +324,18 @@ export const InquiryFormDialog = ({
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl font-light">
             {step === "form" && "Express Your Interest"}
-            {step === "otp" && "Verify Your email"}
+            {step === "otp" && "Verify Your Email"}
             {step === "success" && "Verification Complete"}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             {step === "form" &&
               (projectName
-                ? `Inquiring about: ${projectName}`
-                : "Fill in your details to learn more")}
-            {step === "otp" && "Enter the OTP sent to your Email"}
+                ? `Please share your details to explore ${projectName}`
+                : "Please share your details to explore luxury opportunities")}
+            {step === "otp" &&
+              `Enter the 6-digit security code sent to ${formData.email}`}
             {step === "success" &&
-              "You now have access to detailed project information"}
+              "Your details have been confirmed. You now have privileged access."}
           </DialogDescription>
         </DialogHeader>
 
@@ -470,122 +343,107 @@ export const InquiryFormDialog = ({
           {step === "form" && (
             <motion.form
               key="form"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               onSubmit={handleFormSubmit}
-              className="space-y-4 mt-4"
+              className="space-y-3 sm:space-y-4 mt-2 sm:mt-4"
             >
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="name" className="text-xs sm:text-sm">
+                  Full Name *
+                </Label>
                 <Input
                   id="name"
-                  placeholder="Enter your full name"
+                  placeholder="e.g. Lord Arthur Wellesley"
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  className="bg-background border-border"
+                  required
+                  className="bg-secondary/50 h-9 sm:h-10 text-xs sm:text-sm"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Phone Number</Label>
-
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <CountryCodeSelect
-                    value={formData.phoneCountryCode}
-                    onChange={(code) =>
-                      setFormData({
-                        ...formData,
-                        phoneCountryCode: code,
-                      })
-                    }
-                  />
-
-                  <Input
-                    type="tel"
-                    placeholder="Mobile number"
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        phone: e.target.value,
-                      })
-                    }
-                    className="flex-1"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="email" className="text-xs sm:text-sm">
+                  Email Address *
+                </Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="your@email.com"
+                  placeholder="e.g. wellesley@kensington.co.uk"
                   value={formData.email}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
-                  className="bg-background border-border"
+                  required
+                  className="bg-secondary/50 h-9 sm:h-10 text-xs sm:text-sm"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Type of Investment</Label>
-                <Select
-                  value={formData.investmentType}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, investmentType: value })
-                  }
-                >
-                  <SelectTrigger className="bg-background border-border">
-                    <SelectValue placeholder="Select investment type" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border-border">
-                    <SelectItem value="real-estate">Real Estate</SelectItem>
-                    <SelectItem value="franchise">Franchise</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="phone" className="text-xs sm:text-sm">
+                  Phone Number *
+                </Label>
+                <div className="flex gap-2">
+                  <CountryCodeSelect
+                    value={formData.phoneCountryCode}
+                    onChange={(code) =>
+                      setFormData({ ...formData, phoneCountryCode: code })
+                    }
+                  />
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="9876543210"
+                    value={formData.phone}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
+                    required
+                    className="flex-1 bg-secondary/50 h-9 sm:h-10 text-xs sm:text-sm"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Investment Range</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label
+                  htmlFor="investmentRange"
+                  className="text-xs sm:text-sm"
+                >
+                  Capital Range *
+                </Label>
                 <Select
                   value={formData.investmentRange}
                   onValueChange={(value) =>
                     setFormData({ ...formData, investmentRange: value })
                   }
+                  required
                 >
-                  <SelectTrigger className="bg-background border-border">
-                    <SelectValue placeholder="Select investment range">
-                      {getSelectedInvestmentRangeLabel(
-                        formData.investmentRange,
-                      )}
-                    </SelectValue>
+                  <SelectTrigger className="bg-secondary/50 h-9 sm:h-10 text-xs sm:text-sm">
+                    <SelectValue placeholder="Select target allocation" />
                   </SelectTrigger>
-                  <SelectContent className="bg-background border-border">
-                    {investmentRangeOptions.map((range) => (
-                      <SelectItem key={range.value} value={range.value}>
-                        {range.label}
+                  <SelectContent>
+                    {investmentRangeOptions.map((option) => (
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                        className="text-xs sm:text-sm"
+                      >
+                        {option.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <span className="material-symbols-outlined animate-spin mr-2">
-                      progress_activity
-                    </span>
-                    Sending OTP...
-                  </>
-                ) : (
-                  "Get OTP & Continue"
-                )}
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 mt-4 sm:mt-6 h-9 sm:h-10 text-xs sm:text-sm uppercase tracking-wider font-semibold"
+              >
+                {isSubmitting ? "Sending Code..." : "Continue to Verify"}
               </Button>
             </motion.form>
           )}
@@ -593,104 +451,88 @@ export const InquiryFormDialog = ({
           {step === "otp" && (
             <motion.div
               key="otp"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6 mt-4"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-4 sm:space-y-6 mt-2 sm:mt-4"
             >
-              <div className="flex flex-col items-center gap-4">
-                <p className="text-sm text-muted-foreground text-center">
-                  Enter the 6-digit code sent to{" "}
-                  <span className="text-foreground font-medium">
-                    {formData.email}
-                  </span>
-                </p>
-
+              <div className="flex justify-center py-2 sm:py-4">
                 <InputOTP
                   maxLength={6}
                   value={otp}
-                  onChange={(value) => setOtp(value)}
-                  containerClassName="justify-center"
+                  onChange={(val) => setOtp(val)}
                 >
-                  <InputOTPGroup className="justify-center">
+                  <InputOTPGroup className="gap-1.5 sm:gap-2">
                     <InputOTPSlot
                       index={0}
-                      className="h-9 w-9 sm:h-10 sm:w-10"
+                      className="w-9 h-11 sm:w-11 sm:h-12 text-base sm:text-lg bg-secondary/50 border-border"
                     />
                     <InputOTPSlot
                       index={1}
-                      className="h-9 w-9 sm:h-10 sm:w-10"
+                      className="w-9 h-11 sm:w-11 sm:h-12 text-base sm:text-lg bg-secondary/50 border-border"
                     />
                     <InputOTPSlot
                       index={2}
-                      className="h-9 w-9 sm:h-10 sm:w-10"
+                      className="w-9 h-11 sm:w-11 sm:h-12 text-base sm:text-lg bg-secondary/50 border-border"
                     />
                     <InputOTPSlot
                       index={3}
-                      className="h-9 w-9 sm:h-10 sm:w-10"
+                      className="w-9 h-11 sm:w-11 sm:h-12 text-base sm:text-lg bg-secondary/50 border-border"
                     />
                     <InputOTPSlot
                       index={4}
-                      className="h-9 w-9 sm:h-10 sm:w-10"
+                      className="w-9 h-11 sm:w-11 sm:h-12 text-base sm:text-lg bg-secondary/50 border-border"
                     />
                     <InputOTPSlot
                       index={5}
-                      className="h-9 w-9 sm:h-10 sm:w-10"
+                      className="w-9 h-11 sm:w-11 sm:h-12 text-base sm:text-lg bg-secondary/50 border-border"
                     />
                   </InputOTPGroup>
                 </InputOTP>
+              </div>
 
+              <div className="flex justify-between items-center text-xs text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={() => setStep("form")}
+                  className="hover:text-foreground underline transition-colors"
+                >
+                  Change Email
+                </button>
                 <button
                   type="button"
                   onClick={handleResendOtp}
-                  className="text-sm text-primary hover:underline"
+                  disabled={resendTimer > 0 || isSubmitting}
+                  className="hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Didn't receive the code? Resend
+                  {resendTimer > 0
+                    ? `Resend Code in ${resendTimer}s`
+                    : "Resend Code"}
                 </button>
               </div>
 
-              <div className="flex flex-col-reverse sm:flex-row gap-3">
-                <Button
-                  variant="outline"
-                  className="w-full sm:flex-1"
-                  onClick={() => setStep("form")}
-                >
-                  Back
-                </Button>
-                <Button
-                  className="w-full sm:flex-1"
-                  onClick={handleOtpVerify}
-                  disabled={isSubmitting || otp.length < 6}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <span className="material-symbols-outlined animate-spin mr-2">
-                        progress_activity
-                      </span>
-                      Verifying...
-                    </>
-                  ) : (
-                    "Verify & Continue"
-                  )}
-                </Button>
-              </div>
+              <Button
+                onClick={handleOtpVerify}
+                disabled={isSubmitting || otp.length < 6}
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-9 sm:h-10 text-xs sm:text-sm uppercase tracking-wider font-semibold"
+              >
+                {isSubmitting ? "Verifying..." : "Verify & Unlock Access"}
+              </Button>
             </motion.div>
           )}
 
           {step === "success" && (
             <motion.div
               key="success"
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center gap-4 py-8"
+              className="py-6 sm:py-8 text-center space-y-3"
             >
-              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
-                <span className="material-symbols-outlined text-3xl text-primary">
-                  check_circle
-                </span>
+              <div className="w-12 h-12 rounded-full bg-primary/20 text-primary mx-auto flex items-center justify-center">
+                ✓
               </div>
-              <p className="text-center text-muted-foreground">
-                Redirecting you to the project details...
+              <p className="text-sm text-muted-foreground">
+                Access Granted. Enjoy exploring our luxury estates.
               </p>
             </motion.div>
           )}

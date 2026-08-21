@@ -1,75 +1,194 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   Building2,
-  CheckCircle,
   Inbox,
-  Clock,
   ArrowUpRight,
   Plus,
+  CalendarCheck,
+  Users,
+  Percent,
+  Compass,
+  CheckCircle2,
+  XCircle,
+  ExternalLink,
 } from "lucide-react";
+import toast from "react-hot-toast";
+import api from "../../api/axios";
 import { useAdminProperties } from "../hooks/useAdminProperties";
+import { useAdminAuth } from "../hooks/useAdminAuth";
 import { StatsCard } from "../components/StatsCard";
+import { Button } from "@/components/ui/button";
+import {
+  SiteVisit,
+  ChannelPartner,
+  ApiResponse,
+} from "../types/admin.types";
 
 export const AdminDashboard: React.FC = () => {
-  const { stats, statsLoading, properties, loading, fetchStats, fetchProperties } =
-    useAdminProperties();
+  const { user } = useAdminAuth();
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+
+  const {
+    stats,
+    statsLoading,
+    properties,
+    loading: propsLoading,
+    fetchStats,
+    fetchProperties,
+  } = useAdminProperties();
+
+  // Phase 4 KPI Data
+  const [siteVisitsWeekCount, setSiteVisitsWeekCount] = useState<number>(0);
+  const [pendingPartnersCount, setPendingPartnersCount] = useState<number>(0);
+  const [conversionRate, setConversionRate] = useState<number>(0);
+
+  // Phase 4 Tables Data
+  const [recentSiteVisits, setRecentSiteVisits] = useState<SiteVisit[]>([]);
+  const [pendingPartners, setPendingPartners] = useState<ChannelPartner[]>([]);
+  const [loadingDashboard, setLoadingDashboard] = useState<boolean>(true);
+
+  const fetchDashboardData = useCallback(async () => {
+    setLoadingDashboard(true);
+    try {
+      // 1. Fetch Inquiries Stats (Conversion Rate)
+      const inquiryStatsRes = await api.get<
+        ApiResponse<{ conversionRate: number }>
+      >("/inquiries/stats");
+      if (inquiryStatsRes.data.success) {
+        setConversionRate(inquiryStatsRes.data.data.conversionRate || 0);
+      }
+
+      // 2. Fetch Pending Partners (Super Admin only)
+      if (isSuperAdmin) {
+        const pendingPartnersRes = await api.get<ApiResponse<ChannelPartner[]>>(
+          "/channel-partners",
+          { params: { status: "PENDING", limit: 4 } },
+        );
+        if (pendingPartnersRes.data.success) {
+          setPendingPartners(pendingPartnersRes.data.data);
+          setPendingPartnersCount(
+            pendingPartnersRes.data.meta?.total ||
+              pendingPartnersRes.data.data.length,
+          );
+        }
+      }
+
+      // 3. Fetch Recent Site Visits
+      const siteVisitsRes = await api.get<ApiResponse<SiteVisit[]>>(
+        "/site-visits",
+        { params: { limit: 5 } },
+      );
+      if (siteVisitsRes.data.success) {
+        setRecentSiteVisits(siteVisitsRes.data.data);
+        // Calculate visits this week
+        const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const count = siteVisitsRes.data.data.filter(
+          (v) => new Date(v.scheduledDate).getTime() >= oneWeekAgo,
+        ).length;
+        setSiteVisitsWeekCount(count);
+      }
+    } catch {
+      // quiet fallback
+    } finally {
+      setLoadingDashboard(false);
+    }
+  }, [isSuperAdmin]);
 
   useEffect(() => {
     fetchStats();
     fetchProperties({ limit: 5, sortBy: "newest" });
-  }, [fetchStats, fetchProperties]);
+    fetchDashboardData();
+  }, [fetchStats, fetchProperties, fetchDashboardData]);
 
-  const availableCount = stats?.byStatus?.AVAILABLE || 0;
-  const recentInquiriesCount = stats?.recentInquiries?.length || 0;
+  // Quick Action: Approve / Reject Partner
+  const handlePartnerAction = async (
+    id: string,
+    newStatus: "APPROVED" | "REJECTED",
+  ) => {
+    try {
+      const res = await api.patch(`/channel-partners/${id}/status`, {
+        status: newStatus,
+      });
+      if (res.data.success) {
+        toast.success(
+          newStatus === "APPROVED"
+            ? "Partner approved & welcome credentials dispatched"
+            : "Application rejected",
+        );
+        fetchDashboardData();
+      }
+    } catch {
+      toast.error("Failed to update partner application");
+    }
+  };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    switch (status.toUpperCase()) {
+      case "CONFIRMED":
+        return "bg-blue-500/10 text-blue-400 border-blue-500/30";
+      case "COMPLETED":
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+      case "CANCELLED":
+        return "bg-red-500/10 text-red-400 border-red-500/30";
       case "NEW":
         return "bg-blue-500/10 text-blue-400 border-blue-500/30";
       case "CONTACTED":
-        return "bg-yellow-500/10 text-yellow-400 border-yellow-500/30";
+        return "bg-amber-500/10 text-amber-400 border-amber-500/30";
       case "QUALIFIED":
         return "bg-purple-500/10 text-purple-400 border-purple-500/30";
       case "CLOSED_WON":
-        return "bg-green-500/10 text-green-400 border-green-500/30";
-      case "CLOSED_LOST":
-        return "bg-red-500/10 text-red-400 border-red-500/30";
-      case "AVAILABLE":
         return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
-      case "UNDER_CONSTRUCTION":
-        return "bg-amber-500/10 text-amber-400 border-amber-500/30";
-      case "SOLD":
-        return "bg-neutral-500/10 text-neutral-400 border-neutral-500/30";
       default:
-        return "bg-neutral-500/10 text-neutral-400 border-neutral-500/30";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header with Quick Action */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-6"
+    >
+      {/* Header with Luxury Brand Title & Action */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-5">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-            Executive Overview
+          <div className="flex items-center gap-2.5 text-primary/80 mb-1">
+            <span className="h-px w-5 bg-current" />
+            <span className="uppercase tracking-[0.2em] text-[10px] font-bold">
+              {isSuperAdmin ? "Executive Command" : "Partner Concierge"}
+            </span>
+          </div>
+          <h2 className="text-2xl font-light tracking-tight text-foreground sm:text-3xl">
+            {isSuperAdmin ? "Portfolio" : "Broker"}{" "}
+            <span className="font-serif italic text-primary">Intelligence</span>
           </h2>
-          <p className="text-xs text-[#a0a0a0]">
-            Real-time portfolio metrics across Dubai & India ultra-luxury estates
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Real-time portfolio metrics across Dubai & India ultra-luxury developments
           </p>
         </div>
-        <div className="flex items-center space-x-3">
-          <Link
-            to="/admin/properties/new"
-            className="inline-flex items-center space-x-2 rounded-lg bg-[#D4AF37] px-4 py-2 text-xs font-bold text-black shadow-lg shadow-[#D4AF37]/20 hover:bg-[#b8952b] transition-all"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Luxury Property</span>
-          </Link>
+        <div className="flex items-center space-x-3 shrink-0">
+          {isSuperAdmin ? (
+            <Button asChild size="sm" className="gap-1.5 text-xs font-semibold uppercase tracking-wider">
+              <Link to="/admin/properties/new">
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add Property</span>
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild size="sm" className="gap-1.5 text-xs font-semibold uppercase tracking-wider">
+              <Link to="/admin/site-visits">
+                <CalendarCheck className="h-3.5 w-3.5" />
+                <span>Book Inspection</span>
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* KPI Stats Cards Grid */}
+      {/* Primary KPI Stats Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Properties"
@@ -79,196 +198,408 @@ export const AdminDashboard: React.FC = () => {
           loading={statsLoading}
         />
         <StatsCard
-          title="Available Inventory"
-          value={availableCount}
-          icon={CheckCircle}
-          subtitle="Ready for private client acquisition"
-          loading={statsLoading}
+          title="Site Visits This Week"
+          value={siteVisitsWeekCount}
+          icon={CalendarCheck}
+          subtitle="Scheduled VIP on-site viewings"
+          loading={loadingDashboard}
         />
+        {isSuperAdmin ? (
+          <StatsCard
+            title="Pending Partners"
+            value={pendingPartnersCount}
+            icon={Users}
+            subtitle="Broker applications awaiting review"
+            loading={loadingDashboard}
+          />
+        ) : (
+          <StatsCard
+            title="Available Inventory"
+            value={stats?.byStatus?.AVAILABLE || 0}
+            icon={Compass}
+            subtitle="Prime estates ready for acquisition"
+            loading={statsLoading}
+          />
+        )}
         <StatsCard
-          title="Total Inquiries"
-          value={stats?.totalInquiries ?? 0}
-          icon={Inbox}
-          subtitle="Ultra-high-net-worth investor leads"
-          loading={statsLoading}
-        />
-        <StatsCard
-          title="Recent Active Inquiries"
-          value={recentInquiriesCount}
-          icon={Clock}
-          subtitle="Pending priority engagement"
-          loading={statsLoading}
+          title="Inquiry Conversion"
+          value={`${conversionRate}%`}
+          icon={Percent}
+          subtitle="Closed Won vs Total Leads"
+          loading={loadingDashboard}
         />
       </div>
 
-      {/* Tables Section: Inquiries & Properties */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        {/* Recent Inquiries Table */}
-        <div className="rounded-xl border border-[#2a2a2a] bg-[#111111] p-6 shadow-xl">
-          <div className="flex items-center justify-between pb-4 border-b border-[#222222]">
+      {/* Main Dual-Column Tables */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Table 1: Recent Site Inspections */}
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
+          <div className="flex items-center justify-between border-b border-border pb-3 mb-3">
             <div>
-              <h3 className="text-sm font-semibold text-white">
-                Recent Client Inquiries
+              <h3 className="text-sm font-semibold text-foreground flex items-center space-x-2">
+                <CalendarCheck className="h-4 w-4 text-primary" />
+                <span>Recent Site Inspections</span>
               </h3>
-              <p className="text-xs text-[#a0a0a0]">
-                Latest high-intent luxury buyer inquiries
+              <p className="text-xs text-muted-foreground">
+                Scheduled private on-site viewings
               </p>
             </div>
             <Link
-              to="/admin/inquiries"
-              className="flex items-center space-x-1 text-xs font-medium text-[#D4AF37] hover:underline"
+              to="/admin/site-visits"
+              className="text-xs font-semibold text-primary hover:underline flex items-center space-x-1 uppercase tracking-wider"
             >
               <span>View All</span>
-              <ArrowUpRight className="h-3.5 w-3.5" />
+              <ArrowUpRight className="h-3 w-3" />
             </Link>
           </div>
 
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-[#222222] text-[#a0a0a0]">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-foreground">
+              <thead className="border-b border-border bg-secondary/40 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                 <tr>
-                  <th className="pb-3 font-semibold">Client Name</th>
-                  <th className="pb-3 font-semibold">Interest / Property</th>
-                  <th className="pb-3 font-semibold">Status</th>
-                  <th className="pb-3 font-semibold">Date</th>
+                  <th className="py-2 px-3 font-semibold">Visitor</th>
+                  <th className="py-2 px-3 font-semibold">Estate</th>
+                  <th className="py-2 px-3 font-semibold">Date & Time</th>
+                  <th className="py-2 px-3 text-right font-semibold">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1e1e1e]">
-                {statsLoading ? (
+              <tbody className="divide-y divide-border/60">
+                {recentSiteVisits.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-6 text-center text-[#a0a0a0]">
-                      Loading recent inquiries...
+                    <td
+                      colSpan={4}
+                      className="py-8 text-center text-xs text-muted-foreground"
+                    >
+                      No site visits booked yet.
                     </td>
                   </tr>
-                ) : stats?.recentInquiries && stats.recentInquiries.length > 0 ? (
-                  stats.recentInquiries.slice(0, 5).map((inquiry) => (
+                ) : (
+                  recentSiteVisits.map((v) => (
                     <tr
-                      key={inquiry.id}
-                      className="transition-colors hover:bg-[#181818]"
+                      key={v.id}
+                      className="hover:bg-secondary/30 transition-colors"
                     >
-                      <td className="py-3 font-medium text-white">
-                        <div>{inquiry.name}</div>
-                        <div className="text-[11px] text-[#777777]">
-                          {inquiry.email}
+                      <td className="py-3 px-3">
+                        <div className="font-semibold text-foreground">{v.name}</div>
+                        <div className="text-[10px] text-muted-foreground truncate max-w-[130px]">
+                          {v.email}
                         </div>
                       </td>
-                      <td className="py-3 text-[#dcdcdc]">
-                        {inquiry.property?.name || inquiry.investmentType}
+                      <td className="py-3 px-3">
+                        <div className="font-medium text-foreground truncate max-w-[140px]">
+                          {v.property?.name || "General Property"}
+                        </div>
                       </td>
-                      <td className="py-3">
+                      <td className="py-3 px-3 font-mono text-[11px]">
+                        <div>
+                          {new Date(v.scheduledDate).toLocaleDateString()}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {v.scheduledTime}
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 text-right">
                         <span
-                          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getStatusBadge(
-                            inquiry.status,
+                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold ${getStatusBadge(
+                            v.status,
                           )}`}
                         >
-                          {inquiry.status}
+                          {v.status}
                         </span>
-                      </td>
-                      <td className="py-3 text-[#777777]">
-                        {new Date(inquiry.createdAt).toLocaleDateString()}
                       </td>
                     </tr>
                   ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} className="py-6 text-center text-[#a0a0a0]">
-                      No recent inquiries found.
-                    </td>
-                  </tr>
                 )}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Recent Properties Table */}
-        <div className="rounded-xl border border-[#2a2a2a] bg-[#111111] p-6 shadow-xl">
-          <div className="flex items-center justify-between pb-4 border-b border-[#222222]">
-            <div>
-              <h3 className="text-sm font-semibold text-white">
-                Recent Properties
-              </h3>
-              <p className="text-xs text-[#a0a0a0]">
-                Latest luxury listings in the platform
-              </p>
+        {/* Table 2: Super Admin (Pending Partners) OR Channel Partner (Featured Inventory) */}
+        {isSuperAdmin ? (
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
+            <div className="flex items-center justify-between border-b border-border pb-3 mb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground flex items-center space-x-2">
+                  <Users className="h-4 w-4 text-primary" />
+                  <span>Pending Partner Approvals</span>
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Broker agencies awaiting institutional verification
+                </p>
+              </div>
+              <Link
+                to="/admin/channel-partners"
+                className="text-xs font-semibold text-primary hover:underline flex items-center space-x-1 uppercase tracking-wider"
+              >
+                <span>View All</span>
+                <ArrowUpRight className="h-3 w-3" />
+              </Link>
             </div>
-            <Link
-              to="/admin/properties"
-              className="flex items-center space-x-1 text-xs font-medium text-[#D4AF37] hover:underline"
-            >
-              <span>View All</span>
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
 
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-[#222222] text-[#a0a0a0]">
-                <tr>
-                  <th className="pb-3 font-semibold">Estate Name</th>
-                  <th className="pb-3 font-semibold">Type</th>
-                  <th className="pb-3 font-semibold">Status</th>
-                  <th className="pb-3 font-semibold">Price</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#1e1e1e]">
-                {loading ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-foreground">
+                <thead className="border-b border-border bg-secondary/40 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                   <tr>
-                    <td colSpan={4} className="py-6 text-center text-[#a0a0a0]">
-                      Loading properties...
-                    </td>
+                    <th className="py-2 px-3 font-semibold">Partner</th>
+                    <th className="py-2 px-3 font-semibold">Company & City</th>
+                    <th className="py-2 px-3 font-semibold">Applied Date</th>
+                    <th className="py-2 px-3 text-right font-semibold">Actions</th>
                   </tr>
-                ) : properties && properties.length > 0 ? (
-                  properties.slice(0, 5).map((property) => (
-                    <tr
-                      key={property.id}
-                      className="transition-colors hover:bg-[#181818]"
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {pendingPartners.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="py-8 text-center text-xs text-muted-foreground"
+                      >
+                        No pending channel partner applications.
+                      </td>
+                    </tr>
+                  ) : (
+                    pendingPartners.map((p) => (
+                      <tr
+                        key={p.id}
+                        className="hover:bg-secondary/30 transition-colors"
+                      >
+                        <td className="py-3 px-3">
+                          <div className="font-semibold text-foreground">{p.name}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {p.phone}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="font-medium text-foreground truncate max-w-[120px]">
+                            {p.company || "Independent"}
+                          </div>
+                          <div className="text-[10px] text-primary">
+                            {p.city || "Dubai / Mumbai"}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 font-mono text-[11px] text-muted-foreground">
+                          {new Date(p.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <div className="flex items-center justify-end space-x-1.5">
+                            <button
+                              onClick={() =>
+                                handlePartnerAction(p.id, "APPROVED")
+                              }
+                              className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 hover:bg-emerald-500 hover:text-black transition-all"
+                              title="Approve Partner"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() =>
+                                handlePartnerAction(p.id, "REJECTED")
+                              }
+                              className="rounded border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-400 hover:bg-red-500 hover:text-white transition-all"
+                              title="Reject Partner"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
+            <div className="flex items-center justify-between border-b border-border pb-3 mb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground flex items-center space-x-2">
+                  <Inbox className="h-4 w-4 text-primary" />
+                  <span>Recent Client Inquiries</span>
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Ultra-high-net-worth investor advisory requests
+                </p>
+              </div>
+              <Link
+                to="/admin/inquiries"
+                className="text-xs font-semibold text-primary hover:underline flex items-center space-x-1 uppercase tracking-wider"
+              >
+                <span>Pipeline</span>
+                <ArrowUpRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            <div className="space-y-2">
+              {stats?.recentInquiries?.length === 0 ? (
+                <div className="py-8 text-center text-xs text-muted-foreground">
+                  No recent inquiries.
+                </div>
+              ) : (
+                (stats?.recentInquiries || []).slice(0, 5).map((inquiry) => (
+                  <div
+                    key={inquiry.id}
+                    className="flex items-center justify-between rounded-lg border border-border/60 bg-secondary/30 p-2.5 hover:border-primary/40 transition-colors"
+                  >
+                    <div className="truncate">
+                      <p className="text-xs font-semibold text-foreground">
+                        {inquiry.name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground font-mono">
+                        {inquiry.currency || "AED"} {inquiry.investmentRange || "Portfolio"} •{" "}
+                        {(inquiry.source || "WEBSITE").replace(/_/g, " ")}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold shrink-0 ml-2 ${getStatusBadge(
+                        inquiry.status || "NEW",
+                      )}`}
                     >
-                      <td className="py-3 font-medium text-white">
-                        <Link
-                          to={`/admin/properties/${property.id}`}
-                          className="hover:text-[#D4AF37]"
-                        >
+                      {(inquiry.status || "NEW").replace(/_/g, " ")}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Row 2 (Super Admin Only): Portfolio Estates & Client Leads */}
+      {isSuperAdmin && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Recent Luxury Estates */}
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
+            <div className="flex items-center justify-between border-b border-border pb-3 mb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground flex items-center space-x-2">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  <span>Recent Luxury Estates</span>
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Latest portfolio additions
+                </p>
+              </div>
+              <Link
+                to="/admin/properties"
+                className="text-xs font-semibold text-primary hover:underline flex items-center space-x-1 uppercase tracking-wider"
+              >
+                <span>View All</span>
+                <ArrowUpRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            <div className="space-y-2">
+              {propsLoading ? (
+                <div className="py-8 text-center text-xs text-muted-foreground">
+                  Loading estates...
+                </div>
+              ) : properties.length === 0 ? (
+                <div className="py-8 text-center text-xs text-muted-foreground">
+                  No properties added yet.
+                </div>
+              ) : (
+                properties.slice(0, 4).map((property) => (
+                  <div
+                    key={property.id}
+                    className="flex items-center justify-between rounded-lg border border-border/60 bg-secondary/30 p-2.5 hover:border-primary/40 transition-colors"
+                  >
+                    <div className="flex items-center space-x-3 overflow-hidden">
+                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-secondary border border-border">
+                        {property.media && property.media[0] ? (
+                          <img
+                            src={
+                              property.media[0].thumbnailUrl ||
+                              property.media[0].url
+                            }
+                            alt={property.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-[9px] text-muted-foreground font-mono">
+                            VILAASA
+                          </div>
+                        )}
+                      </div>
+                      <div className="truncate">
+                        <p className="truncate text-xs font-semibold text-foreground">
                           {property.name}
-                        </Link>
-                        <div className="text-[11px] text-[#777777]">
-                          {property.location?.city},{" "}
-                          {property.location?.country}
-                        </div>
-                      </td>
-                      <td className="py-3 text-[#a0a0a0]">
-                        {property.type.replace("_", " ")}
-                      </td>
-                      <td className="py-3">
-                        <span
-                          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getStatusBadge(
-                            property.status,
-                          )}`}
-                        >
-                          {property.status.replace("_", " ")}
-                        </span>
-                      </td>
-                      <td className="py-3 font-mono font-semibold text-[#D4AF37]">
-                        {property.priceOnApplication
-                          ? "POA"
-                          : `${property.currency} ${Number(
-                              property.price,
-                            ).toLocaleString()}`}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} className="py-6 text-center text-[#a0a0a0]">
-                      No properties found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-mono">
+                          {property.location?.city || "Prime Location"}
+                          {property.location?.country ? `, ${property.location.country}` : ""} •{" "}
+                          {property.currency}{" "}
+                          {Number(property.price || 0).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <Link
+                      to={`/admin/properties/${property.slug || property.id}`}
+                      className="shrink-0 text-xs font-semibold text-primary hover:underline uppercase tracking-wider ml-2"
+                    >
+                      View
+                    </Link>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Recent Inquiries Table */}
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
+            <div className="flex items-center justify-between border-b border-border pb-3 mb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground flex items-center space-x-2">
+                  <Inbox className="h-4 w-4 text-primary" />
+                  <span>Recent Client Inquiries</span>
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  HNW buyer advisory submissions
+                </p>
+              </div>
+              <Link
+                to="/admin/inquiries"
+                className="text-xs font-semibold text-primary hover:underline flex items-center space-x-1 uppercase tracking-wider"
+              >
+                <span>Pipeline</span>
+                <ArrowUpRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            <div className="space-y-2">
+              {stats?.recentInquiries?.length === 0 ? (
+                <div className="py-8 text-center text-xs text-muted-foreground">
+                  No recent inquiries.
+                </div>
+              ) : (
+                (stats?.recentInquiries || []).slice(0, 4).map((inquiry) => (
+                  <div
+                    key={inquiry.id}
+                    className="flex items-center justify-between rounded-lg border border-border/60 bg-secondary/30 p-2.5 hover:border-primary/40 transition-colors"
+                  >
+                    <div className="truncate">
+                      <p className="text-xs font-semibold text-foreground">
+                        {inquiry.name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground font-mono">
+                        {inquiry.currency || "AED"} {inquiry.investmentRange || "Portfolio"} •{" "}
+                        {(inquiry.source || "WEBSITE").replace(/_/g, " ")}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold shrink-0 ml-2 ${getStatusBadge(
+                        inquiry.status || "NEW",
+                      )}`}
+                    >
+                      {(inquiry.status || "NEW").replace(/_/g, " ")}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      )}
+    </motion.div>
   );
 };

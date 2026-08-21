@@ -1,6 +1,11 @@
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import { Lock, Mail, Eye, EyeOff, ShieldCheck, ArrowRight } from "lucide-react";
 import { useAdminAuth } from "../hooks/useAdminAuth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import vilaasaLogo from "@/assets/vilaasa-logo.svg";
 
 export const AdminLogin: React.FC = () => {
   const [email, setEmail] = useState<string>("superadmin@vilaasa.com");
@@ -15,81 +20,91 @@ export const AdminLogin: React.FC = () => {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4 text-white antialiased">
-      {/* Background Decorative Gradient Orbs */}
-      <div className="pointer-events-none absolute -top-40 left-1/2 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-[#D4AF37]/10 blur-[120px]" />
-      <div className="pointer-events-none absolute -bottom-40 right-1/4 h-[400px] w-[400px] rounded-full bg-[#D4AF37]/5 blur-[100px]" />
+    <div className="relative flex min-h-screen items-center justify-center bg-background px-4 text-foreground antialiased font-display">
+      {/* Background Decorative Gradient Orbs matching public splash */}
+      <div className="pointer-events-none absolute -top-40 left-1/2 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-primary/10 blur-[140px]" />
+      <div className="pointer-events-none absolute -bottom-40 right-1/4 h-[400px] w-[400px] rounded-full bg-accent/5 blur-[120px]" />
 
-      <div className="relative w-full max-w-md space-y-8 rounded-2xl border border-[#2a2a2a] bg-[#111111] p-8 shadow-2xl backdrop-blur-xl">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="relative w-full max-w-md space-y-8 rounded-xl border border-border bg-card/95 p-6 sm:p-8 shadow-2xl backdrop-blur-xl"
+      >
         {/* Brand Header */}
-        <div className="text-center space-y-2">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-[#D4AF37]/30 bg-[#1a1a1a] text-[#D4AF37] shadow-inner">
-            <ShieldCheck className="h-6 w-6" />
+        <div className="text-center space-y-3">
+          <div className="flex justify-center mb-2">
+            <img
+              src={vilaasaLogo}
+              alt="Vilaasa Estates"
+              className="h-8 w-auto"
+            />
           </div>
-          <h2 className="font-serif text-2xl font-bold tracking-[0.15em] text-[#D4AF37]">
-            VILAASA ESTATES
-          </h2>
-          <p className="text-xs uppercase tracking-widest text-[#a0a0a0]">
-            Executive Admin Portal
-          </p>
+          <div>
+            <span className="uppercase tracking-[0.2em] text-[11px] font-bold text-primary">
+              Private Executive Portal
+            </span>
+            <h2 className="text-2xl font-light tracking-tight text-foreground sm:text-3xl mt-1">
+              Admin <span className="font-serif italic text-primary">Authentication</span>
+            </h2>
+          </div>
         </div>
 
-        {/* Demo Hint Banner */}
-        <div className="rounded-lg border border-[#D4AF37]/20 bg-[#D4AF37]/5 p-3.5 text-xs text-[#dcdcdc]">
-          <div className="flex items-center space-x-2 font-semibold text-[#D4AF37] mb-1">
-            <span>Demo Super Admin Credentials</span>
+        {/* Demo Credentials Box */}
+        <div className="rounded-lg border border-border bg-secondary/40 p-4 text-xs text-muted-foreground space-y-1.5">
+          <div className="flex items-center space-x-1.5 font-bold uppercase tracking-wider text-primary text-[11px]">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            <span>Pre-Configured Super Admin</span>
           </div>
-          <p className="text-[#a0a0a0]">
-            Email: <span className="text-white font-mono">superadmin@vilaasa.com</span>
+          <p>
+            Email: <span className="text-foreground font-mono font-medium">superadmin@vilaasa.com</span>
           </p>
-          <p className="text-[#a0a0a0]">
-            Password: <span className="text-white font-mono">SuperAdmin@Vilaasa2026</span>
+          <p>
+            Password: <span className="text-foreground font-mono font-medium">SuperAdmin@Vilaasa2026</span>
           </p>
         </div>
 
         {/* Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium uppercase tracking-wider text-[#a0a0a0]">
+            <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Email Address
-            </label>
+            </Label>
             <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-[#666666]">
-                <Mail className="h-4 w-4" />
-              </div>
-              <input
+              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                id="email"
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@vilaasa.com"
-                className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] py-2.5 pl-10 pr-4 text-sm text-white placeholder-[#555555] transition-colors focus:border-[#D4AF37] focus:bg-[#141414] focus:outline-none"
+                className="bg-background/80 pl-9 border-input text-xs sm:text-sm h-10"
               />
             </div>
           </div>
 
           {/* Password */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium uppercase tracking-wider text-[#a0a0a0]">
+            <Label htmlFor="pass" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Password
-            </label>
+            </Label>
             <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-[#666666]">
-                <Lock className="h-4 w-4" />
-              </div>
-              <input
+              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                id="pass"
                 type={showPassword ? "text" : "password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] py-2.5 pl-10 pr-10 text-sm text-white placeholder-[#555555] transition-colors focus:border-[#D4AF37] focus:bg-[#141414] focus:outline-none"
+                className="bg-background/80 pl-9 pr-10 border-input text-xs sm:text-sm h-10 font-mono"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-[#666666] hover:text-[#a0a0a0]"
+                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
               >
                 {showPassword ? (
                   <EyeOff className="h-4 w-4" />
@@ -101,22 +116,22 @@ export const AdminLogin: React.FC = () => {
           </div>
 
           {/* Submit Button */}
-          <button
+          <Button
             type="submit"
             disabled={loading}
-            className="group flex w-full items-center justify-center space-x-2 rounded-lg bg-[#D4AF37] py-3 text-sm font-bold text-black shadow-lg shadow-[#D4AF37]/20 transition-all hover:bg-[#b8952b] disabled:opacity-50"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 uppercase tracking-[0.1em] text-xs font-semibold h-11 mt-2 shadow-lg shadow-primary/10 transition-all group"
           >
             {loading ? (
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-black border-t-transparent" />
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
             ) : (
-              <>
-                <span>Sign In to Admin Portal</span>
+              <span className="flex items-center justify-center space-x-2">
+                <span>Access Management Console</span>
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </>
+              </span>
             )}
-          </button>
+          </Button>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 };

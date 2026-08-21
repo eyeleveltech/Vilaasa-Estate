@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   Plus,
   Search,
@@ -10,6 +11,7 @@ import {
   ChevronRight,
   Filter,
   RefreshCw,
+  Building2,
 } from "lucide-react";
 import { useAdminProperties } from "../hooks/useAdminProperties";
 import {
@@ -17,6 +19,8 @@ import {
   PropertyStatus,
   PropertyType,
 } from "../types/admin.types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export const AdminPropertiesList: React.FC = () => {
   const { properties, loading, meta, fetchProperties, deleteProperty } =
@@ -82,55 +86,65 @@ export const AdminPropertiesList: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="space-y-6"
+    >
       {/* Header Bar */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-5">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-            Properties Portfolio
+          <div className="flex items-center gap-3 text-primary/80 mb-1">
+            <span className="h-px w-6 bg-current" />
+            <span className="uppercase tracking-[0.2em] text-[11px] font-bold">
+              Inventory Assets
+            </span>
+          </div>
+          <h2 className="text-2xl font-light tracking-tight text-foreground sm:text-3xl">
+            Properties <span className="font-serif italic text-primary">Portfolio</span>
           </h2>
-          <p className="text-xs text-[#a0a0a0]">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Manage, filter, and edit prime residential and commercial real estate
           </p>
         </div>
         <div className="flex items-center space-x-3">
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={loadData}
             title="Refresh list"
-            className="flex items-center space-x-1.5 rounded-lg border border-[#2a2a2a] bg-[#141414] px-3 py-2 text-xs font-medium text-[#a0a0a0] hover:border-[#D4AF37] hover:text-white transition-colors"
+            className="gap-1.5"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin text-primary" : ""}`} />
             <span>Refresh</span>
-          </button>
-          <Link
-            to="/admin/properties/new"
-            className="flex items-center space-x-2 rounded-lg bg-[#D4AF37] px-4 py-2 text-xs font-bold text-black shadow-lg shadow-[#D4AF37]/20 hover:bg-[#b8952b] transition-all"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Property</span>
-          </Link>
+          </Button>
+          <Button asChild size="sm" className="gap-1.5">
+            <Link to="/admin/properties/new">
+              <Plus className="h-4 w-4" />
+              <span>Add Property</span>
+            </Link>
+          </Button>
         </div>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="rounded-xl border border-[#2a2a2a] bg-[#111111] p-4 shadow-xl">
+      <div className="rounded-xl border border-border bg-card p-4 shadow-xl">
         <form
           onSubmit={handleSearchSubmit}
           className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5"
         >
           {/* Search Input */}
           <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#666666]">
-              <Search className="h-4 w-4" />
-            </div>
-            <input
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
               type="text"
-              placeholder="Search estate name, city..."
+              placeholder="Search estate, city..."
               value={filters.search || ""}
               onChange={(e) =>
                 setFilters((prev) => ({ ...prev, search: e.target.value, page: 1 }))
               }
-              className="w-full rounded-lg border border-[#2a2a2a] bg-[#181818] py-2 pl-9 pr-3 text-xs text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+              className="bg-secondary/40 pl-9 text-xs h-9"
             />
           </div>
 
@@ -144,7 +158,7 @@ export const AdminPropertiesList: React.FC = () => {
                 page: 1,
               }))
             }
-            className="rounded-lg border border-[#2a2a2a] bg-[#181818] px-3 py-2 text-xs text-white focus:border-[#D4AF37] focus:outline-none"
+            className="rounded-md border border-input bg-secondary/40 px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
           >
             <option value="">All Statuses</option>
             <option value="AVAILABLE">Available</option>
@@ -165,7 +179,7 @@ export const AdminPropertiesList: React.FC = () => {
                 page: 1,
               }))
             }
-            className="rounded-lg border border-[#2a2a2a] bg-[#181818] px-3 py-2 text-xs text-white focus:border-[#D4AF37] focus:outline-none"
+            className="rounded-md border border-input bg-secondary/40 px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
           >
             <option value="">All Types</option>
             <option value="RESIDENTIAL_VILLA">Residential Villa</option>
@@ -178,14 +192,14 @@ export const AdminPropertiesList: React.FC = () => {
           </select>
 
           {/* Country Input */}
-          <input
+          <Input
             type="text"
             placeholder="Country (e.g. UAE, India)"
             value={filters.country || ""}
             onChange={(e) =>
               setFilters((prev) => ({ ...prev, country: e.target.value, page: 1 }))
             }
-            className="rounded-lg border border-[#2a2a2a] bg-[#181818] px-3 py-2 text-xs text-white placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none"
+            className="bg-secondary/40 text-xs h-9"
           />
 
           {/* Sort By */}
@@ -202,7 +216,7 @@ export const AdminPropertiesList: React.FC = () => {
                 page: 1,
               }))
             }
-            className="rounded-lg border border-[#2a2a2a] bg-[#181818] px-3 py-2 text-xs text-white focus:border-[#D4AF37] focus:outline-none"
+            className="rounded-md border border-input bg-secondary/40 px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
           >
             <option value="newest">Sort: Newest First</option>
             <option value="oldest">Sort: Oldest First</option>
@@ -213,10 +227,10 @@ export const AdminPropertiesList: React.FC = () => {
       </div>
 
       {/* Properties Table */}
-      <div className="overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#111111] shadow-xl">
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="border-b border-[#222222] bg-[#161616] text-[#a0a0a0]">
+            <thead className="border-b border-border bg-secondary/40 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
               <tr>
                 <th className="px-5 py-3.5 font-semibold">Property Name</th>
                 <th className="px-4 py-3.5 font-semibold">Type</th>
@@ -228,12 +242,12 @@ export const AdminPropertiesList: React.FC = () => {
                 <th className="px-5 py-3.5 text-right font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1e1e1e]">
+            <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-[#a0a0a0]">
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center justify-center space-y-2">
-                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#D4AF37] border-t-transparent" />
+                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                       <span>Loading luxury properties portfolio...</span>
                     </div>
                   </td>
@@ -242,62 +256,62 @@ export const AdminPropertiesList: React.FC = () => {
                 properties.map((prop) => (
                   <tr
                     key={prop.id}
-                    className="transition-colors hover:bg-[#181818]"
+                    className="transition-colors hover:bg-secondary/40"
                   >
-                    <td className="px-5 py-4 font-medium text-white">
+                    <td className="px-5 py-4 font-medium text-foreground">
                       <Link
                         to={`/admin/properties/${prop.id}`}
-                        className="font-semibold hover:text-[#D4AF37] transition-colors"
+                        className="font-semibold hover:text-primary transition-colors"
                       >
                         {prop.name}
                       </Link>
                       {prop.tagline && (
-                        <div className="text-[11px] text-[#777777] line-clamp-1">
+                        <div className="text-[11px] text-muted-foreground line-clamp-1">
                           {prop.tagline}
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-4 text-[#a0a0a0]">
-                      {prop.type.replace("_", " ")}
+                    <td className="px-4 py-4 text-muted-foreground">
+                      {prop.type.replace(/_/g, " ")}
                     </td>
                     <td className="px-4 py-4">
                       <span
-                        className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getStatusBadge(
+                        className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${getStatusBadge(
                           prop.status,
                         )}`}
                       >
-                        {prop.status.replace("_", " ")}
+                        {prop.status.replace(/_/g, " ")}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-[#dcdcdc]">
+                    <td className="px-4 py-4 text-foreground">
                       {prop.location?.city}, {prop.location?.country}
                     </td>
-                    <td className="px-4 py-4 font-mono font-bold text-[#D4AF37]">
+                    <td className="px-4 py-4 font-mono font-bold text-primary">
                       {prop.priceOnApplication
                         ? "POA"
                         : `${prop.currency} ${Number(
                             prop.price,
                           ).toLocaleString()}`}
                     </td>
-                    <td className="px-4 py-4 text-[#a0a0a0]">
+                    <td className="px-4 py-4 text-muted-foreground">
                       {prop.bedrooms ?? "-"} Beds / {prop.bathrooms ?? "-"} Baths
                     </td>
-                    <td className="px-4 py-4 text-[#777777]">
+                    <td className="px-4 py-4 text-muted-foreground font-mono text-[11px]">
                       {new Date(prop.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end space-x-2">
+                      <div className="flex items-center justify-end space-x-1.5">
                         <Link
                           to={`/admin/properties/${prop.id}`}
                           title="View Details"
-                          className="rounded p-1.5 text-[#a0a0a0] hover:bg-[#222222] hover:text-white transition-colors"
+                          className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
                         >
                           <Eye className="h-4 w-4" />
                         </Link>
                         <Link
                           to={`/admin/properties/${prop.id}/edit`}
                           title="Edit Property"
-                          className="rounded p-1.5 text-[#a0a0a0] hover:bg-[#222222] hover:text-[#D4AF37] transition-colors"
+                          className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-primary transition-colors"
                         >
                           <Edit2 className="h-4 w-4" />
                         </Link>
@@ -307,7 +321,7 @@ export const AdminPropertiesList: React.FC = () => {
                             setDeleteModalOpen(true);
                           }}
                           title="Delete Property"
-                          className="rounded p-1.5 text-[#a0a0a0] hover:bg-[#222222] hover:text-[#ef4444] transition-colors"
+                          className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-destructive transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -317,9 +331,9 @@ export const AdminPropertiesList: React.FC = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-[#a0a0a0]">
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center justify-center space-y-2">
-                      <Filter className="h-8 w-8 text-[#444444]" />
+                      <Filter className="h-8 w-8 text-muted-foreground/40" />
                       <p className="text-sm font-medium">No properties match your filter criteria.</p>
                       <button
                         onClick={() =>
@@ -333,7 +347,7 @@ export const AdminPropertiesList: React.FC = () => {
                             sortBy: "newest",
                           })
                         }
-                        className="text-xs text-[#D4AF37] underline"
+                        className="text-xs text-primary underline uppercase tracking-wider"
                       >
                         Reset all filters
                       </button>
@@ -347,14 +361,16 @@ export const AdminPropertiesList: React.FC = () => {
 
         {/* Pagination Bar */}
         {meta.totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-[#222222] px-6 py-4">
-            <div className="text-xs text-[#a0a0a0]">
-              Showing page <span className="font-semibold text-white">{meta.page}</span> of{" "}
-              <span className="font-semibold text-white">{meta.totalPages}</span> ({meta.total}{" "}
+          <div className="flex items-center justify-between border-t border-border px-6 py-4 bg-secondary/20">
+            <div className="text-xs text-muted-foreground">
+              Showing page <span className="font-semibold text-foreground">{meta.page}</span> of{" "}
+              <span className="font-semibold text-foreground">{meta.totalPages}</span> ({meta.total}{" "}
               total listings)
             </div>
             <div className="flex items-center space-x-2">
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 disabled={!meta.hasPrevPage}
                 onClick={() =>
                   setFilters((prev) => ({
@@ -362,12 +378,14 @@ export const AdminPropertiesList: React.FC = () => {
                     page: Math.max(1, (prev.page || 1) - 1),
                   }))
                 }
-                className="flex items-center space-x-1 rounded-lg border border-[#2a2a2a] bg-[#181818] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:border-[#D4AF37] disabled:opacity-40"
+                className="gap-1 text-xs"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
                 <span>Previous</span>
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 disabled={!meta.hasNextPage}
                 onClick={() =>
                   setFilters((prev) => ({
@@ -375,11 +393,11 @@ export const AdminPropertiesList: React.FC = () => {
                     page: (prev.page || 1) + 1,
                   }))
                 }
-                className="flex items-center space-x-1 rounded-lg border border-[#2a2a2a] bg-[#181818] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:border-[#D4AF37] disabled:opacity-40"
+                className="gap-1 text-xs"
               >
                 <span>Next</span>
                 <ChevronRight className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -388,41 +406,43 @@ export const AdminPropertiesList: React.FC = () => {
       {/* Soft Delete Confirmation Modal */}
       {deleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md space-y-5 rounded-2xl border border-[#2a2a2a] bg-[#141414] p-6 shadow-2xl">
-            <div className="flex items-center space-x-3 text-[#ef4444]">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ef4444]/10 border border-[#ef4444]/20">
+          <div className="w-full max-w-md space-y-5 rounded-xl border border-border bg-card p-6 shadow-2xl">
+            <div className="flex items-center space-x-3 text-destructive">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 border border-destructive/20">
                 <Trash2 className="h-5 w-5" />
               </div>
-              <h3 className="text-base font-bold text-white">
+              <h3 className="text-base font-bold text-foreground">
                 Soft-Delete Property
               </h3>
             </div>
-            <p className="text-xs text-[#a0a0a0]">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               Are you sure you want to soft-delete this property? This will flag
-              the listing as <span className="text-[#D4AF37] font-semibold">isDeleted = true</span> and update its status to <span className="text-[#D4AF37] font-semibold">SOLD</span>.
+              the listing as <span className="text-primary font-semibold">isDeleted = true</span> and update its status to <span className="text-primary font-semibold">SOLD</span>.
             </p>
             <div className="flex items-center justify-end space-x-3 pt-2">
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   setDeleteModalOpen(false);
                   setSelectedPropertyId(null);
                 }}
                 disabled={isDeleting}
-                className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] px-4 py-2 text-xs font-semibold text-white hover:bg-[#252525] transition-colors"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
                 onClick={confirmDelete}
                 disabled={isDeleting}
-                className="flex items-center space-x-2 rounded-lg bg-[#ef4444] px-4 py-2 text-xs font-bold text-white hover:bg-[#dc2626] transition-colors disabled:opacity-50"
               >
                 {isDeleting ? "Deleting..." : "Confirm Soft Delete"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };

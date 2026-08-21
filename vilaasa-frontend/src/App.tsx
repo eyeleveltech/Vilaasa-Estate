@@ -67,6 +67,16 @@ const AdminInquiriesList = lazy(() =>
     default: m.AdminInquiriesList,
   })),
 );
+const AdminSiteVisits = lazy(() =>
+  import("./admin/pages/AdminSiteVisits").then((m) => ({
+    default: m.AdminSiteVisits,
+  })),
+);
+const AdminChannelPartners = lazy(() =>
+  import("./admin/pages/AdminChannelPartners").then((m) => ({
+    default: m.AdminChannelPartners,
+  })),
+);
 
 const queryClient = new QueryClient();
 
@@ -136,6 +146,11 @@ const App = () => (
                 />
                 <Route path="properties/:id" element={<AdminPropertyDetail />} />
                 <Route path="inquiries" element={<AdminInquiriesList />} />
+                <Route path="site-visits" element={<AdminSiteVisits />} />
+                <Route
+                  path="channel-partners"
+                  element={<AdminChannelPartners />}
+                />
               </Route>
 
               {/* Catch-All 404 */}

@@ -339,6 +339,22 @@ model ConstructionGalleryItem {
 }
 
 // ----------------------------------------------------
+// OTP RECORDS (Vault Login & Client Auth)
+// ----------------------------------------------------
+
+model OtpRecord {
+  id        String   @id @default(cuid())
+  email     String
+  otp       String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+// ----------------------------------------------------
 // INQUIRIES & LEAD MANAGEMENT
 // ----------------------------------------------------
 
@@ -354,7 +370,10 @@ model Inquiry {
   source          LeadSource    @default(HERO_INQUIRY)
   notes           String?       @db.Text
   utmSource       String?
+  utmMedium       String?
   utmCampaign     String?
+  followUpDate    DateTime?
+  followUpNotes   String?       @db.Text
 
   propertyId      String?
   property        Property?     @relation(fields: [propertyId], references: [id], onDelete: SetNull)
@@ -362,11 +381,48 @@ model Inquiry {
   assignedAgentId String?
   assignedAgent   User?         @relation("AssignedInquiries", fields: [assignedAgentId], references: [id], onDelete: SetNull)
 
+  timeline        InquiryTimeline[]
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   @@index([status, propertyId])
   @@index([email])
+  @@index([followUpDate])
+}
+
+model InquiryTimeline {
+  id          String   @id @default(cuid())
+  inquiryId   String
+  inquiry     Inquiry  @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  fromStatus  String?
+  toStatus    String
+  note        String?  @db.Text
+  changedById String?
+  createdAt   DateTime @default(now())
+
+  @@index([inquiryId])
+}
+
+// ----------------------------------------------------
+// CHANNEL PARTNER DIRECTORY
+// ----------------------------------------------------
+
+model ChannelPartner {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String
+  company      String?
+  experience   String?
+  city         String?
+  status       String   @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED"
+  approvedById String?
+  userId       String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status])
 }
 
 // ----------------------------------------------------

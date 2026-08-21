@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -16,9 +16,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { CountryCodeSelect } from "@/components/CountryCodeSelect";
 import api from "@/api/axios";
+import { Property, ApiResponse } from "@/admin/types/admin.types";
 
-const timeSlots = [
-  "09:00 AM",
+const standardSlots = [
   "10:00 AM",
   "11:00 AM",
   "12:00 PM",
@@ -29,10 +29,13 @@ const timeSlots = [
 ];
 
 const visitTypes = [
-  { value: "real-estate-india", label: "India Real Estate" },
-  { value: "real-estate-international", label: "International Real Estate" },
-  { value: "franchise", label: "Franchise Opportunities" },
-  { value: "general", label: "General Consultation" },
+  { value: "real-estate-india", label: "India Real Estate Inspection" },
+  {
+    value: "real-estate-international",
+    label: "Dubai & International Portfolio",
+  },
+  { value: "franchise", label: "Institutional Franchise Advisory" },
+  { value: "general", label: "Private Wealth Client Consultation" },
 ];
 
 const Calendar_Page = () => {
@@ -40,7 +43,14 @@ const Calendar_Page = () => {
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<string>("");
-  const [visitType, setVisitType] = useState<string>("");
+  const [visitType, setVisitType] = useState<string>("real-estate-india");
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
+
+  const [availableSlots, setAvailableSlots] = useState<string[]>(standardSlots);
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState<boolean>(false);
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -50,6 +60,27 @@ const Calendar_Page = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Load properties for estate selector
+  useEffect(() => {
+    const loadProps = async () => {
+      try {
+        const res = await api.get<ApiResponse<Property[]>>("/properties", {
+          params: { limit: 50 },
+        });
+        if (res.data.success) {
+          setProperties(res.data.data);
+          if (res.data.data.length > 0) {
+            setSelectedPropertyId(res.data.data[0].id);
+          }
+        }
+      } catch {
+        // quiet fallback
+      }
+    };
+    loadProps();
+  }, []);
+
+  // Load saved lead profile from localStorage
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
@@ -74,6 +105,41 @@ const Calendar_Page = () => {
     }
   }, []);
 
+  // Dynamic Slot Availability Fetcher
+  const fetchSlots = useCallback(async (date: Date, propertyId?: string) => {
+    setLoadingSlots(true);
+    try {
+      const dateStr = date.toISOString().split("T")[0];
+      const params: Record<string, string> = { date: dateStr };
+      if (propertyId) params.propertyId = propertyId;
+
+      const res = await api.get<
+        ApiResponse<{
+          allSlots: string[];
+          bookedSlots: string[];
+          availableSlots: string[];
+        }>
+      >("/site-visits/slots", { params });
+
+      if (res.data.success) {
+        setAvailableSlots(res.data.data.availableSlots || standardSlots);
+        setBookedSlots(res.data.data.bookedSlots || []);
+      }
+    } catch {
+      setAvailableSlots(standardSlots);
+      setBookedSlots([]);
+    } finally {
+      setLoadingSlots(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedDate) {
+      fetchSlots(selectedDate, selectedPropertyId);
+      setSelectedTime("");
+    }
+  }, [selectedDate, selectedPropertyId, fetchSlots]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -86,7 +152,7 @@ const Calendar_Page = () => {
     ) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields.",
+        description: "Please select a date, time slot, and fill in your details.",
         variant: "destructive",
       });
       return;
@@ -109,40 +175,26 @@ const Calendar_Page = () => {
         formData.email?.trim() ||
         `${formData.name.toLowerCase().replace(/[^a-z0-9]/g, "") || "client"}@vip-client.com`;
 
-      // 1. Submit directly to Vilaasa Express + PostgreSQL API
-      await api.post("/inquiries", {
+      const targetPropertyId =
+        selectedPropertyId || properties[0]?.id || "palm-royale-default";
+
+      // Submit directly to Vilaasa Site Visits API (also auto-logs into CRM inquiry pipeline)
+      await api.post("/site-visits", {
+        propertyId: targetPropertyId,
         name: formData.name.trim(),
         email: clientEmail,
         phone: `${formData.phoneCountryCode} ${formData.phone}`.trim(),
-        investmentType: visitType === "real-estate-india" ? "India Real Estate" : "Dubai / International Real Estate",
-        investmentRange: "Private Client Advisory",
-        currency: "INR",
-        source: "CALENDAR_PAGE",
-        notes: `Private site visit booking on ${selectedDate.toLocaleDateString()} at ${selectedTime}. Note: ${formData.notes || "None"}`,
+        scheduledDate: selectedDate.toISOString(),
+        scheduledTime: selectedTime,
+        visitType,
+        notes: formData.notes?.trim() || undefined,
       });
 
-      // 2. Also forward to webhook if available
-      try {
-        await fetch("https://automate.eyelevelstudio.in/webhook/site-visit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: formData.name.trim(),
-            phone: `${formData.phoneCountryCode} ${formData.phone}`.trim(),
-            email: clientEmail,
-            note: formData.notes?.trim() || "",
-            date: selectedDate.toISOString(),
-            time: selectedTime,
-            visitType,
-          }),
-        });
-      } catch {
-        // Optional webhook fallback
-      }
+      const selectedProp = properties.find((p) => p.id === targetPropertyId);
 
       toast({
-        title: "Booking Confirmed!",
-        description: `Your site visit is scheduled for ${selectedDate.toLocaleDateString()} at ${selectedTime}. You'll receive a calendar invite shortly.`,
+        title: "Private Inspection Confirmed!",
+        description: `Your inspection for ${selectedProp?.name || "Vilaasa Estate"} is confirmed for ${selectedDate.toLocaleDateString()} at ${selectedTime}.`,
       });
 
       if (typeof window !== "undefined") {
@@ -158,41 +210,52 @@ const Calendar_Page = () => {
             }),
           );
         } catch (error) {
-          console.error("Failed to persist lead profile:", error);
+          console.error("Failed to save lead profile:", error);
         }
       }
 
-      // optional delay (only after success)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
       // Reset form
-      setSelectedDate(undefined);
       setSelectedTime("");
-      setVisitType("");
+      setSelectedDate(undefined);
       setFormData({
         name: "",
         email: "",
         phone: "",
-        notes: "",
         phoneCountryCode: "+91",
+        notes: "",
       });
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Booking Failed",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
+    } catch (err: unknown) {
+      console.error(err);
+      const error = err as { response?: { status?: number; data?: { message?: string } } };
+      if (error?.response?.status === 409) {
+        toast({
+          title: "Slot Unavailable",
+          description:
+            "This slot was just booked by another client, please choose another time.",
+          variant: "destructive",
+        });
+        if (selectedDate) {
+          fetchSlots(selectedDate, selectedPropertyId);
+        }
+      } else {
+        toast({
+          title: "Booking Failed",
+          description:
+            error?.response?.data?.message ||
+            "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Disable past dates and weekends
+  // Disable past dates and Sundays
   const disabledDays = (date: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return date < today || date.getDay() === 0; // Disable Sundays and past dates
+    return date < today || date.getDay() === 0;
   };
 
   return (
@@ -209,14 +272,15 @@ const Calendar_Page = () => {
             className="mb-10 text-center sm:mb-12 md:mb-16"
           >
             <span className="text-primary uppercase tracking-[0.2em] text-xs font-bold">
-              Schedule a Visit
+              Private Concierge
             </span>
             <h1 className="mb-4 mt-3 text-3xl font-light sm:mt-4 sm:text-4xl md:mb-6 md:text-5xl lg:text-6xl">
-              Book Your <span className="font-serif italic">Site Visit</span>
+              Book Your <span className="font-serif italic">Private Visit</span>
             </h1>
             <p className="mx-auto max-w-2xl text-base text-muted-foreground sm:text-lg">
-              Select your preferred date and time for a personalized walkthrough
-              of our exclusive properties and franchise opportunities.
+              Select your preferred estate, date, and exclusive time slot for a
+              personalized architectural walkthrough with our Senior Estate
+              Ambassador.
             </p>
           </motion.div>
 
@@ -226,11 +290,38 @@ const Calendar_Page = () => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="rounded-lg border border-border bg-card p-4 sm:p-6 md:p-8"
+              className="rounded-xl border border-border bg-card p-4 sm:p-6 md:p-8 shadow-xl"
             >
               <h2 className="mb-4 text-lg font-bold text-foreground sm:mb-6 sm:text-xl">
-                Select Date & Time
+                1. Select Estate & Inspection Date
               </h2>
+
+              {/* Property Selector */}
+              {properties.length > 0 && (
+                <div className="mb-6 space-y-2">
+                  <Label htmlFor="propSelect" className="text-xs font-semibold">
+                    Target Estate / Destination
+                  </Label>
+                  <Select
+                    value={selectedPropertyId}
+                    onValueChange={setSelectedPropertyId}
+                  >
+                    <SelectTrigger
+                      id="propSelect"
+                      className="bg-background border-border"
+                    >
+                      <SelectValue placeholder="Select Estate" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border-border">
+                      {properties.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name} ({p.location.city}, {p.location.country})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="flex flex-col items-center">
                 <Calendar
@@ -247,28 +338,47 @@ const Calendar_Page = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="mt-6 w-full sm:mt-8"
                   >
-                    <h3 className="text-sm font-medium text-foreground mb-4">
-                      Available Time Slots for{" "}
-                      {selectedDate.toLocaleDateString("en-US", {
-                        weekday: "long",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </h3>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-medium text-foreground">
+                        Inspection Slots for{" "}
+                        <span className="text-[#D4AF37] font-semibold">
+                          {selectedDate.toLocaleDateString("en-US", {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </h3>
+                      {loadingSlots && (
+                        <span className="text-xs text-[#a0a0a0] animate-pulse">
+                          Checking slots...
+                        </span>
+                      )}
+                    </div>
+
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      {timeSlots.map((time) => (
-                        <button
-                          key={time}
-                          onClick={() => setSelectedTime(time)}
-                          className={`h-10 rounded-md border px-2 text-xs transition-colors sm:h-auto sm:p-3 sm:text-sm ${
-                            selectedTime === time
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "border-border hover:border-primary/50 text-foreground"
-                          }`}
-                        >
-                          {time}
-                        </button>
-                      ))}
+                      {standardSlots.map((time) => {
+                        const isBooked = bookedSlots.includes(time);
+                        const isSelected = selectedTime === time;
+
+                        return (
+                          <button
+                            key={time}
+                            type="button"
+                            disabled={isBooked}
+                            onClick={() => setSelectedTime(time)}
+                            className={`h-11 rounded-lg border text-xs font-semibold transition-all sm:h-auto sm:p-3 sm:text-sm ${
+                              isSelected
+                                ? "bg-[#D4AF37] text-black border-[#D4AF37] shadow-lg shadow-[#D4AF37]/20 font-bold"
+                                : isBooked
+                                  ? "border-red-500/20 bg-red-500/5 text-[#ef4444] line-through opacity-50 cursor-not-allowed"
+                                  : "border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500 hover:bg-emerald-500/10 text-[#22c55e]"
+                            }`}
+                          >
+                            {time}
+                          </button>
+                        );
+                      })}
                     </div>
                   </motion.div>
                 )}
@@ -280,15 +390,15 @@ const Calendar_Page = () => {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="rounded-lg border border-border bg-card p-4 sm:p-6 md:p-8"
+              className="rounded-xl border border-border bg-card p-4 sm:p-6 md:p-8 shadow-xl"
             >
               <h2 className="mb-4 text-lg font-bold text-foreground sm:mb-6 sm:text-xl">
-                Your Details
+                2. Guest Itinerary Details
               </h2>
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="visitType">Type of Visit *</Label>
+                  <Label htmlFor="visitType">Advisory Category *</Label>
                   <Select value={visitType} onValueChange={setVisitType}>
                     <SelectTrigger className="bg-background border-border">
                       <SelectValue placeholder="Select visit type" />
@@ -307,21 +417,22 @@ const Calendar_Page = () => {
                   <Label htmlFor="calName">Full Name *</Label>
                   <Input
                     id="calName"
-                    placeholder="Enter your full name"
+                    placeholder="e.g. Lord Arthur Wellesley"
                     value={formData.name}
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
+                    required
                     className="bg-background border-border"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="calEmail">Email Address</Label>
+                  <Label htmlFor="calEmail">Email Address (Optional)</Label>
                   <Input
                     id="calEmail"
                     type="email"
-                    placeholder="your@email.com"
+                    placeholder="e.g. wellesley@kensington.co.uk"
                     value={formData.email}
                     onChange={(e) =>
                       setFormData({ ...formData, email: e.target.value })
@@ -345,21 +456,22 @@ const Calendar_Page = () => {
                     <Input
                       id="calPhone"
                       type="tel"
-                      placeholder="0000-0000"
+                      placeholder="9876543210"
                       value={formData.phone}
                       onChange={(e) =>
                         setFormData({ ...formData, phone: e.target.value })
                       }
-                      className="w-full bg-background border-border"
+                      required
+                      className="bg-background border-border flex-1"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="calNotes">Additional Notes</Label>
+                  <Label htmlFor="calNotes">Special Requests / Chauffeur Requirements</Label>
                   <Input
                     id="calNotes"
-                    placeholder="Any specific requirements or questions"
+                    placeholder="e.g. Helipad arrival / Private helicopter landing"
                     value={formData.notes}
                     onChange={(e) =>
                       setFormData({ ...formData, notes: e.target.value })
@@ -368,48 +480,16 @@ const Calendar_Page = () => {
                   />
                 </div>
 
-                {/* Summary */}
-                {selectedDate && selectedTime && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="p-4 bg-primary/10 rounded-lg"
-                  >
-                    <p className="text-sm font-medium text-foreground">
-                      Booking Summary
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {selectedDate.toLocaleDateString("en-US", {
-                        weekday: "long",
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}{" "}
-                      at {selectedTime}
-                    </p>
-                  </motion.div>
-                )}
-
                 <Button
                   type="submit"
-                  className="w-full"
                   disabled={isSubmitting || !selectedDate || !selectedTime}
+                  className="w-full bg-[#D4AF37] text-black hover:bg-[#c49f27] font-bold py-6 text-sm uppercase tracking-wider transition-all disabled:opacity-50"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <span className="material-symbols-outlined animate-spin mr-2">
-                        progress_activity
-                      </span>
-                      Booking...
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined mr-2">
-                        event_available
-                      </span>
-                      Confirm Booking
-                    </>
-                  )}
+                  {isSubmitting
+                    ? "Confirming Inspection..."
+                    : selectedDate && selectedTime
+                      ? `Confirm Inspection on ${selectedDate.toLocaleDateString()} at ${selectedTime}`
+                      : "Pick Date & Slot to Confirm"}
                 </Button>
               </form>
             </motion.div>

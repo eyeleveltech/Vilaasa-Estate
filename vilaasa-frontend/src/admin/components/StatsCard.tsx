@@ -19,33 +19,35 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   loading = false,
 }) => {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#111111] p-6 shadow-xl transition-all duration-300 hover:border-[#D4AF37]/50 hover:shadow-2xl">
-      <div className="flex items-center justify-between">
+    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-5 shadow-md transition-all duration-300 hover:border-primary/40 hover:shadow-xl flex flex-col justify-between">
+      <div className="flex items-start justify-between">
         <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#a0a0a0]">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
             {title}
           </p>
           {loading ? (
-            <div className="h-8 w-24 animate-pulse rounded bg-[#222222]" />
+            <div className="h-7 w-20 animate-pulse rounded bg-secondary" />
           ) : (
-            <h3 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+            <h3 className="font-display text-2xl font-light tracking-tight text-foreground">
               {value}
             </h3>
           )}
-          {(subtitle || trend) && (
-            <div className="flex items-center space-x-2 text-xs text-[#a0a0a0]">
-              {trend && (
-                <span className="font-medium text-[#22c55e]">{trend}</span>
-              )}
-              {subtitle && <span>{subtitle}</span>}
-            </div>
-          )}
         </div>
-        <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-[#D4AF37]/20 bg-[#1a1a1a] text-[#D4AF37]">
-          <Icon className="h-6 w-6" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary shrink-0">
+          <Icon className="h-4 w-4" />
         </div>
       </div>
-      <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-[#D4AF37]/5 blur-xl pointer-events-none" />
+
+      {(subtitle || trend) && (
+        <div className="flex items-center space-x-1.5 text-[11px] text-muted-foreground pt-2 mt-1 border-t border-border/40 truncate">
+          {trend && (
+            <span className="font-medium text-emerald-400">{trend}</span>
+          )}
+          {subtitle && <span className="truncate">{subtitle}</span>}
+        </div>
+      )}
+
+      <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-primary/5 blur-xl pointer-events-none" />
     </div>
   );
 };
