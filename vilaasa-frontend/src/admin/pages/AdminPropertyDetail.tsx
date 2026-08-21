@@ -20,6 +20,7 @@ import toast from "react-hot-toast";
 import api from "../../api/axios";
 import { MediaUploader } from "../components/MediaUploader";
 import { BrochureUploader } from "../components/BrochureUploader";
+import { useAdminAuth } from "../hooks/useAdminAuth";
 import {
   Property,
   Amenity,
@@ -32,13 +33,36 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+interface AdminVaultAsset {
+  id: string;
+  userId: string;
+  unitNumber: string;
+  purchaseDate: string;
+  purchasePrice: number | string;
+  currentValuation: number | string;
+  monthlyRentalYield: number | string | null;
+  occupancyStatus: "OCCUPIED" | "VACANT" | "UNDER_MAINTENANCE";
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string | null;
+  };
+  property?: {
+    id: string;
+    name: string;
+  };
+  propertyId?: string;
+}
+
 export const AdminPropertyDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { user: authUser } = useAdminAuth();
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [showBrochureModal, setShowBrochureModal] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<
-    "overview" | "media" | "configurations" | "amenities" | "nearby" | "financials"
+    "overview" | "media" | "configurations" | "amenities" | "nearby" | "financials" | "vault"
   >("overview");
 
   // Master amenities list for picker
@@ -71,6 +95,20 @@ export const AdminPropertyDetail: React.FC = () => {
     value: "",
     note: "",
     icon: "savings",
+  });
+
+  // Vault assets state
+  const [vaultAssets, setVaultAssets] = useState<AdminVaultAsset[]>([]);
+  const [showVaultModal, setShowVaultModal] = useState<boolean>(false);
+  const [editingVaultAsset, setEditingVaultAsset] = useState<AdminVaultAsset | null>(null);
+  const [newVaultAsset, setNewVaultAsset] = useState({
+    userId: "",
+    unitNumber: "",
+    purchaseDate: new Date().toISOString().split("T")[0],
+    purchasePrice: "",
+    currentValuation: "",
+    monthlyRentalYield: "",
+    occupancyStatus: "OCCUPIED" as "OCCUPIED" | "VACANT" | "UNDER_MAINTENANCE",
   });
 
   const fetchPropertyData = useCallback(async () => {
@@ -267,6 +305,112 @@ export const AdminPropertyDetail: React.FC = () => {
     }
   };
 
+  // Fetch Vault Assets for this property
+  const fetchVaultAssets = useCallback(async () => {
+    const propId = property?.id || id;
+    if (!propId) return;
+    try {
+      const res = await api.get<ApiResponse<AdminVaultAsset[]>>("/vault/assets", {
+        params: { propertyId: propId },
+      });
+      if (res.data.success && res.data.data) {
+        setVaultAssets(res.data.data);
+      }
+    } catch {
+      // quiet fallback
+    }
+  }, [id, property?.id]);
+
+  useEffect(() => {
+    if (authUser?.role === "SUPER_ADMIN") {
+      fetchVaultAssets();
+    }
+  }, [authUser?.role, fetchVaultAssets]);
+
+  // Handle Create Vault Asset
+  const handleCreateVaultAsset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!property) return;
+    if (!newVaultAsset.userId.trim() || !newVaultAsset.unitNumber.trim()) {
+      toast.error("Please fill in Investor User ID and Unit Number");
+      return;
+    }
+
+    try {
+      const res = await api.post("/vault/assets", {
+        userId: newVaultAsset.userId.trim(),
+        propertyId: property.id,
+        unitNumber: newVaultAsset.unitNumber.trim(),
+        purchaseDate: newVaultAsset.purchaseDate,
+        purchasePrice: Number(newVaultAsset.purchasePrice) || Number(property.price),
+        currentValuation:
+          Number(newVaultAsset.currentValuation) || Number(property.price),
+        monthlyRentalYield: Number(newVaultAsset.monthlyRentalYield) || 0,
+        occupancyStatus: newVaultAsset.occupancyStatus,
+      });
+
+      if (res.data.success) {
+        toast.success("Asset added to investor vault");
+        setShowVaultModal(false);
+        setNewVaultAsset({
+          userId: "",
+          unitNumber: "",
+          purchaseDate: new Date().toISOString().split("T")[0],
+          purchasePrice: "",
+          currentValuation: "",
+          monthlyRentalYield: "",
+          occupancyStatus: "OCCUPIED",
+        });
+        fetchVaultAssets();
+      }
+    } catch (err: unknown) {
+      const errorMsg =
+        (err as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Failed to assign asset to investor vault";
+      toast.error(errorMsg);
+    }
+  };
+
+  // Handle Update Vault Asset
+  const handleUpdateVaultAsset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingVaultAsset) return;
+
+    try {
+      const res = await api.put(`/vault/assets/${editingVaultAsset.id}`, {
+        unitNumber: editingVaultAsset.unitNumber,
+        currentValuation: Number(editingVaultAsset.currentValuation),
+        monthlyRentalYield: Number(editingVaultAsset.monthlyRentalYield) || 0,
+        occupancyStatus: editingVaultAsset.occupancyStatus,
+      });
+
+      if (res.data.success) {
+        toast.success("Vault asset updated successfully");
+        setEditingVaultAsset(null);
+        fetchVaultAssets();
+      }
+    } catch (err: unknown) {
+      const errorMsg =
+        (err as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Failed to update vault asset";
+      toast.error(errorMsg);
+    }
+  };
+
+  // Handle Delete Vault Asset
+  const handleDeleteVaultAsset = async (assetId: string) => {
+    if (!confirm("Are you sure you want to remove this asset from the investor vault?")) {
+      return;
+    }
+    try {
+      await api.delete(`/vault/assets/${assetId}`);
+      toast.success("Vault asset removed");
+      fetchVaultAssets();
+    } catch {
+      toast.error("Failed to remove vault asset");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-96 flex-col items-center justify-center space-y-3">
@@ -290,7 +434,7 @@ export const AdminPropertyDetail: React.FC = () => {
     );
   }
 
-  const tabs = [
+  const tabs: Array<{ id: typeof activeTab; label: string; icon: React.ComponentType<{ className?: string }> }> = [
     { id: "overview", label: "Overview", icon: Building2 },
     { id: "media", label: `Media (${property.media?.length || 0})`, icon: ImageIcon },
     {
@@ -314,6 +458,14 @@ export const AdminPropertyDetail: React.FC = () => {
       icon: TrendingUp,
     },
   ];
+
+  if (authUser?.role === "SUPER_ADMIN") {
+    tabs.push({
+      id: "vault",
+      label: `Vault (${vaultAssets.length})`,
+      icon: ShieldCheck,
+    });
+  }
 
   return (
     <motion.div
@@ -1074,6 +1226,363 @@ export const AdminPropertyDetail: React.FC = () => {
                   </Button>
                   <Button type="submit" size="sm">
                     Save Metric
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Vault Assets Tab Panel (SUPER_ADMIN only) */}
+          {activeTab === "vault" && authUser?.role === "SUPER_ADMIN" && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-4">
+                <div>
+                  <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-[#D4AF37]" />
+                    <span>Assign to Investor Portfolio</span>
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Assign specific units of this trophy asset to private investor portfolios &amp; set yields
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setShowVaultModal(true)}
+                  size="sm"
+                  className="gap-1.5 text-xs font-semibold uppercase tracking-wider bg-primary hover:bg-primary/90"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Assign to Investor</span>
+                </Button>
+              </div>
+
+              {/* Vault Assets Table */}
+              <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-foreground">
+                    <thead className="border-b border-border bg-secondary/40 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+                      <tr>
+                        <th className="py-3 px-4 font-semibold">Investor Folio</th>
+                        <th className="py-3 px-4 font-semibold">Unit Number</th>
+                        <th className="py-3 px-4 font-semibold">Purchase Price</th>
+                        <th className="py-3 px-4 font-semibold">Current Valuation</th>
+                        <th className="py-3 px-4 font-semibold">Monthly Rental</th>
+                        <th className="py-3 px-4 font-semibold">Occupancy</th>
+                        <th className="py-3 px-4 text-right font-semibold">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60">
+                      {vaultAssets.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                            No investor holdings registered for this property yet. Click "Assign to Investor" to add a unit.
+                          </td>
+                        </tr>
+                      ) : (
+                        vaultAssets.map((asset) => (
+                          <tr key={asset.id} className="hover:bg-secondary/30 transition-colors">
+                            <td className="py-3.5 px-4">
+                              <div className="font-semibold text-foreground">
+                                {asset.user?.name || "Client Investor"}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground font-mono truncate max-w-[150px]">
+                                {asset.user?.email || asset.userId}
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 font-mono font-medium text-foreground">
+                              {asset.unitNumber}
+                            </td>
+                            <td className="py-3.5 px-4 font-mono">
+                              {property.currency} {Number(asset.purchasePrice).toLocaleString()}
+                            </td>
+                            <td className="py-3.5 px-4 font-mono font-semibold text-primary">
+                              {property.currency} {Number(asset.currentValuation).toLocaleString()}
+                            </td>
+                            <td className="py-3.5 px-4 font-mono text-emerald-400">
+                              {asset.monthlyRentalYield
+                                ? `${property.currency} ${Number(asset.monthlyRentalYield).toLocaleString()}/mo`
+                                : "—"}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span
+                                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
+                                  asset.occupancyStatus === "OCCUPIED"
+                                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                                    : asset.occupancyStatus === "VACANT"
+                                      ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                                      : "bg-red-500/10 text-red-400 border-red-500/30"
+                                }`}
+                              >
+                                {asset.occupancyStatus.replace(/_/g, " ")}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="flex items-center justify-end space-x-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingVaultAsset(asset)}
+                                  className="rounded p-1 text-muted-foreground hover:text-foreground transition-colors"
+                                  title="Edit Valuation / Status"
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteVaultAsset(asset.id)}
+                                  className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors"
+                                  title="Remove Holding"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Add Vault Asset Modal */}
+          {showVaultModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+              <form
+                onSubmit={handleCreateVaultAsset}
+                className="w-full max-w-lg space-y-4 rounded-xl border border-border bg-card p-6 shadow-2xl"
+              >
+                <div className="flex items-center justify-between border-b border-border pb-3">
+                  <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-[#D4AF37]" />
+                    <span>Assign Unit to Investor Vault</span>
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setShowVaultModal(false)}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="col-span-full">
+                    <Label className="text-xs">Investor User ID / Email *</Label>
+                    <Input
+                      type="text"
+                      required
+                      placeholder="e.g. user_cm123... or investor user id"
+                      value={newVaultAsset.userId}
+                      onChange={(e) =>
+                        setNewVaultAsset({ ...newVaultAsset, userId: e.target.value })
+                      }
+                      className="mt-1 bg-secondary/40 h-9 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Unit Identifier *</Label>
+                    <Input
+                      type="text"
+                      required
+                      placeholder="e.g. Tower A, Floor 18, Suite 4BHK"
+                      value={newVaultAsset.unitNumber}
+                      onChange={(e) =>
+                        setNewVaultAsset({ ...newVaultAsset, unitNumber: e.target.value })
+                      }
+                      className="mt-1 bg-secondary/40 h-9"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Purchase Date *</Label>
+                    <Input
+                      type="date"
+                      required
+                      value={newVaultAsset.purchaseDate}
+                      onChange={(e) =>
+                        setNewVaultAsset({ ...newVaultAsset, purchaseDate: e.target.value })
+                      }
+                      className="mt-1 bg-secondary/40 h-9"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Purchase Price ({property.currency}) *</Label>
+                    <Input
+                      type="number"
+                      required
+                      placeholder="e.g. 45000000"
+                      value={newVaultAsset.purchasePrice}
+                      onChange={(e) =>
+                        setNewVaultAsset({ ...newVaultAsset, purchasePrice: e.target.value })
+                      }
+                      className="mt-1 bg-secondary/40 h-9 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Current Valuation ({property.currency}) *</Label>
+                    <Input
+                      type="number"
+                      required
+                      placeholder="e.g. 51000000"
+                      value={newVaultAsset.currentValuation}
+                      onChange={(e) =>
+                        setNewVaultAsset({ ...newVaultAsset, currentValuation: e.target.value })
+                      }
+                      className="mt-1 bg-secondary/40 h-9 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Monthly Rental Yield ({property.currency})</Label>
+                    <Input
+                      type="number"
+                      placeholder="e.g. 250000"
+                      value={newVaultAsset.monthlyRentalYield}
+                      onChange={(e) =>
+                        setNewVaultAsset({ ...newVaultAsset, monthlyRentalYield: e.target.value })
+                      }
+                      className="mt-1 bg-secondary/40 h-9 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Occupancy Status *</Label>
+                    <select
+                      value={newVaultAsset.occupancyStatus}
+                      onChange={(e) =>
+                        setNewVaultAsset({
+                          ...newVaultAsset,
+                          occupancyStatus: e.target.value as "OCCUPIED" | "VACANT" | "UNDER_MAINTENANCE",
+                        })
+                      }
+                      className="mt-1 w-full rounded-md border border-input bg-secondary/40 px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none h-9"
+                    >
+                      <option value="OCCUPIED">Occupied (Tenant Active)</option>
+                      <option value="VACANT">Vacant (Available)</option>
+                      <option value="UNDER_MAINTENANCE">Under Maintenance</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-2 pt-3 border-t border-border">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowVaultModal(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" size="sm">
+                    Assign to Vault
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Edit Vault Asset Modal */}
+          {editingVaultAsset && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+              <form
+                onSubmit={handleUpdateVaultAsset}
+                className="w-full max-w-md space-y-4 rounded-xl border border-border bg-card p-6 shadow-2xl"
+              >
+                <div className="flex items-center justify-between border-b border-border pb-3">
+                  <h4 className="text-sm font-semibold text-foreground">
+                    Update Vault Asset Valuation &amp; Yield
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setEditingVaultAsset(null)}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <Label className="text-xs">Unit Identifier</Label>
+                    <Input
+                      type="text"
+                      required
+                      value={editingVaultAsset.unitNumber}
+                      onChange={(e) =>
+                        setEditingVaultAsset({
+                          ...editingVaultAsset,
+                          unitNumber: e.target.value,
+                        })
+                      }
+                      className="mt-1 bg-secondary/40 h-9"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Current Valuation ({property.currency}) *</Label>
+                    <Input
+                      type="number"
+                      required
+                      value={editingVaultAsset.currentValuation}
+                      onChange={(e) =>
+                        setEditingVaultAsset({
+                          ...editingVaultAsset,
+                          currentValuation: e.target.value,
+                        })
+                      }
+                      className="mt-1 bg-secondary/40 h-9 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Monthly Rental Yield ({property.currency})</Label>
+                    <Input
+                      type="number"
+                      value={editingVaultAsset.monthlyRentalYield || ""}
+                      onChange={(e) =>
+                        setEditingVaultAsset({
+                          ...editingVaultAsset,
+                          monthlyRentalYield: e.target.value,
+                        })
+                      }
+                      className="mt-1 bg-secondary/40 h-9 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Occupancy Status</Label>
+                    <select
+                      value={editingVaultAsset.occupancyStatus}
+                      onChange={(e) =>
+                        setEditingVaultAsset({
+                          ...editingVaultAsset,
+                          occupancyStatus: e.target.value as "OCCUPIED" | "VACANT" | "UNDER_MAINTENANCE",
+                        })
+                      }
+                      className="mt-1 w-full rounded-md border border-input bg-secondary/40 px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none h-9"
+                    >
+                      <option value="OCCUPIED">Occupied (Tenant Active)</option>
+                      <option value="VACANT">Vacant (Available)</option>
+                      <option value="UNDER_MAINTENANCE">Under Maintenance</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-2 pt-3 border-t border-border">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditingVaultAsset(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" size="sm">
+                    Save Updates
                   </Button>
                 </div>
               </form>

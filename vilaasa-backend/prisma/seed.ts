@@ -40,6 +40,7 @@ async function main() {
   // 2. Create Users
   const superAdminHash = await bcrypt.hash("SuperAdmin@Vilaasa2026", 12);
   const partnerHash = await bcrypt.hash("Partner@Vilaasa2026", 12);
+  const investorHash = await bcrypt.hash("investor123", 12);
 
   const superAdmin = await prisma.user.create({
     data: {
@@ -65,7 +66,18 @@ async function main() {
     },
   });
 
-  console.log(` Created Super Admin (${superAdmin.email}) & Channel Partner (${channelPartnerUser.email})`);
+  const demoInvestorUser = await prisma.user.create({
+    data: {
+      email: "investor@vilaasa.com",
+      passwordHash: investorHash,
+      name: "Demo Investor",
+      phone: "+971508889900",
+      phoneCode: "+971",
+      role: Role.VAULT_CLIENT,
+    },
+  });
+
+  console.log(` Created Super Admin (${superAdmin.email}), Channel Partner (${channelPartnerUser.email}) & Vault Investor (${demoInvestorUser.email})`);
 
   // Create Channel Partner Directory Records
   await prisma.channelPartner.createMany({
@@ -657,6 +669,33 @@ async function main() {
     });
 
     console.log(" Seeded Client Inquiries with complete audit timelines.");
+
+    // Seed Vault Assets for Demo Investor
+    await prisma.vaultAsset.createMany({
+      data: [
+        {
+          userId: demoInvestorUser.id,
+          propertyId: allProps[0].id,
+          unitNumber: "Villa Signature #07",
+          purchaseDate: new Date("2023-06-15"),
+          purchasePrice: 42000000,
+          currentValuation: 48500000,
+          monthlyRentalYield: 240000,
+          occupancyStatus: "OCCUPIED",
+        },
+        {
+          userId: demoInvestorUser.id,
+          propertyId: allProps[1] ? allProps[1].id : allProps[0].id,
+          unitNumber: "Penthouse Sky Suite A",
+          purchaseDate: new Date("2024-01-20"),
+          purchasePrice: 28000000,
+          currentValuation: 31500000,
+          monthlyRentalYield: 160000,
+          occupancyStatus: "OCCUPIED",
+        },
+      ],
+    });
+    console.log(" Seeded Demo Investor Vault Assets.");
   }
 
   console.log(" Seeded 6 Ultra-Luxury Estates across Dubai and India.");

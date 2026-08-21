@@ -27,6 +27,7 @@ const Contact = () => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
+    email: "",
     phone: "",
     phoneCountryCode: "+91",
     interests: [] as string[],
@@ -56,14 +57,25 @@ const Contact = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name.trim() || !formData.phone.trim()) {
+    if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim()) {
       toast({
         title: "Please fill in required fields",
-        description: "Name and phone number are required.",
+        description: "Name, official email address, and phone number are required.",
         variant: "destructive",
       });
       return;
     }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      toast({
+        title: "Invalid Email Address",
+        description: "Please provide a valid official email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const numberOnlyRegex = /^[0-9]+$/;
 
     if (!numberOnlyRegex.test(formData.phone)) {
@@ -78,9 +90,7 @@ const Contact = () => {
     setIsSubmitting(true);
 
     try {
-      const clientEmail =
-        formData.email?.trim() ||
-        `${formData.name.toLowerCase().replace(/[^a-z0-9]/g, "") || "client"}@investor.com`;
+      const clientEmail = formData.email.trim();
 
       // Submit directly to Vilaasa Express + PostgreSQL API
       await api.post("/inquiries", {
@@ -112,7 +122,7 @@ const Contact = () => {
       }
 
       toast({
-        title: "Inquiry Submitted!",
+        title: "Inquiry Submitted Successfully",
         description:
           "Thank you for your interest. A dedicated relationship manager will contact you within 24 hours.",
       });
@@ -130,20 +140,9 @@ const Contact = () => {
         description: "Please try again later.",
         variant: "destructive",
       });
-      return;
     } finally {
       setIsSubmitting(false);
     }
-
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    toast({
-      title: "Inquiry Submitted",
-      description: "A relationship manager will contact you within 24 hours.",
-    });
-
-    setIsSubmitting(false);
   };
 
   return (
@@ -295,17 +294,40 @@ const Contact = () => {
                   htmlFor="name"
                   className="text-foreground text-sm font-medium"
                 >
-                  Full Name
+                  Full Name <span className="text-primary">*</span>
                 </label>
                 <input
                   id="name"
                   type="text"
+                  required
                   value={formData.name}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, name: e.target.value }))
                   }
-                  className="bg-background border border-border rounded px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                  className="bg-background border border-border rounded px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors text-sm"
                   placeholder="Your full name"
+                  maxLength={100}
+                />
+              </div>
+
+              {/* Email Address */}
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="email"
+                  className="text-foreground text-sm font-medium"
+                >
+                  Email Address <span className="text-primary">*</span>
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, email: e.target.value }))
+                  }
+                  className="bg-background border border-border rounded px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors text-sm"
+                  placeholder="your.email@example.com"
                   maxLength={100}
                 />
               </div>

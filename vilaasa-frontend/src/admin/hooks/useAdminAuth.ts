@@ -40,6 +40,10 @@ export const useAdminAuth = () => {
         
         localStorage.setItem("vilaasa-admin-token", authToken);
         localStorage.setItem("vilaasa-admin-user", JSON.stringify(authUser));
+        if (authUser.role === "CHANNEL_PARTNER") {
+          localStorage.setItem("vilaasa-partner-token", authToken);
+          localStorage.setItem("vilaasa-partner-user", JSON.stringify(authUser));
+        }
         
         setToken(authToken);
         setUser(authUser);
@@ -68,6 +72,8 @@ export const useAdminAuth = () => {
   const logout = useCallback(() => {
     localStorage.removeItem("vilaasa-admin-token");
     localStorage.removeItem("vilaasa-admin-user");
+    localStorage.removeItem("vilaasa-partner-token");
+    localStorage.removeItem("vilaasa-partner-user");
     setToken(null);
     setUser(null);
     toast.success("Logged out successfully");

@@ -11,6 +11,8 @@ import { AdminProtectedRoute } from "./admin/components/AdminProtectedRoute";
 import { AdminLayout } from "./admin/components/AdminLayout";
 import { PartnerProtectedRoute } from "./partner/components/PartnerProtectedRoute";
 import { PartnerLayout } from "./partner/components/PartnerLayout";
+import { VaultProtectedRoute } from "./vault/components/VaultProtectedRoute";
+import { VaultLayout } from "./vault/components/VaultLayout";
 import { ScrollToTop } from "./components/ScrollToTop";
 
 // Public Pages
@@ -24,8 +26,20 @@ const FranchiseDetail = lazy(() => import("./pages/FranchiseDetail"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Calendar = lazy(() => import("./pages/Calendar"));
 const WealthProjector = lazy(() => import("./pages/WealthProjector"));
-const VaultLogin = lazy(() => import("./pages/VaultLogin"));
-const VaultDashboard = lazy(() => import("./pages/VaultDashboard"));
+// The Vault Investor Portal Pages
+const VaultLogin = lazy(() =>
+  import("./vault/pages/VaultLogin").then((m) => ({ default: m.VaultLogin })),
+);
+const VaultDashboard = lazy(() =>
+  import("./vault/pages/VaultDashboard").then((m) => ({
+    default: m.VaultDashboard,
+  })),
+);
+const VaultPortfolio = lazy(() =>
+  import("./vault/pages/VaultPortfolio").then((m) => ({
+    default: m.VaultPortfolio,
+  })),
+);
 const NotFound = lazy(() => import("./pages/NotFound"));
 const SplashGateway = lazy(() =>
   import("./components/SplashGateway").then((m) => ({
@@ -147,11 +161,24 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/wealth-projector" element={<WealthProjector />} />
-              <Route path="/vault" element={<VaultLogin />} />
-              <Route path="/vault/dashboard" element={<VaultDashboard />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/disclaimer" element={<Disclaimer />} />
+
+              {/* The Vault Investor Portal Routes */}
+              <Route path="/vault/login" element={<VaultLogin />} />
+              <Route
+                path="/vault"
+                element={
+                  <VaultProtectedRoute>
+                    <VaultLayout />
+                  </VaultProtectedRoute>
+                }
+              >
+                <Route index element={<Navigate to="/vault/dashboard" replace />} />
+                <Route path="dashboard" element={<VaultDashboard />} />
+                <Route path="portfolio" element={<VaultPortfolio />} />
+              </Route>
 
               {/* Dedicated Partner Portal Routes */}
               <Route path="/partner/login" element={<PartnerLogin />} />

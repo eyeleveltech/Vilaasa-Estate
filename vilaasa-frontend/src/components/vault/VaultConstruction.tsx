@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Progress } from "@/components/ui/progress";
-import { useConstructionAssets } from "@/hooks/useProperties";
+import { useConstructionAssets } from "@/hooks/useNewProperties";
 import { ConstructionAsset } from "@/types/property";
 
 export function VaultConstruction() {

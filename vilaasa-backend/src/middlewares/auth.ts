@@ -6,9 +6,10 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { Role } from "@prisma/client";
 
 interface JwtPayload {
-  userId: string;
+  userId?: string;
+  id?: string;
   role: Role;
-  email: string;
+  email?: string;
 }
 
 export const verifyJWT = asyncHandler(
@@ -34,8 +35,18 @@ export const verifyJWT = asyncHandler(
       throw ApiError.unauthorized("Authentication token is invalid or expired");
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
+    const userId = decoded.userId || decoded.id;
+    if (!userId && !decoded.email) {
+      throw ApiError.unauthorized("Invalid token structure");
+    }
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          ...(userId ? [{ id: userId }] : []),
+          ...(decoded.email ? [{ email: decoded.email }] : []),
+        ],
+      },
       select: {
         id: true,
         email: true,

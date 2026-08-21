@@ -147,19 +147,30 @@ const Calendar_Page = () => {
       !selectedDate ||
       !selectedTime ||
       !visitType ||
-      !formData.name ||
-      !formData.phone
+      !formData.name.trim() ||
+      !formData.email.trim() ||
+      !formData.phone.trim()
     ) {
       toast({
         title: "Missing Information",
-        description: "Please select a date, time slot, and fill in your details.",
+        description: "Please select a date, time slot, and fill in your name, email, and phone number.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      toast({
+        title: "Invalid Email Address",
+        description: "Please provide a valid email address to receive your VIP inspection itinerary.",
         variant: "destructive",
       });
       return;
     }
 
     const numberOnlyRegex = /^[0-9]+$/;
-    if (!numberOnlyRegex.test(formData.phone)) {
+    if (!numberOnlyRegex.test(formData.phone.trim())) {
       toast({
         title: "Invalid Phone Number",
         description: "Phone number should contain numbers only.",
@@ -171,9 +182,7 @@ const Calendar_Page = () => {
     setIsSubmitting(true);
 
     try {
-      const clientEmail =
-        formData.email?.trim() ||
-        `${formData.name.toLowerCase().replace(/[^a-z0-9]/g, "") || "client"}@vip-client.com`;
+      const clientEmail = formData.email.trim();
 
       const targetPropertyId =
         selectedPropertyId || properties[0]?.id || "palm-royale-default";
@@ -428,10 +437,11 @@ const Calendar_Page = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="calEmail">Email Address (Optional)</Label>
+                  <Label htmlFor="calEmail">Email Address *</Label>
                   <Input
                     id="calEmail"
                     type="email"
+                    required
                     placeholder="e.g. wellesley@kensington.co.uk"
                     value={formData.email}
                     onChange={(e) =>

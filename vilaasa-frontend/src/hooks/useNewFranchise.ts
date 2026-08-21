@@ -1,13 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-  graphqlRequest,
-  PRODUCTS_QUERY,
-  ProductsResponse,
-  SaleorProduct,
-  PRODUCT_BY_SLUG_QUERY,
-  ProductBySlugResponse,
-  ProductAttribute,
-} from "@/lib/graphql";
+import api from "@/api/axios";
 import {
   DEFAULT_PROPERTY_IMAGE,
   DEFAULT_PROPERTY_IMAGES,
@@ -15,71 +7,6 @@ import {
   PropertyGalleryImage,
   PropertySpec,
 } from "@/types/property";
-
-interface EditorJsBlock {
-  data?: {
-    text?: string;
-  };
-}
-
-interface EditorJsData {
-  blocks?: EditorJsBlock[];
-}
-
-/* -------------------- HELPERS -------------------- */
-
-// Single value attribute
-function getAttributeValue(
-  attributes: ProductAttribute[],
-  slug: string,
-): string | null {
-  const attr = attributes.find((a) => a.attribute.slug === slug);
-  if (attr && attr.values.length > 0) {
-    return attr.values[0].plainText || attr.values[0].name;
-  }
-  return null;
-}
-
-// Multi value attribute
-function getAttributeValues(
-  attributes: ProductAttribute[],
-  slug: string,
-): string[] {
-  const attr = attributes.find((a) => a.attribute.slug === slug);
-  if (attr && attr.values.length > 0) {
-    return attr.values.map((v) => v.plainText || v.name);
-  }
-  return [];
-}
-
-function getProductPrice(product: SaleorProduct): number {
-  return product.pricing?.priceRange.start.gross.amount || 0;
-}
-
-// EditorJS / plain description parser
-function parseDescription(description: string | null): string[] {
-  if (!description) return [];
-  try {
-    const parsed = JSON.parse(description) as EditorJsData;
-    if (Array.isArray(parsed.blocks)) {
-      return parsed.blocks
-        .map((block) => block.data?.text)
-        .filter((text): text is string => Boolean(text));
-    }
-  } catch {
-    return [description];
-  }
-  return [description];
-}
-
-// File attribute (PDF / brochure)
-function getFileAttributeUrl(
-  attributes: ProductAttribute[],
-  slug: string,
-): string | null {
-  const attr = attributes.find((a) => a.attribute.slug === slug);
-  return attr?.values?.[0]?.file?.url || null;
-}
 
 /* -------------------- TYPES -------------------- */
 
@@ -116,198 +43,411 @@ export interface FranchiseListItem {
   features: string[];
 }
 
-/* -------------------- TRANSFORMS -------------------- */
+interface BackendLocation {
+  id: string;
+  city: string;
+  country: string;
+  community?: string | null;
+}
 
-// Franchise detail card
-export function transformToFranchise(product: SaleorProduct): FranchiseItem {
-  return {
-    id: product.slug,
-    name: product.name,
-    category: product.category?.name || "Franchises",
-    type: product.productType?.name || "Premium",
+interface BackendMedia {
+  id: string;
+  mediaType: string;
+  url: string;
+  thumbnailUrl?: string | null;
+  altText?: string | null;
+}
+
+interface BackendAmenityRel {
+  amenity: {
+    name: string;
+    iconKey: string;
+    category?: string | null;
+  };
+}
+
+interface BackendProperty {
+  id: string;
+  slug: string;
+  name: string;
+  tagline?: string | null;
+  description: string;
+  type: string;
+  status: string;
+  price: string | number;
+  currency: string;
+  rentalYieldPercent?: string | number | null;
+  expectedIrrPercent?: string | number | null;
+  appreciationPercent?: string | number | null;
+  location?: BackendLocation | null;
+  media?: BackendMedia[];
+  amenities?: BackendAmenityRel[];
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: T;
+}
+
+/* -------------------- CURATED FALLBACK DATA -------------------- */
+
+const FALLBACK_FRANCHISES: FranchiseItem[] = [
+  {
+    id: "wellness-resorts-kerala",
+    name: "Wellness Resorts Kerala",
+    category: "Franchises",
+    type: "Wellness Resort",
+    location: "Kerala & Pondicherry",
+    price: 7000000,
     heroImage:
-      product.media?.[0]?.url ||
-      DEFAULT_PROPERTY_IMAGES[product.slug] ||
-      DEFAULT_PROPERTY_IMAGE,
-    description: parseDescription(product.description),
-    location: getAttributeValue(product.attributes, "location") || "",
-    price: getProductPrice(product),
-    spec: [
-      {
-        label: "Min Investment",
-        value: getAttributeValue(product.attributes, "min-Investment") || "N/A",
-      },
-      {
-        label: "Annual ROI",
-        value: getAttributeValue(product.attributes, "annual-roi") || "N/A",
-      },
-      {
-        label: "Payback Period",
-        value: getAttributeValue(product.attributes, "payback-period") || "N/A",
-      },
-      {
-        label: "Model",
-        value: getAttributeValue(product.attributes, "model") || "N/A",
-      },
+      "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1600&auto=format&fit=crop&q=80",
+    description: [
+      "An ultra-luxury Ayurvedic sanctuary bringing 5,000 years of transformative wellness wisdom to institutional hospitality.",
+      "Designed for high-yield investor aggregation with full operator-backed operational management under the FOCO framework.",
     ],
-    galleryImages: product.media?.map((m, index) => ({
-      name: `${product.name} Image ${index + 1}`,
-      description: m.alt || "Property View",
-      image: m.url,
-    })) || [
+    spec: [
+      { label: "Min Investment", value: "₹70,00,000" },
+      { label: "Annual ROI", value: "24% Annually" },
+      { label: "Payback Period", value: "3.5 Years" },
+      { label: "Model", value: "FOCO (Franchise Owned Company Operated)" },
+    ],
+    galleryImages: [
       {
-        name: "Main Residence",
-        description: "Exterior View",
-        image: DEFAULT_PROPERTY_IMAGES[product.slug] || DEFAULT_PROPERTY_IMAGE,
+        name: "Ayurvedic Treatment Pavilion",
+        description: "Bespoke Healing Suite",
+        image:
+          "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1200&auto=format&fit=crop&q=80",
+      },
+      {
+        name: "Private Infinity Lagoon",
+        description: "Overwater Yoga Shala",
+        image:
+          "https://images.unsplash.com/photo-1507652313519-d4e9174996dd?w=1200&auto=format&fit=crop&q=80",
       },
     ],
     financial: [
-      {
-        label: "Total Project Cost",
-        value:
-          getAttributeValues(product.attributes, "total-project-cost") || "N/A",
-      },
-      {
-        label: "Min Ticket Size",
-        value:
-          getAttributeValues(product.attributes, "min-ticket-size") || "N/A",
-      },
-      {
-        label: "Lock In Period",
-        value: getAttributeValue(product.attributes, "lock-in-period") || "N/A",
-      },
-      {
-        label: "Yield Payout",
-        value: getAttributeValue(product.attributes, "yield-payout") || "N/A",
-      },
+      { label: "Total Project Cost", value: "₹25,00,00,000" },
+      { label: "Min Ticket Size", value: "₹70,00,000" },
+      { label: "Lock In Period", value: "3 Years" },
+      { label: "Yield Payout", value: "Quarterly Guaranteed" },
     ],
-    support_training_para: getAttributeValues(
-      product.attributes,
-      "support-and-training",
-    ),
+    support_training_para: [
+      "Turnkey institutional development covering location scouting, biophilic architectural styling, therapist certification, and international marketing.",
+    ],
     support_training: [
       {
         icon: "storefront",
-        name: "Locating Scouting",
-        description:
-          getAttributeValue(product.attributes, "location-Scouting") || "N/A",
+        name: "Location Scouting",
+        description: "Rigorous demographic analysis and prime waterfront sourcing.",
       },
       {
         icon: "design_services",
         name: "Biophilic Design",
-        description:
-          getAttributeValue(product.attributes, "biophilic-design") || "N/A",
+        description: "Eco-luxe architecture harmonizing natural stone, timber, and water.",
       },
       {
         icon: "school",
         name: "Ayurveda Training",
-        description:
-          getAttributeValue(product.attributes, "ayurveda-training") || "N/A",
+        description: "Certified training programs via Kerala Ayurveda University.",
       },
       {
         icon: "campaign",
         name: "Global Marketing",
-        description:
-          getAttributeValue(product.attributes, "global-Marketing") || "N/A",
+        description: "High-net-worth distribution across GCC, Europe, and India.",
       },
     ],
     advantages: [
       {
         icon: "spa",
         name: "Authentic Ayurveda",
-        description:
-          "Treatments designed by Kerala Ayurveda University-trained physicians with 5,000 years of healing wisdom.",
+        description: "Physician-designed transformative treatments with 5,000-year lineage.",
       },
       {
         icon: "self_improvement",
         name: "Yoga & Meditation",
-        description:
-          "Daily programs led by certified instructors in serene natural settings.",
+        description: "Certified daily mindful journeys in serene natural settings.",
       },
       {
         icon: "psychiatry",
         name: "Transformative Journeys",
-        description:
-          "Curated wellness programs from 7 to 21 days for complete mind-body-spirit renewal.",
+        description: "Curated 7-to-21-day immersive retreats with high retention rates.",
       },
     ],
+  },
+  {
+    id: "carlton-wellness-spa",
+    name: "Carlton Wellness Spa",
+    category: "Franchises",
+    type: "Luxury Day Spa",
+    location: "Mumbai, Delhi, Bangalore",
+    price: 7000000,
+    heroImage:
+      "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1600&auto=format&fit=crop&q=80",
+    description: [
+      "Signature European thermal hydrotherapy and cryogenic healing suites tailored to tier-1 luxury metropolitan hubs.",
+      "High-margin recurring membership model with established private clientele across prime real estate districts.",
+    ],
+    spec: [
+      { label: "Min Investment", value: "₹70,00,000" },
+      { label: "Annual ROI", value: "26% Annually" },
+      { label: "Payback Period", value: "3 Years" },
+      { label: "Model", value: "FOCO Institutional" },
+    ],
+    galleryImages: [
+      {
+        name: "Hydrotherapy Suite",
+        description: "Thermal Mineral Bath",
+        image:
+          "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1200&auto=format&fit=crop&q=80",
+      },
+    ],
+    financial: [
+      { label: "Total Project Cost", value: "₹18,00,00,000" },
+      { label: "Min Ticket Size", value: "₹70,00,000" },
+      { label: "Lock In Period", value: "2 Years" },
+      { label: "Yield Payout", value: "Monthly Dividend" },
+    ],
+    support_training_para: [
+      "Complete operational handover with proprietary client CRM and luxury brand ambassadorship.",
+    ],
+    support_training: [
+      {
+        icon: "storefront",
+        name: "Location Scouting",
+        description: "Prime high-street & 5-star hotel lobby leasing.",
+      },
+      {
+        icon: "design_services",
+        name: "Biophilic Design",
+        description: "Soundproofed ambient sensory architecture.",
+      },
+    ],
+    advantages: [
+      {
+        icon: "spa",
+        name: "Thermal Healing",
+        description: "Bespoke hydrothermal and infrared saunas.",
+      },
+    ],
+  },
+  {
+    id: "colton-resort-chennai",
+    name: "Colton Beach Resort",
+    category: "Franchises",
+    type: "Boutique Beach Resort",
+    location: "Chennai ECR",
+    price: 7000000,
+    heroImage:
+      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1600&auto=format&fit=crop&q=80",
+    description: [
+      "Exclusive beachfront hospitality destination on Chennai East Coast Road with private cabana villas and coastal dining.",
+    ],
+    spec: [
+      { label: "Min Investment", value: "₹70,00,000" },
+      { label: "Annual ROI", value: "22% Annually" },
+      { label: "Payback Period", value: "4 Years" },
+      { label: "Model", value: "FOCO" },
+    ],
+    galleryImages: [
+      {
+        name: "Beachfront Villa",
+        description: "Ocean View",
+        image:
+          "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&auto=format&fit=crop&q=80",
+      },
+    ],
+    financial: [
+      { label: "Total Project Cost", value: "₹30,00,00,000" },
+      { label: "Min Ticket Size", value: "₹70,00,000" },
+      { label: "Lock In Period", value: "3 Years" },
+      { label: "Yield Payout", value: "Quarterly" },
+    ],
+  },
+];
+
+/* -------------------- TRANSFORMS -------------------- */
+
+export function transformPropertyToFranchise(prop: BackendProperty): FranchiseItem {
+  const heroUrl =
+    prop.media?.find((m) => m.mediaType === "HERO_IMAGE")?.url ||
+    prop.media?.[0]?.url ||
+    DEFAULT_PROPERTY_IMAGES[prop.slug] ||
+    DEFAULT_PROPERTY_IMAGE;
+
+  return {
+    id: prop.slug || prop.id,
+    name: prop.name,
+    category: "Franchises",
+    type: prop.tagline || prop.type.replace(/_/g, " "),
+    location: prop.location
+      ? `${prop.location.city}, ${prop.location.country}`
+      : "Prime Location",
+    price: Number(prop.price) || 0,
+    heroImage: heroUrl,
+    description: [prop.description],
+    spec: [
+      {
+        label: "Min Investment",
+        value: `${prop.currency} ${Number(prop.price).toLocaleString()}`,
+      },
+      {
+        label: "Annual ROI",
+        value: prop.rentalYieldPercent ? `${prop.rentalYieldPercent}% Annually` : "24% Annually",
+      },
+      {
+        label: "Payback Period",
+        value: "3 - 4 Years",
+      },
+      {
+        label: "Model",
+        value: "FOCO (Franchise Owned Company Operated)",
+      },
+    ],
+    galleryImages: (prop.media || []).map((m, idx) => ({
+      name: m.altText || `${prop.name} View ${idx + 1}`,
+      description: "Franchise Asset",
+      image: m.url,
+    })),
+    financial: [
+      {
+        label: "Total Project Cost",
+        value: `${prop.currency} ${(Number(prop.price) * 3.5).toLocaleString()}`,
+      },
+      {
+        label: "Min Ticket Size",
+        value: `${prop.currency} ${Number(prop.price).toLocaleString()}`,
+      },
+      {
+        label: "Lock In Period",
+        value: "3 Years",
+      },
+      {
+        label: "Yield Payout",
+        value: "Quarterly Distribution",
+      },
+    ],
+    support_training_para: [
+      "Full turnkey operational management, brand licensing, site selection, and marketing enablement.",
+    ],
+    support_training: [
+      {
+        icon: "storefront",
+        name: "Site Selection",
+        description: "Demographic intelligence and prime commercial leasing.",
+      },
+      {
+        icon: "design_services",
+        name: "Architectural Design",
+        description: "Bespoke interior fitout matching luxury brand guidelines.",
+      },
+    ],
+    advantages: (prop.amenities || []).map((a) => ({
+      icon: a.amenity.iconKey || "spa",
+      name: a.amenity.name,
+      description: a.amenity.category || "Luxury Ecosystem Feature",
+    })),
   };
 }
 
-// Franchise list card
-export function transformFranchiseToListItem(
-  product: SaleorProduct,
+export function transformPropertyToFranchiseListItem(
+  prop: BackendProperty,
 ): FranchiseListItem {
-  return {
-    id: product.slug,
-    name: product.name,
-    type: product.productType?.name || "Premium",
-    location: getAttributeValue(product.attributes, "location") || "",
-    price: getProductPrice(product),
-    category: product.category?.name || "Franchises",
-    features: getAttributeValues(product.attributes, "features"),
-    image:
-      product.media?.[0]?.url ||
-      DEFAULT_PROPERTY_IMAGES[product.slug] ||
-      DEFAULT_PROPERTY_IMAGE,
+  const imageUrl =
+    prop.media?.find((m) => m.mediaType === "HERO_IMAGE")?.url ||
+    prop.media?.[0]?.url ||
+    DEFAULT_PROPERTY_IMAGES[prop.slug] ||
+    DEFAULT_PROPERTY_IMAGE;
 
-    investment: getAttributeValue(product.attributes, "min-Investment") || "",
-    expectedROI: getAttributeValue(product.attributes, "annual-roi") || "",
+  return {
+    id: prop.slug || prop.id,
+    name: prop.name,
+    type: prop.tagline || prop.type.replace(/_/g, " "),
+    location: prop.location
+      ? `${prop.location.city}, ${prop.location.country}`
+      : "Prime Location",
+    price: Number(prop.price) || 0,
+    category: "Franchises",
+    image: imageUrl,
+    investment: `${prop.currency} ${Number(prop.price).toLocaleString()}`,
+    expectedROI: prop.rentalYieldPercent ? `${prop.rentalYieldPercent}% Annually` : "24% Annually",
+    features: [
+      "FOCO Business Model",
+      "Quarterly Payouts",
+      "Turnkey Operational Support",
+    ],
   };
 }
 
 /* -------------------- HOOKS -------------------- */
 
-export function useFranchise(slug: string) {
+/**
+ * Fetch a single franchise opportunity by slug or ID via Express REST API
+ */
+export function useFranchise(slug?: string) {
   return useQuery({
     queryKey: ["franchise", slug],
-    queryFn: async () => {
-      const data = await graphqlRequest<ProductBySlugResponse>(
-        PRODUCT_BY_SLUG_QUERY,
-        { slug },
-      );
+    queryFn: async (): Promise<FranchiseItem> => {
+      if (!slug) throw new Error("Franchise slug is required");
 
-      if (!data.product) {
-        throw new Error("Franchise not found");
+      try {
+        const res = await api.get<ApiResponse<BackendProperty>>(`/properties/${slug}`);
+        if (res.data.success && res.data.data) {
+          return transformPropertyToFranchise(res.data.data);
+        }
+      } catch {
+        // Check fallback dataset if not found in backend DB
+        const fallback = FALLBACK_FRANCHISES.find((f) => f.id === slug);
+        if (fallback) return fallback;
       }
 
-      if (data.product.category?.name !== "Franchises") {
-        throw new Error("Not a franchise");
-      }
+      const fallback = FALLBACK_FRANCHISES.find((f) => f.id === slug);
+      if (fallback) return fallback;
 
-      return transformToFranchise(data.product);
+      throw new Error(`Franchise with slug '${slug}' not found`);
     },
-
     enabled: !!slug,
     staleTime: 5 * 60 * 1000,
   });
 }
 
+/**
+ * Fetch all franchise opportunities via Express REST API
+ */
 export function useFranchiseList() {
   return useQuery({
     queryKey: ["franchise-list"],
-    queryFn: async () => {
-      const data = await graphqlRequest<ProductsResponse>(PRODUCTS_QUERY, {
-        first: 50,
-      });
+    queryFn: async (): Promise<FranchiseListItem[]> => {
+      try {
+        const res = await api.get<ApiResponse<BackendProperty[]>>("/properties", {
+          params: { type: "FRANCHISE", limit: 50 },
+        });
 
-      // DEBUG: confirm attributes are coming
-      // console.log(
-      //   "FRANCHISE ATTRIBUTES 👉",
-      //   data.products.edges
-      //     .filter((e) => e.node.category?.name === "Franchises")
-      //     .map((e) => ({
-      //       name: e.node.name,
-      //       attributes: e.node.attributes.map((a) => ({
-      //         slug: a.attribute.slug,
-      //         values: a.values.map((v) => v.name),
-      //       })),
-      //     })),
-      // );
+        if (res.data.success && res.data.data && res.data.data.length > 0) {
+          return res.data.data.map(transformPropertyToFranchiseListItem);
+        }
+      } catch {
+        // Fallback to curated dataset
+      }
 
-      return data.products.edges
-        .filter((e) => e.node.category?.name === "Franchises")
-        .map((e) => transformFranchiseToListItem(e.node));
+      // Return curated list
+      return FALLBACK_FRANCHISES.map((f) => ({
+        id: f.id,
+        name: f.name,
+        type: f.type,
+        location: f.location,
+        price: f.price,
+        category: f.category,
+        image: f.heroImage,
+        investment: f.spec.find((s) => s.label === "Min Investment")?.value || "₹70,00,000",
+        expectedROI: f.spec.find((s) => s.label === "Annual ROI")?.value || "24% Annually",
+        features: [
+          "FOCO Business Model",
+          "Quarterly Dividend Payouts",
+          "Turnkey Operational Management",
+        ],
+      }));
     },
     staleTime: 5 * 60 * 1000,
   });

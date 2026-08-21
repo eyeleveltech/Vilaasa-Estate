@@ -1,12 +1,86 @@
 import { Request, Response } from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { Role } from "@prisma/client";
 import { prisma } from "../../config/db";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { ApiError } from "../../utils/ApiError";
 import { asyncHandler } from "../../utils/asyncHandler";
+import { LoginInput } from "../auth/auth.schema";
 import {
   CreateVaultAssetInput,
   UpdateVaultAssetInput,
 } from "./vault.schema";
+
+const generateToken = (userId: string, email: string, role: string): string => {
+  return jwt.sign(
+    { userId, id: userId, email, role },
+    process.env.JWT_SECRET || "default_jwt_secret",
+    { expiresIn: (process.env.JWT_EXPIRES_IN || "7d") as any },
+  );
+};
+
+/**
+ * @desc    Dedicated investor authentication for The Vault portal
+ * @route   POST /api/v1/vault/login
+ * @access  Public
+ */
+export const vaultLogin = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password } = req.body as LoginInput;
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    throw ApiError.unauthorized("Invalid email or password");
+  }
+
+  if (!user.isActive) {
+    throw ApiError.forbidden("Your account is deactivated. Contact admin.");
+  }
+
+  const isMatch = await bcrypt.compare(password, user.passwordHash);
+  if (!isMatch) {
+    throw ApiError.unauthorized("Invalid email or password");
+  }
+
+  // Strict Role Gate
+  if (user.role === Role.CHANNEL_PARTNER) {
+    throw ApiError.forbidden(
+      "Access restricted to Vault investors. Please use the partner portal.",
+    );
+  }
+
+  if (user.role === Role.SUPER_ADMIN) {
+    throw ApiError.forbidden("Administrators cannot access the Vault portal.");
+  }
+
+  if (user.role !== Role.VAULT_CLIENT) {
+    throw ApiError.forbidden("Access restricted to Vault investors.");
+  }
+
+  const token = generateToken(user.id, user.email, user.role);
+
+  const userProfile = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    phone: user.phone,
+    phoneCode: user.phoneCode,
+    role: user.role,
+    avatar: user.avatar,
+    isActive: user.isActive,
+    createdAt: user.createdAt,
+  };
+
+  return res.status(200).json(
+    ApiResponse.ok(
+      { user: userProfile, token },
+      "Authenticated with The Vault successfully",
+    ),
+  );
+});
 
 /**
  * @desc    Get currently authenticated investor's Vault portfolio & metrics
@@ -27,7 +101,7 @@ export const getMyPortfolio = asyncHandler(
     });
 
     if (!user) {
-      // Empty portfolio state for new OTP guest sessions
+      // Empty portfolio state for new sessions
       return res.status(200).json(
         ApiResponse.ok(
           {
@@ -98,6 +172,7 @@ export const getMyPortfolio = asyncHandler(
           currency: a.property.currency,
           city: a.property.location.city,
           country: a.property.location.country,
+          community: a.property.location.community,
           heroImage: a.property.media[0]?.url || null,
         },
       };
@@ -137,13 +212,20 @@ export const getMyPortfolio = asyncHandler(
 );
 
 /**
- * @desc    Get all vault assets across the firm
- * @route   GET /api/v1/vault/assets
- * @access  Protected (Super Admin)
+ * @desc    Get single vault asset detail by ID
+ * @route   GET /api/v1/vault/assets/:id
+ * @access  Protected (Investor / Super Admin)
  */
-export const getAllVaultAssets = asyncHandler(
-  async (_req: Request, res: Response) => {
-    const assets = await prisma.vaultAsset.findMany({
+export const getVaultAssetById = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw ApiError.unauthorized("Authentication required");
+    }
+
+    const { id } = req.params;
+
+    const asset = await prisma.vaultAsset.findUnique({
+      where: { id },
       include: {
         user: {
           select: {
@@ -154,20 +236,130 @@ export const getAllVaultAssets = asyncHandler(
           },
         },
         property: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            currency: true,
+          include: {
             location: true,
+            media: true,
           },
         },
       },
-      orderBy: { createdAt: "desc" },
     });
 
+    if (!asset) {
+      throw ApiError.notFound(`Vault asset with id '${id}' not found`);
+    }
+
+    // Role Gate: Only asset owner or SUPER_ADMIN can view
+    if (req.user.role !== Role.SUPER_ADMIN && req.user.id !== asset.userId) {
+      throw ApiError.forbidden("Access denied to this vault asset");
+    }
+
+    const purchase = Number(asset.purchasePrice);
+    const current = Number(asset.currentValuation);
+    const rental = Number(asset.monthlyRentalYield || 0);
+    const appreciation = current - purchase;
+    const appreciationPercent =
+      purchase > 0 ? parseFloat(((appreciation / purchase) * 100).toFixed(2)) : 0;
+
+    const formattedAsset = {
+      id: asset.id,
+      unitNumber: asset.unitNumber,
+      occupancyStatus: asset.occupancyStatus,
+      purchaseDate: asset.purchaseDate,
+      purchasePrice: purchase,
+      currentValuation: current,
+      monthlyRentalYield: rental,
+      appreciation,
+      appreciationPercent,
+      user: asset.user,
+      property: {
+        id: asset.property.id,
+        name: asset.property.name,
+        slug: asset.property.slug,
+        type: asset.property.type,
+        currency: asset.property.currency,
+        location: {
+          city: asset.property.location.city,
+          country: asset.property.location.country,
+          community: asset.property.location.community,
+        },
+        media: asset.property.media.map((m) => ({
+          url: m.url,
+          isFeatured: m.isFeatured,
+        })),
+      },
+    };
+
     return res.status(200).json(
-      ApiResponse.ok(assets, "All vault holdings retrieved successfully"),
+      ApiResponse.ok(formattedAsset, "Vault asset retrieved successfully"),
+    );
+  },
+);
+
+/**
+ * @desc    Get all vault assets across the firm (with optional propertyId filter & pagination)
+ * @route   GET /api/v1/vault/assets
+ * @access  Protected (Super Admin)
+ */
+export const getAllVaultAssets = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { propertyId, page = "1", limit = "20" } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    interface VaultWhereClause {
+      propertyId?: string;
+    }
+    const where: VaultWhereClause = {};
+    if (propertyId && typeof propertyId === "string" && propertyId.trim()) {
+      where.propertyId = propertyId.trim();
+    }
+
+    const [total, assets] = await Promise.all([
+      prisma.vaultAsset.count({ where }),
+      prisma.vaultAsset.findMany({
+        where,
+        skip,
+        take: limitNum,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+            },
+          },
+          property: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              currency: true,
+              location: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+
+    const totalPages = Math.ceil(total / limitNum);
+
+    return res.status(200).json(
+      ApiResponse.ok(
+        assets,
+        "All vault holdings retrieved successfully",
+        {
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages,
+          hasNextPage: pageNum < totalPages,
+          hasPrevPage: pageNum > 1,
+        },
+      ),
     );
   },
 );

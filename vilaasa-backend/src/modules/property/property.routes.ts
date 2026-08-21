@@ -52,7 +52,7 @@ const router = Router();
 router.get(
   "/stats",
   verifyJWT,
-  authorizeRoles(Role.SUPER_ADMIN),
+  authorizeRoles(Role.SUPER_ADMIN, Role.CHANNEL_PARTNER),
   getPropertyStats,
 );
 
