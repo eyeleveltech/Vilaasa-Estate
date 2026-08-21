@@ -44,8 +44,11 @@ export const useAdminAuth = () => {
         setToken(authToken);
         setUser(authUser);
 
-        toast.success(`Welcome back, ${authUser.name}`);
-        navigate("/admin/dashboard");
+        if (authUser.role === "CHANNEL_PARTNER") {
+          navigate("/partner/dashboard");
+        } else {
+          navigate("/admin/dashboard");
+        }
         return true;
       } else {
         toast.error(res.data.message || "Login failed");

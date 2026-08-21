@@ -292,7 +292,7 @@ export const sendPartnerApprovedEmail = async (partner: {
   portalUrl?: string;
 }): Promise<{ success: boolean }> => {
   const frontendUrl = getFrontendUrl();
-  const portalUrl = partner.portalUrl || `${frontendUrl}/admin/login`;
+  const portalUrl = partner.portalUrl || `${frontendUrl}/partner/login`;
 
   const body = `
     <h2 style="color: #4db960; font-size: 20px; font-weight: 400; margin-top: 0;">Institutional Partnership Approved</h2>

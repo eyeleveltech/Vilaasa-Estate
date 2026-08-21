@@ -1,14 +1,17 @@
-import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster as HotToaster } from "react-hot-toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { CurrencyProvider } from "@/contexts/CurrencyContext";
-import { ScrollToTop } from "./components/ScrollToTop";
+import { Toaster as HotToaster } from "react-hot-toast";
+import { lazy, Suspense } from "react";
+import { CurrencyProvider } from "./contexts/CurrencyContext";
 import { LiveConcierge } from "./components/LiveConcierge";
-import { SplashGateway } from "./components/SplashGateway";
+import { AdminProtectedRoute } from "./admin/components/AdminProtectedRoute";
+import { AdminLayout } from "./admin/components/AdminLayout";
+import { PartnerProtectedRoute } from "./partner/components/PartnerProtectedRoute";
+import { PartnerLayout } from "./partner/components/PartnerLayout";
+import { ScrollToTop } from "./components/ScrollToTop";
 
 // Public Pages
 const Index = lazy(() => import("./pages/Index"));
@@ -23,22 +26,17 @@ const Calendar = lazy(() => import("./pages/Calendar"));
 const WealthProjector = lazy(() => import("./pages/WealthProjector"));
 const VaultLogin = lazy(() => import("./pages/VaultLogin"));
 const VaultDashboard = lazy(() => import("./pages/VaultDashboard"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const SplashGateway = lazy(() =>
+  import("./components/SplashGateway").then((m) => ({
+    default: m.SplashGateway,
+  })),
+);
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Disclaimer = lazy(() => import("./pages/Disclaimer"));
-const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Admin Portal Components & Pages
-const AdminLayout = lazy(() =>
-  import("./admin/components/AdminLayout").then((m) => ({
-    default: m.AdminLayout,
-  })),
-);
-const AdminProtectedRoute = lazy(() =>
-  import("./admin/components/AdminProtectedRoute").then((m) => ({
-    default: m.AdminProtectedRoute,
-  })),
-);
+// Admin Portal Pages
 const AdminLogin = lazy(() =>
   import("./admin/pages/AdminLogin").then((m) => ({ default: m.AdminLogin })),
 );
@@ -75,6 +73,38 @@ const AdminSiteVisits = lazy(() =>
 const AdminChannelPartners = lazy(() =>
   import("./admin/pages/AdminChannelPartners").then((m) => ({
     default: m.AdminChannelPartners,
+  })),
+);
+
+// Channel Partner Portal Pages
+const PartnerLogin = lazy(() =>
+  import("./partner/pages/PartnerLogin").then((m) => ({
+    default: m.PartnerLogin,
+  })),
+);
+const PartnerRegister = lazy(() =>
+  import("./partner/pages/PartnerRegister").then((m) => ({
+    default: m.PartnerRegister,
+  })),
+);
+const PartnerDashboard = lazy(() =>
+  import("./partner/pages/PartnerDashboard").then((m) => ({
+    default: m.PartnerDashboard,
+  })),
+);
+const PartnerInventory = lazy(() =>
+  import("./partner/pages/PartnerInventory").then((m) => ({
+    default: m.PartnerInventory,
+  })),
+);
+const PartnerSiteVisits = lazy(() =>
+  import("./partner/pages/PartnerSiteVisits").then((m) => ({
+    default: m.PartnerSiteVisits,
+  })),
+);
+const PartnerLeads = lazy(() =>
+  import("./partner/pages/PartnerLeads").then((m) => ({
+    default: m.PartnerLeads,
   })),
 );
 
@@ -123,7 +153,28 @@ const App = () => (
               <Route path="/terms" element={<Terms />} />
               <Route path="/disclaimer" element={<Disclaimer />} />
 
-              {/* Admin Portal Routes */}
+              {/* Dedicated Partner Portal Routes */}
+              <Route path="/partner/login" element={<PartnerLogin />} />
+              <Route path="/partner/register" element={<PartnerRegister />} />
+              <Route
+                path="/partner"
+                element={<Navigate to="/partner/dashboard" replace />}
+              />
+              <Route
+                path="/partner/*"
+                element={
+                  <PartnerProtectedRoute>
+                    <PartnerLayout />
+                  </PartnerProtectedRoute>
+                }
+              >
+                <Route path="dashboard" element={<PartnerDashboard />} />
+                <Route path="inventory" element={<PartnerInventory />} />
+                <Route path="site-visits" element={<PartnerSiteVisits />} />
+                <Route path="leads" element={<PartnerLeads />} />
+              </Route>
+
+              {/* Super Admin Executive Portal Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route
                 path="/admin"

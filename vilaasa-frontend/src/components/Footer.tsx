@@ -132,18 +132,18 @@ export const Footer = () => {
               >
                 Disclaimer
               </Link>
-              <button
-                onClick={() => setPartnerLoginOpen(true)}
-                className="text-muted-foreground hover:text-foreground text-sm transition-colors text-left"
+              <Link
+                to="/partner/login"
+                className="text-muted-foreground hover:text-primary text-sm transition-colors text-left font-medium"
               >
-                Partner Login
-              </button>
-              <a
-                href="#channel-partner"
-                className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+                Partner Portal
+              </Link>
+              <Link
+                to="/partner/register"
+                className="text-muted-foreground hover:text-primary text-sm transition-colors text-left font-medium"
               >
                 Become a Partner
-              </a>
+              </Link>
             </div>
 
             {/* Newsletter */}
