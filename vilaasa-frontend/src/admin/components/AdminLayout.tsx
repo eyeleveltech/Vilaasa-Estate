@@ -83,20 +83,24 @@ export const AdminLayout: React.FC = () => {
       >
         <div>
           {/* Logo Brand */}
-          <div className="flex h-16 items-center justify-between border-b border-border px-4">
+          <div className="flex h-20 items-center justify-between border-b border-border px-4">
             <Link
               to="/admin/dashboard"
-              className="flex items-center gap-2 min-w-0"
+              className="flex flex-col gap-1 min-w-0"
               onClick={() => setMobileOpen(false)}
             >
               <img
                 src={vilaasaLogo}
-                alt="Vilaasa"
-                className="h-[18px] w-auto max-w-[150px] object-contain shrink-0"
+                alt="Vilaasa Estates"
+                className="h-[18px] w-auto max-w-[140px] object-contain shrink-0"
               />
-              <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary border border-primary/30 shrink-0">
-                Admin
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.15em] text-primary border border-primary/30 shrink-0 flex items-center gap-1">
+                  <ShieldCheck className="h-2.5 w-2.5" />
+                  Admin
+                </span>
+                <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Executive Desk</span>
+              </div>
             </Link>
             <button
               onClick={() => setMobileOpen(false)}

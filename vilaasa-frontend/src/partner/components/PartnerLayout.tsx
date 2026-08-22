@@ -69,20 +69,24 @@ export const PartnerLayout: React.FC = () => {
       >
         <div>
           {/* Logo Brand */}
-          <div className="flex h-16 items-center justify-between border-b border-border px-4">
+          <div className="flex h-20 items-center justify-between border-b border-border px-4">
             <Link
               to="/partner/dashboard"
-              className="flex items-center gap-2 min-w-0"
+              className="flex flex-col gap-1 min-w-0"
               onClick={() => setMobileOpen(false)}
             >
               <img
                 src={vilaasaLogo}
-                alt="Vilaasa"
-                className="h-[18px] w-auto max-w-[150px] object-contain shrink-0"
+                alt="Vilaasa Estates"
+                className="h-[18px] w-auto max-w-[140px] object-contain shrink-0"
               />
-              <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-400 border border-emerald-500/30 shrink-0">
-                Partner
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.15em] text-emerald-400 border border-emerald-500/30 shrink-0 flex items-center gap-1">
+                  <Building2 className="h-2.5 w-2.5" />
+                  Partner
+                </span>
+                <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Broker Concierge</span>
+              </div>
             </Link>
             <button
               onClick={() => setMobileOpen(false)}

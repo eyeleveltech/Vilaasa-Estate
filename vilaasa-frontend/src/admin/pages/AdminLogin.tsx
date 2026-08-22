@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Lock, Mail, Eye, EyeOff, ShieldCheck, ArrowRight } from "lucide-react";
 import { useAdminAuth } from "../hooks/useAdminAuth";
@@ -34,11 +35,13 @@ export const AdminLogin: React.FC = () => {
         {/* Brand Header */}
         <div className="text-center space-y-3">
           <div className="flex justify-center mb-2">
-            <img
-              src={vilaasaLogo}
-              alt="Vilaasa Estates"
-              className="h-8 w-auto"
-            />
+            <Link to="/home">
+              <img
+                src={vilaasaLogo}
+                alt="Vilaasa Estates"
+                className="h-8 w-auto hover:opacity-90 transition-opacity"
+              />
+            </Link>
           </div>
           <div>
             <span className="uppercase tracking-[0.2em] text-[11px] font-bold text-primary">

@@ -57,14 +57,15 @@ const wrapInLuxuryTemplate = (title: string, bodyContent: string): string => {
     .wrapper { width: 100%; background-color: #050505; padding: 32px 16px; }
     .container { max-width: 580px; margin: 0 auto; background-color: #0d0d0f; border: 1px solid #222226; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
     .header { background: linear-gradient(180deg, #131316 0%, #0d0d0f 100%); padding: 32px 28px 24px; text-align: center; border-bottom: 1px solid #1f1f24; }
-    .logo-badge { display: inline-block; font-size: 18px; font-weight: 700; letter-spacing: 4px; color: #ffffff; text-transform: uppercase; text-decoration: none; }
+    .logo-img { height: 28px; width: auto; max-width: 220px; display: block; margin: 0 auto 10px auto; border: 0; }
+    .logo-badge { display: inline-block; font-size: 17px; font-weight: 700; letter-spacing: 4px; color: #ffffff; text-transform: uppercase; text-decoration: none; }
     .logo-accent { color: #4db960; }
-    .sub-brand { font-size: 10px; letter-spacing: 2.5px; color: #71717a; text-transform: uppercase; margin-top: 6px; }
-    .nav-links { margin-top: 16px; font-size: 11px; letter-spacing: 1px; }
-    .nav-links a { color: #a1a1aa; text-decoration: none; margin: 0 10px; }
+    .sub-brand { font-size: 9.5px; letter-spacing: 2.5px; color: #a1a1aa; text-transform: uppercase; margin-top: 6px; }
+    .nav-links { margin-top: 18px; font-size: 11px; letter-spacing: 1.2px; }
+    .nav-links a { color: #71717a; text-decoration: none; margin: 0 10px; font-weight: 500; text-transform: uppercase; font-size: 10px; }
     .nav-links a:hover { color: #4db960; }
     .content { padding: 36px 32px; line-height: 1.65; font-size: 14px; color: #d4d4d8; }
-    .gold-box { background: linear-gradient(135deg, rgba(77,185,96,0.06) 0%, rgba(212,175,55,0.03) 100%); border: 1px solid rgba(77,185,96,0.25); border-radius: 10px; padding: 24px; text-align: center; margin: 24px 0; }
+    .gold-box { background: linear-gradient(135deg, rgba(77,185,96,0.06) 0%, rgba(212,175,55,0.04) 100%); border: 1px solid rgba(77,185,96,0.25); border-radius: 10px; padding: 24px; text-align: center; margin: 24px 0; }
     .otp-code { font-size: 34px; font-weight: 700; letter-spacing: 10px; color: #4db960; font-family: 'Courier New', Courier, monospace; margin: 8px 0; }
     .btn { display: inline-block; background-color: #4db960; color: #000000 !important; font-weight: 700; padding: 13px 30px; border-radius: 6px; text-decoration: none; text-transform: uppercase; font-size: 11px; letter-spacing: 1.5px; margin: 16px 0 8px; }
     .btn-secondary { display: inline-block; background-color: transparent; border: 1px solid #3f3f46; color: #e4e4e7 !important; font-weight: 600; padding: 10px 22px; border-radius: 6px; text-decoration: none; font-size: 11px; margin-top: 10px; }
@@ -82,15 +83,18 @@ const wrapInLuxuryTemplate = (title: string, bodyContent: string): string => {
   <div class="wrapper">
     <div class="container">
       <div class="header">
-        <a href="${frontendUrl}" class="logo-badge">
-          VILAASA <span class="logo-accent">ESTATES</span>
+        <a href="${frontendUrl}" style="text-decoration: none; display: inline-block;">
+          <img src="${frontendUrl}/assets/vilaasa-logo.svg" alt="VILAASA ESTATES" class="logo-img" onerror="this.style.display='none';" />
+          <div class="logo-badge">
+            VILAASA <span class="logo-accent">ESTATES</span>
+          </div>
         </a>
         <div class="sub-brand">Private Client Estates &amp; Advisory</div>
         <div class="nav-links">
           <a href="${frontendUrl}/properties">Portfolio</a>
           <a href="${frontendUrl}/international">Dubai</a>
           <a href="${frontendUrl}/domestic">India</a>
-          <a href="${frontendUrl}/schedule">Site Visits</a>
+          <a href="${frontendUrl}/contact">Concierge</a>
         </div>
       </div>
       <div class="content">

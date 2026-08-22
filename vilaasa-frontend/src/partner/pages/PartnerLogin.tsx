@@ -39,7 +39,7 @@ export const PartnerLogin: React.FC = () => {
               <img
                 src={vilaasaLogo}
                 alt="Vilaasa Estates"
-                className="h-7 w-auto"
+                className="h-8 w-auto hover:opacity-90 transition-opacity"
               />
             </Link>
           </div>

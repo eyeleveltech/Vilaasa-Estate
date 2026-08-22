@@ -11,6 +11,7 @@ import {
   Lock,
 } from "lucide-react";
 import { useVaultLogin, VaultUser } from "../hooks/useVault";
+import vilaasaLogo from "@/assets/vilaasa-logo.svg";
 
 export const VaultLayout: React.FC = () => {
   const location = useLocation();
@@ -46,7 +47,7 @@ export const VaultLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground antialiased font-sans">
+    <div className="flex min-h-screen bg-background text-foreground antialiased font-display">
       {/* Mobile Backdrop */}
       {mobileOpen && (
         <div
@@ -57,36 +58,37 @@ export const VaultLayout: React.FC = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[240px] flex-col justify-between border-r border-border bg-card transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col justify-between border-r border-border bg-card transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div>
           {/* Logo Brand Header */}
-          <div className="flex h-20 flex-col justify-center border-b border-border px-5">
-            <div className="flex items-center justify-between">
-              <Link
-                to="/vault/dashboard"
-                className="group flex flex-col"
-                onClick={() => setMobileOpen(false)}
-              >
-                <div className="flex items-center gap-1.5">
-                  <Lock className="h-4 w-4 text-[#D4AF37]" />
-                  <span className="font-serif text-lg font-light italic tracking-wider text-foreground group-hover:text-primary transition-colors">
-                    THE VAULT
-                  </span>
-                </div>
-                <span className="text-[9px] uppercase tracking-[0.25em] text-[#D4AF37] font-semibold mt-0.5">
-                  Private Investor Portal
+          <div className="flex h-20 items-center justify-between border-b border-border px-4">
+            <Link
+              to="/vault/dashboard"
+              className="flex flex-col gap-1 min-w-0"
+              onClick={() => setMobileOpen(false)}
+            >
+              <img
+                src={vilaasaLogo}
+                alt="Vilaasa Estates"
+                className="h-[18px] w-auto max-w-[140px] object-contain shrink-0"
+              />
+              <div className="flex items-center gap-1.5">
+                <span className="rounded-md bg-[#D4AF37]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.15em] text-[#D4AF37] border border-[#D4AF37]/30 shrink-0 flex items-center gap-1">
+                  <Lock className="h-2.5 w-2.5" />
+                  The Vault
                 </span>
-              </Link>
-              <button
-                onClick={() => setMobileOpen(false)}
-                className="text-muted-foreground hover:text-foreground lg:hidden p-1"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+                <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Investor Desk</span>
+              </div>
+            </Link>
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="text-muted-foreground hover:text-foreground lg:hidden p-1"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
 
           {/* Navigation Items */}
