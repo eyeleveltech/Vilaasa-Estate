@@ -40,6 +40,7 @@ export const getProperties = asyncHandler(
     const filters = req.query as unknown as PropertyFilterQuery;
     const status = filters.status;
     const type = filters.type;
+    const franchiseModel = filters.franchiseModel;
     const country = filters.country;
     const city = filters.city;
     const minPrice = filters.minPrice;
@@ -59,6 +60,7 @@ export const getProperties = asyncHandler(
 
     if (status) where.status = status;
     if (type) where.type = type;
+    if (franchiseModel) where.franchiseModel = franchiseModel;
     if (bedrooms !== undefined) where.bedrooms = { gte: Number(bedrooms) };
     if (furnishingStatus) where.furnishingStatus = furnishingStatus;
 
@@ -335,6 +337,15 @@ export const createProperty = asyncHandler(
         verdictQuote: data.verdictQuote,
         verdictAuthor: data.verdictAuthor,
         verdictTitle: data.verdictTitle,
+        franchiseModel: data.franchiseModel || null,
+        minTicketSize: data.minTicketSize !== undefined ? data.minTicketSize : null,
+        totalProjectCost: data.totalProjectCost !== undefined ? data.totalProjectCost : null,
+        paybackPeriodYears: data.paybackPeriodYears !== undefined ? data.paybackPeriodYears : null,
+        lockInPeriodYears: data.lockInPeriodYears !== undefined ? data.lockInPeriodYears : null,
+        expectedAnnualRoi: data.expectedAnnualRoi !== undefined ? data.expectedAnnualRoi : null,
+        yieldPayoutFrequency: data.yieldPayoutFrequency || null,
+        supportModules: data.supportModules !== undefined ? (data.supportModules as Prisma.InputJsonValue) : Prisma.JsonNull,
+        advantages: data.advantages !== undefined ? (data.advantages as Prisma.InputJsonValue) : Prisma.JsonNull,
         locationId: location.id,
         adminId: req.user?.id,
         configurations: data.configurations?.length
@@ -502,6 +513,15 @@ export const updateProperty = asyncHandler(
         verdictQuote: data.verdictQuote,
         verdictAuthor: data.verdictAuthor,
         verdictTitle: data.verdictTitle,
+        franchiseModel: data.franchiseModel !== undefined ? (data.franchiseModel || null) : undefined,
+        minTicketSize: data.minTicketSize !== undefined ? data.minTicketSize : undefined,
+        totalProjectCost: data.totalProjectCost !== undefined ? data.totalProjectCost : undefined,
+        paybackPeriodYears: data.paybackPeriodYears !== undefined ? data.paybackPeriodYears : undefined,
+        lockInPeriodYears: data.lockInPeriodYears !== undefined ? data.lockInPeriodYears : undefined,
+        expectedAnnualRoi: data.expectedAnnualRoi !== undefined ? data.expectedAnnualRoi : undefined,
+        yieldPayoutFrequency: data.yieldPayoutFrequency !== undefined ? (data.yieldPayoutFrequency || null) : undefined,
+        supportModules: data.supportModules !== undefined ? (data.supportModules as Prisma.InputJsonValue) : undefined,
+        advantages: data.advantages !== undefined ? (data.advantages as Prisma.InputJsonValue) : undefined,
         locationId,
       },
       include: {

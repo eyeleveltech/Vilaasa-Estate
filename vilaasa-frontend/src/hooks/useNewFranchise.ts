@@ -25,6 +25,15 @@ export interface FranchiseItem {
     label: string;
     value: string[] | string;
   }[];
+  franchiseModel?: string;
+  minTicketSize?: number;
+  totalProjectCost?: number;
+  expectedAnnualRoi?: number;
+  paybackPeriodYears?: number;
+  lockInPeriodYears?: number;
+  yieldPayoutFrequency?: string;
+  supportModules?: string[];
+  advantagesList?: string[];
   support_training_para?: string[];
   support_training?: PropertyAmenity[];
   advantages?: PropertyAmenity[];
@@ -38,6 +47,9 @@ export interface FranchiseListItem {
   price: number;
   image: string;
   type: string;
+  franchiseModel?: string;
+  minTicketSize?: number;
+  expectedAnnualRoi?: number;
   investment?: string | null;
   expectedROI?: string | null;
   features: string[];
@@ -79,6 +91,15 @@ interface BackendProperty {
   rentalYieldPercent?: string | number | null;
   expectedIrrPercent?: string | number | null;
   appreciationPercent?: string | number | null;
+  franchiseModel?: string | null;
+  minTicketSize?: string | number | null;
+  totalProjectCost?: string | number | null;
+  paybackPeriodYears?: number | null;
+  lockInPeriodYears?: number | null;
+  expectedAnnualRoi?: number | null;
+  yieldPayoutFrequency?: string | null;
+  supportModules?: string[] | null;
+  advantages?: string[] | null;
   location?: BackendLocation | null;
   media?: BackendMedia[];
   amenities?: BackendAmenityRel[];
@@ -276,6 +297,17 @@ export function transformPropertyToFranchise(prop: BackendProperty): FranchiseIt
     DEFAULT_PROPERTY_IMAGES[prop.slug] ||
     DEFAULT_PROPERTY_IMAGE;
 
+  const minTicket = Number(prop.minTicketSize || prop.price) || 0;
+  const projectCost = Number(prop.totalProjectCost || Number(prop.price) * 3.5) || 0;
+  const annualRoi = Number(prop.expectedAnnualRoi || prop.rentalYieldPercent || 24);
+  const payback = prop.paybackPeriodYears ? `${prop.paybackPeriodYears} Years` : "3.5 Years";
+  const lockIn = prop.lockInPeriodYears ? `${prop.lockInPeriodYears} Years` : "3 Years";
+  const payout = prop.yieldPayoutFrequency || "Quarterly Distribution";
+  const model = prop.franchiseModel || "FOCO";
+
+  const supportModules = Array.isArray(prop.supportModules) ? prop.supportModules : [];
+  const advantagesList = Array.isArray(prop.advantages) ? prop.advantages : [];
+
   return {
     id: prop.slug || prop.id,
     name: prop.name,
@@ -284,25 +316,34 @@ export function transformPropertyToFranchise(prop: BackendProperty): FranchiseIt
     location: prop.location
       ? `${prop.location.city}, ${prop.location.country}`
       : "Prime Location",
-    price: Number(prop.price) || 0,
+    price: minTicket,
     heroImage: heroUrl,
     description: [prop.description],
+    franchiseModel: model,
+    minTicketSize: minTicket,
+    totalProjectCost: projectCost,
+    expectedAnnualRoi: annualRoi,
+    paybackPeriodYears: prop.paybackPeriodYears || 3.5,
+    lockInPeriodYears: prop.lockInPeriodYears || 3.0,
+    yieldPayoutFrequency: payout,
+    supportModules,
+    advantagesList,
     spec: [
       {
         label: "Min Investment",
-        value: `${prop.currency} ${Number(prop.price).toLocaleString()}`,
+        value: `${prop.currency} ${minTicket.toLocaleString()}`,
       },
       {
         label: "Annual ROI",
-        value: prop.rentalYieldPercent ? `${prop.rentalYieldPercent}% Annually` : "24% Annually",
+        value: `${annualRoi}% Annually`,
       },
       {
         label: "Payback Period",
-        value: "3 - 4 Years",
+        value: payback,
       },
       {
         label: "Model",
-        value: "FOCO (Franchise Owned Company Operated)",
+        value: `${model} (Franchise Owned Company Operated)`,
       },
     ],
     galleryImages: (prop.media || []).map((m, idx) => ({
@@ -313,41 +354,55 @@ export function transformPropertyToFranchise(prop: BackendProperty): FranchiseIt
     financial: [
       {
         label: "Total Project Cost",
-        value: `${prop.currency} ${(Number(prop.price) * 3.5).toLocaleString()}`,
+        value: `${prop.currency} ${projectCost.toLocaleString()}`,
       },
       {
         label: "Min Ticket Size",
-        value: `${prop.currency} ${Number(prop.price).toLocaleString()}`,
+        value: `${prop.currency} ${minTicket.toLocaleString()}`,
       },
       {
         label: "Lock In Period",
-        value: "3 Years",
+        value: lockIn,
       },
       {
         label: "Yield Payout",
-        value: "Quarterly Distribution",
+        value: payout,
       },
     ],
-    support_training_para: [
-      "Full turnkey operational management, brand licensing, site selection, and marketing enablement.",
-    ],
-    support_training: [
-      {
-        icon: "storefront",
-        name: "Site Selection",
-        description: "Demographic intelligence and prime commercial leasing.",
-      },
-      {
-        icon: "design_services",
-        name: "Architectural Design",
-        description: "Bespoke interior fitout matching luxury brand guidelines.",
-      },
-    ],
-    advantages: (prop.amenities || []).map((a) => ({
-      icon: a.amenity.iconKey || "spa",
-      name: a.amenity.name,
-      description: a.amenity.category || "Luxury Ecosystem Feature",
-    })),
+    support_training_para: supportModules.length
+      ? supportModules
+      : [
+          "Full turnkey operational management, brand licensing, site selection, and marketing enablement.",
+        ],
+    support_training: supportModules.length
+      ? supportModules.map((mod, idx) => ({
+          icon: idx === 0 ? "storefront" : idx === 1 ? "design_services" : idx === 2 ? "school" : "campaign",
+          name: mod.split(" ")[0] + " " + (mod.split(" ")[1] || "Module"),
+          description: mod,
+        }))
+      : [
+          {
+            icon: "storefront",
+            name: "Site Selection",
+            description: "Demographic intelligence and prime commercial leasing.",
+          },
+          {
+            icon: "design_services",
+            name: "Architectural Design",
+            description: "Bespoke interior fitout matching luxury brand guidelines.",
+          },
+        ],
+    advantages: advantagesList.length
+      ? advantagesList.map((adv, idx) => ({
+          icon: idx === 0 ? "spa" : idx === 1 ? "self_improvement" : "psychiatry",
+          name: adv.split(" ")[0] + " " + (adv.split(" ")[1] || "Advantage"),
+          description: adv,
+        }))
+      : (prop.amenities || []).map((a) => ({
+          icon: a.amenity.iconKey || "spa",
+          name: a.amenity.name,
+          description: a.amenity.category || "Luxury Ecosystem Feature",
+        })),
   };
 }
 
@@ -360,6 +415,9 @@ export function transformPropertyToFranchiseListItem(
     DEFAULT_PROPERTY_IMAGES[prop.slug] ||
     DEFAULT_PROPERTY_IMAGE;
 
+  const minTicket = Number(prop.minTicketSize || prop.price) || 0;
+  const annualRoi = Number(prop.expectedAnnualRoi || prop.rentalYieldPercent || 24);
+
   return {
     id: prop.slug || prop.id,
     name: prop.name,
@@ -367,14 +425,17 @@ export function transformPropertyToFranchiseListItem(
     location: prop.location
       ? `${prop.location.city}, ${prop.location.country}`
       : "Prime Location",
-    price: Number(prop.price) || 0,
+    price: minTicket,
     category: "Franchises",
     image: imageUrl,
-    investment: `${prop.currency} ${Number(prop.price).toLocaleString()}`,
-    expectedROI: prop.rentalYieldPercent ? `${prop.rentalYieldPercent}% Annually` : "24% Annually",
+    franchiseModel: prop.franchiseModel || "FOCO",
+    minTicketSize: minTicket,
+    expectedAnnualRoi: annualRoi,
+    investment: `${prop.currency} ${minTicket.toLocaleString()}`,
+    expectedROI: `${annualRoi}% Annually`,
     features: [
-      "FOCO Business Model",
-      "Quarterly Payouts",
+      `${prop.franchiseModel || "FOCO"} Business Model`,
+      `${prop.yieldPayoutFrequency || "Quarterly"} Dividend Payouts`,
       "Turnkey Operational Support",
     ],
   };

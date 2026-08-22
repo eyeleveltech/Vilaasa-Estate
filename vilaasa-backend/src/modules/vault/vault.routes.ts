@@ -8,10 +8,15 @@ import {
   createVaultAsset,
   updateVaultAsset,
   deleteVaultAsset,
+  getAdminVaultOverview,
+  getAdminAllVaultAssets,
+  getAdminInvestors,
+  quickUpdateValuation,
 } from "./vault.controller";
 import {
   CreateVaultAssetSchema,
   UpdateVaultAssetSchema,
+  QuickUpdateValuationSchema,
 } from "./vault.schema";
 import { LoginSchema } from "../auth/auth.schema";
 import { validate } from "../../middlewares/validate";
@@ -25,6 +30,36 @@ router.post("/login", validate(LoginSchema), vaultLogin);
 
 // Client investor portfolio endpoint
 router.get("/portfolio", verifyJWT, getMyPortfolio);
+
+// Super Admin specialized dashboard endpoints
+router.get(
+  "/admin/overview",
+  verifyJWT,
+  authorizeRoles(Role.SUPER_ADMIN),
+  getAdminVaultOverview,
+);
+
+router.get(
+  "/admin/assets",
+  verifyJWT,
+  authorizeRoles(Role.SUPER_ADMIN),
+  getAdminAllVaultAssets,
+);
+
+router.get(
+  "/admin/investors",
+  verifyJWT,
+  authorizeRoles(Role.SUPER_ADMIN),
+  getAdminInvestors,
+);
+
+router.patch(
+  "/admin/assets/:id/valuation",
+  verifyJWT,
+  authorizeRoles(Role.SUPER_ADMIN),
+  validate(QuickUpdateValuationSchema),
+  quickUpdateValuation,
+);
 
 // Single vault asset detail (Client owner or Super Admin)
 router.get("/assets/:id", verifyJWT, getVaultAssetById);

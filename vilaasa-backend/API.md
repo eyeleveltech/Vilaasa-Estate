@@ -107,6 +107,7 @@
 - **Query Params:**
   - `status` (`AVAILABLE | UNDER_CONSTRUCTION | OFF_PLAN | READY_TO_MOVE | SOLD | RESERVED`)
   - `type` (`RESIDENTIAL_VILLA | RESIDENTIAL_APARTMENT | PENTHOUSE | HERITAGE_ESTATE | COMMERCIAL | FRANCHISE | FARMLAND`)
+  - `franchiseModel` (`FOCO | FOFO | FICO`)
   - `country` (e.g. `UAE`, `India`)
   - `city` (e.g. `Dubai`, `Mumbai`)
   - `minPrice` (number)
@@ -117,27 +118,43 @@
   - `page` (default: 1)
   - `limit` (default: 12, max: 50)
   - `sortBy` (`price_asc | price_desc | newest | oldest | area_asc | area_desc`)
-- **Example:** `GET /api/v1/properties?country=UAE&type=RESIDENTIAL_VILLA&minPrice=10000000&sortBy=newest`
+- **Example:** `GET /api/v1/properties?type=FRANCHISE&franchiseModel=FOCO&limit=12`
 - **Response:** Array of properties with location, featured media, amenities, relationship manager info, and pagination metadata.
 
 ### GET `/api/v1/properties/:slug`
 - **Auth:** Public
 - **Description:** Returns complete deep property details, and increments the view counter.
-- **Includes:** Location, all media (ordered), amenities, configurations, nearby connectivity, financial metrics, construction tracking (milestones + gallery), inquiry counts, and assigned manager.
-- **Example:** `GET /api/v1/properties/palm-royale-villa`
+- **Includes:** Location, all media (ordered), amenities, configurations, nearby connectivity, financial metrics, franchise FOCO fields (when type=FRANCHISE), construction tracking (milestones + gallery), inquiry counts, and assigned manager.
+- **Example:** `GET /api/v1/properties/wellness-resorts-kerala`
 
 ### POST `/api/v1/properties`
 - **Auth:** Protected (`SUPER_ADMIN`)
-- **Request Body:**
+- **Request Body (Real Estate or Franchise Asset):**
   ```json
   {
-    "name": "The Bel-Air Crown Villa",
-    "tagline": "Private Hilltop Palace",
-    "description": "Exquisite 7-bedroom architectural masterpiece featuring panoramic skyline views.",
-    "type": "RESIDENTIAL_VILLA",
+    "name": "Wellness Resorts Kerala",
+    "tagline": "Ayurvedic Luxury Sanctuary",
+    "description": "Exquisite wellness hospitality franchise with full FOCO operational support.",
+    "type": "FRANCHISE",
     "status": "AVAILABLE",
-    "price": 250000000,
-    "currency": "AED",
+    "price": 7000000,
+    "currency": "INR",
+    "franchiseModel": "FOCO",
+    "minTicketSize": 7000000,
+    "totalProjectCost": 250000000,
+    "paybackPeriodYears": 3.5,
+    "lockInPeriodYears": 3.0,
+    "expectedAnnualRoi": 24.0,
+    "yieldPayoutFrequency": "QUARTERLY",
+    "supportModules": ["Location Scouting", "Biophilic Styling", "Operator Certification", "Marketing Enablement"],
+    "advantages": ["Proven Brand", "Low Capex", "High Footfall", "Dedicated Support Team"],
+    "location": {
+      "city": "Kochi",
+      "country": "India",
+      "community": "Fort Kochi Waterfront"
+    }
+  }
+  ```
     "totalAreaSqFt": 18000,
     "bedrooms": 7,
     "bathrooms": 9,

@@ -3,6 +3,8 @@ import { Link, useLocation, Outlet } from "react-router-dom";
 import {
   LayoutDashboard,
   Building2,
+  Store,
+  Lock,
   Inbox,
   CalendarCheck,
   Users,
@@ -32,6 +34,18 @@ export const AdminLayout: React.FC = () => {
       icon: Building2,
     },
     {
+      label: "Franchises",
+      path: "/admin/franchises",
+      icon: Store,
+      superAdminOnly: true,
+    },
+    {
+      label: "The Vault",
+      path: "/admin/vault",
+      icon: Lock,
+      superAdminOnly: true,
+    },
+    {
       label: "Inquiries",
       path: "/admin/inquiries",
       icon: Inbox,
@@ -55,6 +69,11 @@ export const AdminLayout: React.FC = () => {
 
   const getPageTitle = () => {
     const path = location.pathname;
+    if (path.includes("/admin/franchises/new")) return "Add New Franchise";
+    if (path.includes("/admin/franchises/") && path.includes("/edit")) return "Edit Franchise";
+    if (path.startsWith("/admin/franchises/")) return "Franchise Opportunity Dossier";
+    if (path === "/admin/franchises") return "Franchise Asset Management";
+    if (path === "/admin/vault") return "The Vault — Investor Asset Custody";
     if (path.includes("/admin/properties/new")) return "Add New Property";
     if (path.includes("/edit")) return "Edit Property";
     if (path.startsWith("/admin/properties/")) return "Property Details";

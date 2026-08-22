@@ -89,6 +89,26 @@ const AdminChannelPartners = lazy(() =>
     default: m.AdminChannelPartners,
   })),
 );
+const AdminFranchisesList = lazy(() =>
+  import("./admin/pages/AdminFranchisesList").then((m) => ({
+    default: m.AdminFranchisesList,
+  })),
+);
+const AdminFranchiseForm = lazy(() =>
+  import("./admin/pages/AdminFranchiseForm").then((m) => ({
+    default: m.AdminFranchiseForm,
+  })),
+);
+const AdminFranchiseDetail = lazy(() =>
+  import("./admin/pages/AdminFranchiseDetail").then((m) => ({
+    default: m.AdminFranchiseDetail,
+  })),
+);
+const AdminVaultManagement = lazy(() =>
+  import("./admin/pages/AdminVaultManagement").then((m) => ({
+    default: m.AdminVaultManagement,
+  })),
+);
 
 // Channel Partner Portal Pages
 const PartnerLogin = lazy(() =>
@@ -223,6 +243,14 @@ const App = () => (
                   element={<AdminPropertyForm />}
                 />
                 <Route path="properties/:id" element={<AdminPropertyDetail />} />
+                <Route path="franchises" element={<AdminFranchisesList />} />
+                <Route path="franchises/new" element={<AdminFranchiseForm />} />
+                <Route
+                  path="franchises/:id/edit"
+                  element={<AdminFranchiseForm />}
+                />
+                <Route path="franchises/:id" element={<AdminFranchiseDetail />} />
+                <Route path="vault" element={<AdminVaultManagement />} />
                 <Route path="inquiries" element={<AdminInquiriesList />} />
                 <Route path="site-visits" element={<AdminSiteVisits />} />
                 <Route

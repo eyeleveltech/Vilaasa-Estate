@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { prisma } from "../../config/db";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { ApiError } from "../../utils/ApiError";
@@ -10,6 +10,7 @@ import { LoginInput } from "../auth/auth.schema";
 import {
   CreateVaultAssetInput,
   UpdateVaultAssetInput,
+  QuickUpdateValuationInput,
 } from "./vault.schema";
 
 const generateToken = (userId: string, email: string, role: string): string => {
@@ -485,6 +486,346 @@ export const deleteVaultAsset = asyncHandler(
 
     return res.status(200).json(
       ApiResponse.ok(null, "Vault asset removed successfully"),
+    );
+  },
+);
+
+/**
+ * @desc    Get firm-wide aggregate Vault portfolio metrics
+ * @route   GET /api/v1/vault/admin/overview
+ * @access  Protected (Super Admin)
+ */
+export const getAdminVaultOverview = asyncHandler(
+  async (req: Request, res: Response) => {
+    const assets = await prisma.vaultAsset.findMany();
+
+    let totalAum = 0;
+    let totalInvested = 0;
+    let totalMonthlyRental = 0;
+    const investorSet = new Set<string>();
+
+    const byOccupancy = {
+      OCCUPIED: 0,
+      VACANT: 0,
+      UNDER_MAINTENANCE: 0,
+    };
+
+    for (const a of assets) {
+      const current = Number(a.currentValuation);
+      const purchase = Number(a.purchasePrice);
+      const rent = Number(a.monthlyRentalYield || 0);
+
+      totalAum += current;
+      totalInvested += purchase;
+      totalMonthlyRental += rent;
+      investorSet.add(a.userId);
+
+      const status = a.occupancyStatus as
+        | "OCCUPIED"
+        | "VACANT"
+        | "UNDER_MAINTENANCE";
+      if (byOccupancy[status] !== undefined) {
+        byOccupancy[status]++;
+      } else {
+        byOccupancy.OCCUPIED++;
+      }
+    }
+
+    const totalAppreciation = totalAum - totalInvested;
+    const appreciationPercent =
+      totalInvested > 0
+        ? parseFloat(((totalAppreciation / totalInvested) * 100).toFixed(2))
+        : 0;
+
+    const annualRentalIncome = totalMonthlyRental * 12;
+
+    return res.status(200).json(
+      ApiResponse.ok(
+        {
+          totalAum,
+          totalInvested,
+          totalAppreciation,
+          appreciationPercent,
+          totalMonthlyRental,
+          annualRentalIncome,
+          totalInvestors: investorSet.size,
+          totalUnits: assets.length,
+          byOccupancy,
+        },
+        "Admin vault overview retrieved successfully",
+      ),
+    );
+  },
+);
+
+/**
+ * @desc    Get all vault asset allocations with search and filters
+ * @route   GET /api/v1/vault/admin/assets
+ * @access  Protected (Super Admin)
+ */
+export const getAdminAllVaultAssets = asyncHandler(
+  async (req: Request, res: Response) => {
+    const {
+      userId,
+      propertyId,
+      occupancyStatus,
+      search,
+      page = "1",
+      limit = "20",
+    } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+    const limitNum = Math.min(
+      100,
+      Math.max(1, parseInt(limit as string, 10) || 20),
+    );
+    const skip = (pageNum - 1) * limitNum;
+
+    const where: Prisma.VaultAssetWhereInput = {};
+
+    if (userId && typeof userId === "string" && userId.trim()) {
+      where.userId = userId.trim();
+    }
+
+    if (propertyId && typeof propertyId === "string" && propertyId.trim()) {
+      where.propertyId = propertyId.trim();
+    }
+
+    if (
+      occupancyStatus &&
+      typeof occupancyStatus === "string" &&
+      occupancyStatus.trim()
+    ) {
+      where.occupancyStatus = occupancyStatus.trim();
+    }
+
+    if (search && typeof search === "string" && search.trim()) {
+      const s = search.trim();
+      where.OR = [
+        { unitNumber: { contains: s, mode: "insensitive" } },
+        { user: { name: { contains: s, mode: "insensitive" } } },
+        { user: { email: { contains: s, mode: "insensitive" } } },
+        { property: { name: { contains: s, mode: "insensitive" } } },
+      ];
+    }
+
+    const [total, rawAssets] = await Promise.all([
+      prisma.vaultAsset.count({ where }),
+      prisma.vaultAsset.findMany({
+        where,
+        skip,
+        take: limitNum,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+            },
+          },
+          property: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              type: true,
+              currency: true,
+              location: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+
+    const formattedAssets = rawAssets.map((a) => {
+      const purchase = Number(a.purchasePrice);
+      const current = Number(a.currentValuation);
+      const rent = Number(a.monthlyRentalYield || 0);
+      const appreciation = current - purchase;
+      const appreciationPercent =
+        purchase > 0
+          ? parseFloat(((appreciation / purchase) * 100).toFixed(2))
+          : 0;
+
+      return {
+        id: a.id,
+        userId: a.userId,
+        propertyId: a.propertyId,
+        unitNumber: a.unitNumber,
+        purchaseDate: a.purchaseDate,
+        purchasePrice: purchase,
+        currentValuation: current,
+        monthlyRentalYield: rent,
+        appreciation,
+        appreciationPercent,
+        occupancyStatus: a.occupancyStatus,
+        user: a.user,
+        property: a.property,
+        createdAt: a.createdAt,
+        updatedAt: a.updatedAt,
+      };
+    });
+
+    const totalPages = Math.ceil(total / limitNum);
+
+    return res.status(200).json(
+      ApiResponse.ok(
+        formattedAssets,
+        "Vault asset allocations retrieved successfully",
+        {
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages,
+          hasNextPage: pageNum < totalPages,
+          hasPrevPage: pageNum > 1,
+        },
+      ),
+    );
+  },
+);
+
+/**
+ * @desc    Get all VAULT_CLIENT investors with aggregated portfolio summaries
+ * @route   GET /api/v1/vault/admin/investors
+ * @access  Protected (Super Admin)
+ */
+export const getAdminInvestors = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { search, page = "1", limit = "20" } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+    const limitNum = Math.min(
+      100,
+      Math.max(1, parseInt(limit as string, 10) || 20),
+    );
+    const skip = (pageNum - 1) * limitNum;
+
+    const where: Prisma.UserWhereInput = {
+      role: Role.VAULT_CLIENT,
+    };
+
+    if (search && typeof search === "string" && search.trim()) {
+      const s = search.trim();
+      where.OR = [
+        { name: { contains: s, mode: "insensitive" } },
+        { email: { contains: s, mode: "insensitive" } },
+        { phone: { contains: s, mode: "insensitive" } },
+      ];
+    }
+
+    const [total, users] = await Promise.all([
+      prisma.user.count({ where }),
+      prisma.user.findMany({
+        where,
+        skip,
+        take: limitNum,
+        include: {
+          vaultAssets: {
+            select: {
+              id: true,
+              purchasePrice: true,
+              currentValuation: true,
+              monthlyRentalYield: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+
+    const formattedInvestors = users.map((u) => {
+      let totalInvested = 0;
+      let currentValue = 0;
+      let monthlyRental = 0;
+
+      for (const a of u.vaultAssets) {
+        totalInvested += Number(a.purchasePrice);
+        currentValue += Number(a.currentValuation);
+        monthlyRental += Number(a.monthlyRentalYield || 0);
+      }
+
+      const totalAppreciation = currentValue - totalInvested;
+      const appreciationPercent =
+        totalInvested > 0
+          ? parseFloat(((totalAppreciation / totalInvested) * 100).toFixed(2))
+          : 0;
+
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        phone: u.phone,
+        phoneCode: u.phoneCode,
+        isActive: u.isActive,
+        createdAt: u.createdAt,
+        totalUnits: u.vaultAssets.length,
+        totalInvested,
+        currentValue,
+        totalAppreciation,
+        appreciationPercent,
+        monthlyRental,
+      };
+    });
+
+    const totalPages = Math.ceil(total / limitNum);
+
+    return res.status(200).json(
+      ApiResponse.ok(
+        formattedInvestors,
+        "Vault investors retrieved successfully",
+        {
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages,
+          hasNextPage: pageNum < totalPages,
+          hasPrevPage: pageNum > 1,
+        },
+      ),
+    );
+  },
+);
+
+/**
+ * @desc    Quick-update only valuation and rental yield for a vault asset
+ * @route   PATCH /api/v1/vault/admin/assets/:id/valuation
+ * @access  Protected (Super Admin)
+ */
+export const quickUpdateValuation = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { currentValuation, monthlyRentalYield } =
+      req.body as QuickUpdateValuationInput;
+
+    const asset = await prisma.vaultAsset.findUnique({
+      where: { id },
+    });
+
+    if (!asset) {
+      throw ApiError.notFound(`Vault asset with id '${id}' not found`);
+    }
+
+    const updated = await prisma.vaultAsset.update({
+      where: { id },
+      data: {
+        currentValuation,
+        ...(monthlyRentalYield !== undefined ? { monthlyRentalYield } : {}),
+      },
+      include: {
+        property: {
+          select: { id: true, name: true, slug: true, currency: true },
+        },
+        user: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    return res.status(200).json(
+      ApiResponse.ok(updated, "Asset valuation updated successfully"),
     );
   },
 );

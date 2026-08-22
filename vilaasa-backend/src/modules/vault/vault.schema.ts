@@ -18,5 +18,11 @@ export const UpdateVaultAssetSchema = z.object({
   occupancyStatus: z.enum(["OCCUPIED", "VACANT", "UNDER_MAINTENANCE", "RESERVED"]).optional(),
 });
 
+export const QuickUpdateValuationSchema = z.object({
+  currentValuation: z.number().positive("Current valuation must be positive"),
+  monthlyRentalYield: z.number().nonnegative().optional(),
+});
+
 export type CreateVaultAssetInput = z.infer<typeof CreateVaultAssetSchema>;
 export type UpdateVaultAssetInput = z.infer<typeof UpdateVaultAssetSchema>;
+export type QuickUpdateValuationInput = z.infer<typeof QuickUpdateValuationSchema>;

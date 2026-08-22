@@ -87,10 +87,18 @@ const FranchiseDetail = () => {
               transition={{ duration: 0.8 }}
               className="flex flex-col gap-4"
             >
-              <div className="flex items-center gap-3 text-sm">
+              <div className="flex flex-wrap items-center gap-3 text-sm">
                 <span className="px-3 py-1 bg-gold/20 text-gold-accent text-xs rounded font-bold uppercase tracking-wider">
                   {franchise.type}
                 </span>
+                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs rounded font-bold uppercase tracking-wider">
+                  {franchise.franchiseModel || "FOCO"} Model
+                </span>
+                {franchise.yieldPayoutFrequency && (
+                  <span className="px-3 py-1 bg-primary/20 text-primary border border-primary/30 text-xs rounded font-medium uppercase tracking-wider">
+                    {franchise.yieldPayoutFrequency} Payouts
+                  </span>
+                )}
               </div>
 
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-light text-foreground font-luxia">
@@ -102,7 +110,9 @@ const FranchiseDetail = () => {
 
               <div className="flex flex-col space-y-4 md:flex-row w-full justify-between">
                 <p className="text-muted-foreground text-lg max-w-2xl line-clamp-2">
-                  {franchise.description}
+                  {Array.isArray(franchise.description)
+                    ? franchise.description.join(" ")
+                    : franchise.description}
                 </p>
                 <ShareButtons title={`${franchise.name} - ${franchise.type}`} />
               </div>

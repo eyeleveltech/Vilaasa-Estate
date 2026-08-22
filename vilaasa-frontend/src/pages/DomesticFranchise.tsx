@@ -189,8 +189,15 @@ const DomesticFranchise = () => {
                       className="h-full w-full bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
                       style={{ backgroundImage: `url(${franchise.image})` }}
                     />
-                    <div className="absolute left-3 top-3 rounded bg-gold px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-gold-foreground sm:left-4 sm:top-4 sm:px-3 sm:text-xs">
-                      {franchise.type || "Franchise"}
+                    <div className="absolute left-3 top-3 flex items-center gap-1.5 sm:left-4 sm:top-4">
+                      <div className="rounded bg-gold px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-gold-foreground sm:px-3 sm:text-xs">
+                        {franchise.type || "Franchise"}
+                      </div>
+                      {franchise.franchiseModel && (
+                        <div className="rounded bg-emerald-600/90 backdrop-blur-sm px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white border border-emerald-400/30">
+                          {franchise.franchiseModel}
+                        </div>
+                      )}
                     </div>
                     {/* {franchise. === "Opening 2025" && (
                       <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded uppercase tracking-wide">

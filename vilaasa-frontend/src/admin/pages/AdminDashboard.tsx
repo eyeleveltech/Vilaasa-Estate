@@ -13,6 +13,9 @@ import {
   CheckCircle2,
   XCircle,
   ExternalLink,
+  Lock,
+  Coins,
+  TrendingUp,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../api/axios";
@@ -23,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import {
   SiteVisit,
   ChannelPartner,
+  VaultAdminOverview,
   ApiResponse,
 } from "../types/admin.types";
 
@@ -43,6 +47,9 @@ export const AdminDashboard: React.FC = () => {
   const [siteVisitsWeekCount, setSiteVisitsWeekCount] = useState<number>(0);
   const [pendingPartnersCount, setPendingPartnersCount] = useState<number>(0);
   const [conversionRate, setConversionRate] = useState<number>(0);
+  const [vaultOverview, setVaultOverview] = useState<VaultAdminOverview | null>(
+    null,
+  );
 
   // Phase 4 Tables Data
   const [recentSiteVisits, setRecentSiteVisits] = useState<SiteVisit[]>([]);
@@ -60,18 +67,25 @@ export const AdminDashboard: React.FC = () => {
         setConversionRate(inquiryStatsRes.data.data.conversionRate || 0);
       }
 
-      // 2. Fetch Pending Partners (Super Admin only)
+      // 2. Fetch Super Admin Specifics (Pending Partners & Vault Overview)
       if (isSuperAdmin) {
-        const pendingPartnersRes = await api.get<ApiResponse<ChannelPartner[]>>(
-          "/channel-partners",
-          { params: { status: "PENDING", limit: 4 } },
-        );
+        const [pendingPartnersRes, vaultRes] = await Promise.all([
+          api.get<ApiResponse<ChannelPartner[]>>("/channel-partners", {
+            params: { status: "PENDING", limit: 4 },
+          }),
+          api.get<ApiResponse<VaultAdminOverview>>("/vault/admin/overview"),
+        ]);
+
         if (pendingPartnersRes.data.success) {
           setPendingPartners(pendingPartnersRes.data.data);
           setPendingPartnersCount(
             pendingPartnersRes.data.meta?.total ||
               pendingPartnersRes.data.data.length,
           );
+        }
+
+        if (vaultRes.data.success) {
+          setVaultOverview(vaultRes.data.data);
         }
       }
 
@@ -101,6 +115,14 @@ export const AdminDashboard: React.FC = () => {
     fetchProperties({ limit: 5, sortBy: "newest" });
     fetchDashboardData();
   }, [fetchStats, fetchProperties, fetchDashboardData]);
+
+  const formatCrores = (val?: number) => {
+    if (!val || isNaN(val)) return "₹0.00 Cr";
+    const cr = val / 10000000;
+    if (cr >= 1) return `₹${cr.toFixed(2)} Cr`;
+    const lakhs = val / 100000;
+    return `₹${lakhs.toFixed(2)} L`;
+  };
 
   // Quick Action: Approve / Reject Partner
   const handlePartnerAction = async (
@@ -189,14 +211,36 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Primary KPI Stats Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div
+        className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${
+          isSuperAdmin ? "lg:grid-cols-3 xl:grid-cols-6" : "lg:grid-cols-4"
+        }`}
+      >
         <StatsCard
           title="Total Properties"
           value={stats?.totalProperties ?? 0}
           icon={Building2}
-          subtitle="Portfolio assets under management"
+          subtitle="Portfolio assets listed"
           loading={statsLoading}
         />
+        {isSuperAdmin && (
+          <>
+            <StatsCard
+              title="The Vault AUM"
+              value={formatCrores(vaultOverview?.totalAum)}
+              icon={Lock}
+              subtitle="Private client custody AUM"
+              loading={loadingDashboard}
+            />
+            <StatsCard
+              title="Active Investors"
+              value={vaultOverview?.totalInvestors || 0}
+              icon={Users}
+              subtitle="Registered Vault accounts"
+              loading={loadingDashboard}
+            />
+          </>
+        )}
         <StatsCard
           title="Site Visits This Week"
           value={siteVisitsWeekCount}
@@ -209,7 +253,7 @@ export const AdminDashboard: React.FC = () => {
             title="Pending Partners"
             value={pendingPartnersCount}
             icon={Users}
-            subtitle="Broker applications awaiting review"
+            subtitle="Broker applications review"
             loading={loadingDashboard}
           />
         ) : (
@@ -229,6 +273,31 @@ export const AdminDashboard: React.FC = () => {
           loading={loadingDashboard}
         />
       </div>
+
+      {/* Super Admin Quick Vault Gateway Bar */}
+      {isSuperAdmin && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 shadow-sm">
+          <div className="flex items-center space-x-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20 text-primary">
+              <Lock className="h-5 w-5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                The Vault Portfolio Desk
+              </h4>
+              <p className="text-[11px] text-muted-foreground">
+                Manage {vaultOverview?.totalUnits || 0} custody units across {vaultOverview?.totalInvestors || 0} private investors with ₹{formatCrores(vaultOverview?.totalAum)} in total AUM.
+              </p>
+            </div>
+          </div>
+          <Button asChild size="sm" className="gap-1.5 shrink-0 text-xs font-semibold uppercase tracking-wider">
+            <Link to="/admin/vault">
+              <span>Manage Vault</span>
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          </Button>
+        </div>
+      )}
 
       {/* Main Dual-Column Tables */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

@@ -88,6 +88,20 @@ export const CreatePropertySchema = z.object({
   verdictAuthor: z.string().optional(),
   verdictTitle: z.string().optional(),
 
+  // Franchise-specific fields (only used when type = FRANCHISE)
+  franchiseModel: z.enum(["FOCO", "FOFO", "FICO"]).optional().or(z.literal("")),
+  minTicketSize: z.number().nonnegative().optional(),
+  totalProjectCost: z.number().nonnegative().optional(),
+  paybackPeriodYears: z.number().nonnegative().optional(),
+  lockInPeriodYears: z.number().nonnegative().optional(),
+  expectedAnnualRoi: z.number().nonnegative().optional(),
+  yieldPayoutFrequency: z
+    .enum(["MONTHLY", "QUARTERLY", "ANNUALLY"])
+    .optional()
+    .or(z.literal("")),
+  supportModules: z.array(z.string()).optional(),
+  advantages: z.array(z.string()).optional(),
+
   // Nested structures
   location: LocationInputSchema,
   configurations: z.array(PropertyConfigurationInputSchema).optional(),
@@ -102,6 +116,7 @@ export const UpdatePropertySchema = CreatePropertySchema.partial();
 export const PropertyFilterSchema = z.object({
   status: z.nativeEnum(PropertyStatus).optional(),
   type: z.nativeEnum(PropertyType).optional(),
+  franchiseModel: z.enum(["FOCO", "FOFO", "FICO"]).optional(),
   country: z.string().optional(),
   city: z.string().optional(),
   minPrice: z.coerce.number().optional(),
@@ -192,6 +207,15 @@ export interface CreatePropertyInput {
   verdictQuote?: string;
   verdictAuthor?: string;
   verdictTitle?: string;
+  franchiseModel?: "FOCO" | "FOFO" | "FICO" | "";
+  minTicketSize?: number;
+  totalProjectCost?: number;
+  paybackPeriodYears?: number;
+  lockInPeriodYears?: number;
+  expectedAnnualRoi?: number;
+  yieldPayoutFrequency?: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | "";
+  supportModules?: string[];
+  advantages?: string[];
   location: LocationInput;
   configurations?: PropertyConfigurationInput[];
   media?: PropertyMediaInput[];
@@ -205,6 +229,7 @@ export type UpdatePropertyInput = Partial<CreatePropertyInput>;
 export interface PropertyFilterQuery {
   status?: PropertyStatus;
   type?: PropertyType;
+  franchiseModel?: "FOCO" | "FOFO" | "FICO";
   country?: string;
   city?: string;
   minPrice?: number;

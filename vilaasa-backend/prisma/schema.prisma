@@ -143,6 +143,17 @@ model Property {
   verdictAuthor       String?
   verdictTitle        String?
 
+  // Franchise-specific fields (only used when type = FRANCHISE)
+  franchiseModel        String?   // "FOCO" | "FOFO" | "FICO"
+  minTicketSize         Decimal?  @db.Decimal(15, 2)
+  totalProjectCost      Decimal?  @db.Decimal(15, 2)
+  paybackPeriodYears    Float?    // e.g. 3.5
+  lockInPeriodYears     Float?    // e.g. 2.0
+  expectedAnnualRoi     Float?    // e.g. 24.0 (percent)
+  yieldPayoutFrequency  String?   // "MONTHLY" | "QUARTERLY" | "ANNUALLY"
+  supportModules        Json?     // ["Location Scouting", "Operator Certification", ...]
+  advantages            Json?     // ["Low capex", "Proven brand", ...]
+
   // Relations
   locationId          String
   location            Location         @relation(fields: [locationId], references: [id], onDelete: Restrict)
