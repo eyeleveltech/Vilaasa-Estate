@@ -14,7 +14,7 @@ const FranchiseDetail = () => {
   const { toast } = useToast();
   const { id } = useParams<{ id: string }>();
   const { data: franchise, isLoading, isError } = useFranchise(id);
-  const { formatAmount } = useCurrency();
+  const { formatAmount, formatDynamicValue } = useCurrency();
   const [selectedTier, setSelectedTier] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -124,19 +124,13 @@ const FranchiseDetail = () => {
       {/* Stats Bar */}
       <section className="py-8 px-4 md:px-10 bg-card border-y border-border">
         <div className="max-w-[1280px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-6">
-          {franchise.spec.map((stat, index) => (
+          {franchise.spec.map((stat) => (
             <div key={stat.label} className="text-center">
               <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
                 {stat.label}
               </p>
               <p className="text-foreground text-lg md:text-xl font-medium">
-                {index === 0 ? (
-                  <span>
-                    {formatAmount(Number(stat.value.replace(/[^0-9]/g, "")))}
-                  </span>
-                ) : (
-                  stat.value
-                )}
+                {formatDynamicValue(stat.value)}
               </p>
             </div>
           ))}
@@ -212,7 +206,7 @@ const FranchiseDetail = () => {
             </h2>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {franchise.financial.map((item, index) => (
+            {franchise.financial.map((item) => (
               <div
                 key={item.label}
                 className="p-4 bg-background/50 rounded border border-border"
@@ -222,20 +216,9 @@ const FranchiseDetail = () => {
                 </p>
 
                 <p className="text-foreground text-lg font-medium">
-                  {index === 0 || index === 1 ? (
-                    // <span>
-                    //   {formatAmount(Number(item.value.replace(/[^0-9]/g, "")))}
-                    // </span>
-                    <span>
-                      {Array.isArray(item.value)
-                        ? item.value.length > 1
-                          ? `${formatAmount(Number(item.value[0].replace(/[^0-9]/g, "")))} - ${formatAmount(Number(item.value[item.value.length - 1].replace(/[^0-9]/g, "")))}`
-                          : `${formatAmount(Number(item.value[0].replace(/[^0-9]/g, "")))}`
-                        : item.value}
-                    </span>
-                  ) : (
-                    item.value
-                  )}
+                  {Array.isArray(item.value)
+                    ? item.value.map((v) => formatDynamicValue(v)).join(" - ")
+                    : formatDynamicValue(item.value)}
                 </p>
               </div>
             ))}

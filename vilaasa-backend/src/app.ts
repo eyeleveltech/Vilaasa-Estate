@@ -20,6 +20,7 @@ import inquiryRoutes from "./modules/inquiry/inquiry.routes";
 import channelPartnerRoutes from "./modules/channelPartner/channelPartner.routes";
 import siteVisitRoutes from "./modules/siteVisit/siteVisit.routes";
 import vaultRoutes from "./modules/vault/vault.routes";
+import heroHighlightRoutes from "./modules/heroHighlight/heroHighlight.routes";
 
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
@@ -123,6 +124,7 @@ app.use("/api/v1/channel-partners", channelPartnerRoutes);
 app.use("/api/v1/partners", channelPartnerRoutes);
 app.use("/api/v1/site-visits", siteVisitRoutes);
 app.use("/api/v1/vault", vaultRoutes);
+app.use("/api/v1/hero-highlights", heroHighlightRoutes);
 
 // ----------------------------------------------------
 // 404 Route Handler

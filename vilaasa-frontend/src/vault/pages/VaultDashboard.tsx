@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Building2,
@@ -16,9 +16,11 @@ import {
 import { useVaultPortfolio, VaultUser } from "../hooks/useVault";
 import { formatPortfolioValue, formatAppreciation } from "../utils/formatCurrency";
 import { VaultAssetCard } from "../components/VaultAssetCard";
+import { VaultOverview } from "@/components/vault/VaultOverview";
 import { Button } from "@/components/ui/button";
 
 export const VaultDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { portfolio, loading, error } = useVaultPortfolio();
 
   const savedUserJson =
@@ -244,6 +246,9 @@ export const VaultDashboard: React.FC = () => {
           </div>
         </div>
       ) : null}
+
+      {/* Interactive Vault Overview & Wealth Analytics */}
+      <VaultOverview onNavigate={(sec) => navigate(`/vault/${sec}`)} />
 
       {/* Recent Assets Section */}
       <div className="space-y-4 pt-2">

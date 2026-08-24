@@ -3,15 +3,12 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
+import { useVaultConcierge, ConciergeServiceRequest, ConciergePropertyOption } from "@/vault/hooks/useVaultSections";
+import toast from "react-hot-toast";
 
-interface ServiceRequest {
-  id: string;
-  type: string;
-  property: string;
-  status: "pending" | "in-progress" | "completed";
-  createdAt: string;
-  description: string;
+interface VaultConciergeProps {
+  requests?: ConciergeServiceRequest[];
+  properties?: ConciergePropertyOption[];
 }
 
 const requestTypes = [
@@ -23,49 +20,48 @@ const requestTypes = [
   { id: "other", label: "Other Request", icon: "help", description: "Any other service you need" },
 ];
 
-const mockProperties = [
-  { id: "1", name: "Colton Beach Resort, Goa" },
-  { id: "2", name: "Zen Wellness Spa, Goa" },
-  { id: "3", name: "Palm Royale Villa, Dubai" },
-];
+export function VaultConcierge({
+  requests: propRequests,
+  properties: propProperties,
+}: VaultConciergeProps = {}) {
+  const {
+    requests: hookRequests,
+    properties: hookProperties,
+    loading,
+    submitting,
+    submitRequest,
+  } = useVaultConcierge();
 
-const mockPreviousRequests: ServiceRequest[] = [
-  {
-    id: "1",
-    type: "tax",
-    property: "Colton Beach Resort, Goa",
-    status: "completed",
-    createdAt: "2024-12-15",
-    description: "Tax certificate for FY 2024-25",
-  },
-  {
-    id: "2",
-    type: "visit",
-    property: "Palm Royale Villa, Dubai",
-    status: "in-progress",
-    createdAt: "2025-01-03",
-    description: "Site visit scheduled for January 15th",
-  },
-];
+  const requests = propRequests || hookRequests;
+  const properties = propProperties || hookProperties;
 
-export function VaultConcierge() {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<string>("");
   const [description, setDescription] = useState("");
 
-  const handleSubmitRequest = () => {
-    if (!selectedType || !selectedProperty) {
-      toast.error("Please select a request type and property");
+  const handleSubmitRequest = async () => {
+    if (!selectedType) {
+      toast.error("Please select a service request type");
+      return;
+    }
+    if (!description || description.length < 5) {
+      toast.error("Please provide at least a brief description (min 5 characters)");
       return;
     }
 
-    toast.success("Request submitted successfully", {
-      description: "Our concierge team will contact you within 24 hours.",
-    });
+    try {
+      await submitRequest({
+        type: selectedType,
+        propertyId: selectedProperty || undefined,
+        description,
+      });
 
-    setSelectedType(null);
-    setSelectedProperty("");
-    setDescription("");
+      setSelectedType(null);
+      setSelectedProperty("");
+      setDescription("");
+    } catch {
+      // Error handled by hook
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -75,6 +71,17 @@ export function VaultConcierge() {
       default: return "bg-muted text-muted-foreground";
     }
   };
+
+  if (!propRequests && loading) {
+    return (
+      <div className="flex items-center justify-center p-12 text-muted-foreground">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <span>Connecting to Private Client Concierge...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -133,7 +140,8 @@ export function VaultConcierge() {
                       <SelectValue placeholder="Choose a property" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockProperties.map((property) => (
+                      <SelectItem value="general">General Portfolio Service</SelectItem>
+                      {properties.map((property) => (
                         <SelectItem key={property.id} value={property.id}>
                           {property.name}
                         </SelectItem>
@@ -144,9 +152,9 @@ export function VaultConcierge() {
 
                 {/* Additional Details */}
                 <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">Additional Details (Optional)</label>
+                  <label className="text-sm font-medium text-foreground mb-2 block">Additional Details / Instructions</label>
                   <Textarea
-                    placeholder="Provide any additional information..."
+                    placeholder="Provide specific details for the Private Client Advisory team..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="min-h-[100px]"
@@ -154,9 +162,14 @@ export function VaultConcierge() {
                 </div>
 
                 {/* Submit Button */}
-                <Button onClick={handleSubmitRequest} variant="hero" className="w-full">
+                <Button
+                  onClick={handleSubmitRequest}
+                  disabled={submitting}
+                  variant="hero"
+                  className="w-full"
+                >
                   <span className="material-symbols-outlined mr-2">send</span>
-                  Submit Request
+                  {submitting ? "Transmitting Request..." : "Submit Bespoke Request"}
                 </Button>
               </motion.div>
             )}
@@ -171,33 +184,53 @@ export function VaultConcierge() {
           className="bg-card rounded-xl border border-border overflow-hidden"
         >
           <div className="p-4 border-b border-border">
-            <h3 className="font-semibold text-foreground">Previous Requests</h3>
+            <h3 className="font-semibold text-foreground">Service Request History</h3>
           </div>
 
           <div className="divide-y divide-border">
-            {mockPreviousRequests.map((request) => {
-              const typeInfo = requestTypes.find(t => t.id === request.type);
-              return (
-                <div key={request.id} className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                      <span className="material-symbols-outlined text-muted-foreground">{typeInfo?.icon}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">{typeInfo?.label}</p>
-                      <p className="text-xs text-muted-foreground truncate">{request.property}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{request.description}</p>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-xs text-muted-foreground">{request.createdAt}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${getStatusColor(request.status)}`}>
-                          {request.status.replace("-", " ")}
+            {requests.length === 0 ? (
+              <div className="p-8 text-center text-xs text-muted-foreground">
+                No previous requests recorded.
+              </div>
+            ) : (
+              requests.map((request) => {
+                const typeInfo = requestTypes.find((t) => t.id === request.type);
+                return (
+                  <div key={request.id} className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                        <span className="material-symbols-outlined text-muted-foreground">
+                          {typeInfo?.icon || "concierge"}
                         </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground">
+                          {typeInfo?.label || request.type}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {request.property}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {request.description}
+                        </p>
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-xs text-muted-foreground">
+                            {request.createdAt}
+                          </span>
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full capitalize ${getStatusColor(
+                              request.status,
+                            )}`}
+                          >
+                            {request.status.replace("-", " ")}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
 
           <div className="p-4 bg-muted/30 border-t border-border">

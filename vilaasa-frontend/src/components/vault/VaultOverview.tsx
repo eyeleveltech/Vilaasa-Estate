@@ -1,11 +1,13 @@
 import { motion } from "framer-motion";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { VaultWealthProjector } from "./VaultWealthProjector";
+import { useVaultOverview, VaultOverviewData } from "@/vault/hooks/useVaultSections";
 
 interface Asset {
   id: string;
   name: string;
   type: string;
+  category?: "real-estate" | "franchise";
   location: string;
   value: number;
   status: string;
@@ -26,28 +28,60 @@ interface Asset {
 }
 
 interface VaultOverviewProps {
-  portfolioData: {
+  portfolioData?: {
     totalValue: number;
     totalROI: number;
     monthlyIncome: number;
     assets: Asset[];
   };
-  nextPayment: {
+  nextPayment?: {
     amount: number;
     dueDate: string;
     property: string;
   };
-  actionItems: Array<{
+  actionItems?: Array<{
     id: string;
     type: "lease" | "construction" | "payment" | "document";
     message: string;
     urgency: "high" | "medium" | "low";
   }>;
-  onNavigate: (section: string) => void;
+  onNavigate?: (section: string) => void;
 }
 
-export function VaultOverview({ portfolioData, nextPayment, actionItems, onNavigate }: VaultOverviewProps) {
+export function VaultOverview({
+  portfolioData: propPortfolio,
+  nextPayment: propPayment,
+  actionItems: propActions,
+  onNavigate = () => {},
+}: VaultOverviewProps = {}) {
+  const { data: hookData, loading } = useVaultOverview();
   const { formatAmount } = useCurrency();
+
+  const portfolioData = propPortfolio || hookData?.portfolioData || {
+    totalValue: 0,
+    totalROI: 0,
+    monthlyIncome: 0,
+    assets: [],
+  };
+
+  const nextPayment = propPayment || hookData?.nextPayment || {
+    amount: 0,
+    dueDate: "None",
+    property: "No pending installments",
+  };
+
+  const actionItems = propActions || hookData?.actionItems || [];
+
+  if (!propPortfolio && loading) {
+    return (
+      <div className="flex items-center justify-center p-12 text-muted-foreground">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <span>Assembling Private Client Portfolio Dossier...</span>
+        </div>
+      </div>
+    );
+  }
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {

@@ -18,7 +18,7 @@ const PropertyDetail = () => {
   const [requested, setRequested] = useState<number[]>([]);
   const { id } = useParams<{ id: string }>();
   const { data: property, isLoading, isError } = useProperty(id || "the-aurum");
-  const { formatAmount } = useCurrency();
+  const { formatAmount, formatDynamicValue } = useCurrency();
   const { toast } = useToast();
   const configurations = property?.configurations ?? [];
   const hasArea = configurations.some((c) => Boolean(c.area));
@@ -130,7 +130,7 @@ const PropertyDetail = () => {
                     Starting From
                   </span>
                   <span className="text-xl font-medium text-foreground sm:text-2xl">
-                    {formatAmount(property.price)}
+                    {formatDynamicValue(property.price)}
                   </span>
                 </div>
                 <div className="flex flex-col">
@@ -216,11 +216,7 @@ const PropertyDetail = () => {
                     {spec.label}
                   </span>
                   <span className="text-foreground font-medium">
-                    {spec.label === "Min Investment" ? (
-                      <span>{formatAmount(Number(spec.value))}</span>
-                    ) : (
-                      <span>{spec.value}</span>
-                    )}
+                    {formatDynamicValue(spec.value)}
                   </span>
                 </motion.div>
               ))}
@@ -282,11 +278,7 @@ const PropertyDetail = () => {
                     </span>
                   </div>
                   <p className="mb-2 text-2xl font-light text-foreground md:text-3xl">
-                    {item.label === "Market Size by Year" ? (
-                      <span>{formatAmount(Number(item.value))}</span>
-                    ) : (
-                      <span>{item.value}</span>
-                    )}
+                    {formatDynamicValue(item.value)}
                   </p>
                   <p className="text-muted-foreground text-sm">{item.note}</p>
                 </motion.div>
@@ -348,7 +340,7 @@ const PropertyDetail = () => {
                         )}
 
                         <td className="py-4 px-4 text-foreground">
-                          {config.price ? formatAmount(config.price) : "-"}
+                          {config.price ? formatDynamicValue(config.price) : "-"}
                         </td>
 
                         <td className="py-4 px-4">
@@ -458,7 +450,7 @@ const PropertyDetail = () => {
             <div>
               <p className="text-foreground font-medium">{property.name}</p>
               <p className="text-muted-foreground text-sm">
-                {formatAmount(property.price)}
+                {formatDynamicValue(property.price)}
               </p>
             </div>
           </div>

@@ -3,6 +3,12 @@ import { Link, useLocation, Outlet } from "react-router-dom";
 import {
   LayoutDashboard,
   Building2,
+  Key,
+  HardHat,
+  CreditCard,
+  FileText,
+  Headphones,
+  Users2,
   LogOut,
   Menu,
   X,
@@ -27,22 +33,73 @@ export const VaultLayout: React.FC = () => {
     ? JSON.parse(savedUserJson)
     : null;
 
-  const navItems = [
+  const navSections = [
     {
-      label: "Dashboard",
-      path: "/vault/dashboard",
-      icon: LayoutDashboard,
+      group: "Portfolio & Intelligence",
+      items: [
+        {
+          label: "Dashboard",
+          path: "/vault/dashboard",
+          icon: LayoutDashboard,
+        },
+        {
+          label: "Portfolio Assets",
+          path: "/vault/portfolio",
+          icon: Building2,
+        },
+      ],
     },
     {
-      label: "Portfolio Assets",
-      path: "/vault/portfolio",
-      icon: Building2,
+      group: "Asset Operations",
+      items: [
+        {
+          label: "Tenancy Manager",
+          path: "/vault/tenancy",
+          icon: Key,
+        },
+        {
+          label: "Live Construction",
+          path: "/vault/construction",
+          icon: HardHat,
+        },
+        {
+          label: "Payment Schedule",
+          path: "/vault/payments",
+          icon: CreditCard,
+        },
+        {
+          label: "Document Vault",
+          path: "/vault/documents",
+          icon: FileText,
+        },
+      ],
+    },
+    {
+      group: "Private Client Desk",
+      items: [
+        {
+          label: "Concierge Desk",
+          path: "/vault/concierge",
+          icon: Headphones,
+        },
+        {
+          label: "Nominee & Legacy",
+          path: "/vault/nominees",
+          icon: Users2,
+        },
+      ],
     },
   ];
 
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path.includes("/vault/portfolio")) return "Investment Portfolio";
+    if (path.includes("/vault/portfolio")) return "Investment Portfolio & Assets";
+    if (path.includes("/vault/tenancy")) return "Tenancy Ledger & Rental Yields";
+    if (path.includes("/vault/construction")) return "Live Construction & Milestone Feeds";
+    if (path.includes("/vault/payments")) return "Payment Milestones & Financial Disbursements";
+    if (path.includes("/vault/documents")) return "Secure Document Repository";
+    if (path.includes("/vault/concierge")) return "Private Client Concierge Desk";
+    if (path.includes("/vault/nominees")) return "Succession Ledger & Legacy Vault";
     return "Investor Command Dashboard";
   };
 
@@ -91,37 +148,41 @@ export const VaultLayout: React.FC = () => {
             </button>
           </div>
 
-          {/* Navigation Items */}
-          <nav className="space-y-1.5 p-3">
-            <p className="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">
-              Holdings &amp; Analytics
-            </p>
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
+          {/* Navigation Sections */}
+          <nav className="space-y-4 p-3 overflow-y-auto max-h-[calc(100vh-180px)]">
+            {navSections.map((sec) => (
+              <div key={sec.group} className="space-y-1">
+                <p className="px-3 pt-2 pb-1 text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">
+                  {sec.group}
+                </p>
+                {sec.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path;
 
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setMobileOpen(false)}
-                  className={`group flex items-center space-x-3 rounded-r-md px-3.5 py-2.5 text-xs uppercase tracking-[0.1em] font-medium transition-all duration-200 ${
-                    isActive
-                      ? "border-l-2 border-primary bg-primary/10 text-primary font-semibold shadow-sm"
-                      : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground border-l-2 border-transparent"
-                  }`}
-                >
-                  <Icon
-                    className={`h-4 w-4 transition-colors ${
-                      isActive
-                        ? "text-primary"
-                        : "text-muted-foreground group-hover:text-foreground"
-                    }`}
-                  />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setMobileOpen(false)}
+                      className={`group flex items-center space-x-3 rounded-r-md px-3.5 py-2.5 text-xs uppercase tracking-[0.08em] font-medium transition-all duration-200 ${
+                        isActive
+                          ? "border-l-2 border-primary bg-primary/10 text-primary font-semibold shadow-sm"
+                          : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground border-l-2 border-transparent"
+                      }`}
+                    >
+                      <Icon
+                        className={`h-4 w-4 transition-colors ${
+                          isActive
+                            ? "text-primary"
+                            : "text-muted-foreground group-hover:text-foreground"
+                        }`}
+                      />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
         </div>
 

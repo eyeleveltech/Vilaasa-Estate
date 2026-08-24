@@ -11,7 +11,7 @@ const DomesticFranchise = () => {
   const [activeType, setActiveType] = useState<string | null>(null);
   const [location, setLocation] = useState<string | null>(null);
 
-  const { formatAmount } = useCurrency();
+  const { formatAmount, formatDynamicValue } = useCurrency();
   // const { data: products = [], isLoading, isError } = useProperties();
 
   const { data: franchises = [], isLoading, isError } = useFranchiseList();
@@ -234,7 +234,7 @@ const DomesticFranchise = () => {
                           Investment
                         </p>
                         <p className="text-base font-bold text-gold">
-                          {`${formatAmount(franchise.price)}+`}
+                          {`${formatDynamicValue(franchise.price || franchise.investment)}+`}
                         </p>
                       </div>
                       <div className="h-8 w-px bg-border" />

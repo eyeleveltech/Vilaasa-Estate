@@ -5,17 +5,28 @@ import {
   getChannelPartners,
   getChannelPartnerById,
   updatePartnerStatus,
+  onboardChannelPartner,
 } from "./channelPartner.controller";
 import {
   RegisterChannelPartnerSchema,
   UpdatePartnerStatusSchema,
   PartnerFilterSchema,
+  OnboardChannelPartnerSchema,
 } from "./channelPartner.schema";
 import { validate } from "../../middlewares/validate";
 import { verifyJWT } from "../../middlewares/auth";
 import { authorizeRoles } from "../../middlewares/role";
 
 const router = Router();
+
+// Super Admin direct onboarding
+router.post(
+  "/admin/onboard",
+  verifyJWT,
+  authorizeRoles(Role.SUPER_ADMIN),
+  validate(OnboardChannelPartnerSchema),
+  onboardChannelPartner,
+);
 
 // Public partner registration
 router.post(

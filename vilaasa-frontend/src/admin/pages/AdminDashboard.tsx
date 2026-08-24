@@ -274,25 +274,25 @@ export const AdminDashboard: React.FC = () => {
         />
       </div>
 
-      {/* Super Admin Quick Vault Gateway Bar */}
+      {/* Super Admin Quick Channel Partner Gateway Bar */}
       {isSuperAdmin && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 shadow-sm">
           <div className="flex items-center space-x-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20 text-primary">
-              <Lock className="h-5 w-5" />
+              <Users className="h-5 w-5" />
             </div>
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
-                The Vault Portfolio Desk
+                Channel Partner &amp; Institutional Network
               </h4>
               <p className="text-[11px] text-muted-foreground">
-                Manage {vaultOverview?.totalUnits || 0} custody units across {vaultOverview?.totalInvestors || 0} private investors with ₹{formatCrores(vaultOverview?.totalAum)} in total AUM.
+                Onboard broker partners, provision institutional credentials, and oversee client portfolios.
               </p>
             </div>
           </div>
           <Button asChild size="sm" className="gap-1.5 shrink-0 text-xs font-semibold uppercase tracking-wider">
-            <Link to="/admin/vault">
-              <span>Manage Vault</span>
+            <Link to="/admin/channel-partners">
+              <span>Channel Partners</span>
               <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
           </Button>

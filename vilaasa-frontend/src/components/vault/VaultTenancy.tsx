@@ -1,63 +1,14 @@
 import { motion } from "framer-motion";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useVaultTenancy, TenancyAsset } from "@/vault/hooks/useVaultSections";
 
-interface TenancyAsset {
-  id: string;
-  name: string;
-  location: string;
-  image: string;
-  status: "occupied" | "vacant";
-  tenant?: {
-    name: string;
-    leaseStart: string;
-    leaseExpiry: string;
-    monthlyRent: number;
-    rentStatus: "paid" | "overdue" | "pending";
-    lastPayment?: string;
-  };
+interface VaultTenancyProps {
+  assets?: TenancyAsset[];
 }
 
-const mockTenancyAssets: TenancyAsset[] = [
-  {
-    id: "1",
-    name: "Colton Beach Resort",
-    location: "Goa, India",
-    image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&q=80",
-    status: "occupied",
-    tenant: {
-      name: "Paradise Hospitality Pvt Ltd",
-      leaseStart: "2024-04-01",
-      leaseExpiry: "2027-03-31",
-      monthlyRent: 250000,
-      rentStatus: "paid",
-      lastPayment: "2025-01-01",
-    },
-  },
-  {
-    id: "4",
-    name: "Lakeside Villa",
-    location: "Kerala, India",
-    image: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&q=80",
-    status: "occupied",
-    tenant: {
-      name: "Mr. Arun Sharma",
-      leaseStart: "2024-01-15",
-      leaseExpiry: "2025-01-14",
-      monthlyRent: 85000,
-      rentStatus: "overdue",
-      lastPayment: "2024-11-15",
-    },
-  },
-  {
-    id: "5",
-    name: "Business Park Office",
-    location: "Bangalore, India",
-    image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&q=80",
-    status: "vacant",
-  },
-];
-
-export function VaultTenancy() {
+export function VaultTenancy({ assets: propAssets }: VaultTenancyProps = {}) {
+  const { assets: hookAssets, loading } = useVaultTenancy();
+  const tenancyAssets = propAssets || hookAssets;
   const { formatAmount } = useCurrency();
 
   const getDaysToExpiry = (expiryDate: string) => {
@@ -76,8 +27,19 @@ export function VaultTenancy() {
     }
   };
 
-  const occupiedCount = mockTenancyAssets.filter(a => a.status === "occupied").length;
-  const totalMonthlyRent = mockTenancyAssets.reduce((sum, a) => sum + (a.tenant?.monthlyRent || 0), 0);
+  const occupiedCount = tenancyAssets.filter(a => a.status === "occupied").length;
+  const totalMonthlyRent = tenancyAssets.reduce((sum, a) => sum + (a.tenant?.monthlyRent || 0), 0);
+
+  if (!propAssets && loading) {
+    return (
+      <div className="flex items-center justify-center p-12 text-muted-foreground">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <span>Loading tenancy ledgers...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -101,7 +63,9 @@ export function VaultTenancy() {
             </div>
             <div>
               <p className="text-muted-foreground text-xs">Occupied</p>
-              <p className="text-xl font-bold text-foreground">{occupiedCount} / {mockTenancyAssets.length}</p>
+              <p className="text-xl font-bold text-foreground">
+                {occupiedCount} / {tenancyAssets.length}
+              </p>
             </div>
           </div>
         </motion.div>
@@ -136,7 +100,7 @@ export function VaultTenancy() {
             <div>
               <p className="text-muted-foreground text-xs">Overdue Rents</p>
               <p className="text-xl font-bold text-destructive">
-                {mockTenancyAssets.filter(a => a.tenant?.rentStatus === "overdue").length}
+                {tenancyAssets.filter(a => a.tenant?.rentStatus === "overdue").length}
               </p>
             </div>
           </div>
@@ -144,8 +108,15 @@ export function VaultTenancy() {
       </div>
 
       {/* Property Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {mockTenancyAssets.map((asset, index) => (
+      {tenancyAssets.length === 0 ? (
+        <div className="bg-card rounded-xl border border-border p-12 text-center">
+          <span className="material-symbols-outlined text-4xl text-muted-foreground mb-4">apartment</span>
+          <h3 className="text-lg font-medium text-foreground mb-2">No Tenancy Records</h3>
+          <p className="text-muted-foreground">You do not have any active leased assets in your portfolio.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {tenancyAssets.map((asset, index) => (
           <motion.div
             key={asset.id}
             initial={{ opacity: 0, y: 20 }}
@@ -228,6 +199,7 @@ export function VaultTenancy() {
           </motion.div>
         ))}
       </div>
+      )}
     </div>
   );
 }

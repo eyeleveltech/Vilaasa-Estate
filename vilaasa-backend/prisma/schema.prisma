@@ -73,6 +73,24 @@ enum LeadSource {
   VAULT_CONCIERGE
 }
 
+enum RentStatus {
+  PAID
+  OVERDUE
+  PENDING
+}
+
+enum PaymentMilestoneStatus {
+  UPCOMING
+  PENDING
+  COMPLETED
+}
+
+enum ConciergeRequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
 // ----------------------------------------------------
 // USER MODEL (Super Admin & Channel Partner)
 // ----------------------------------------------------
@@ -91,9 +109,13 @@ model User {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  assignedProperties Property[]   @relation("AdminProperties")
-  assignedInquiries  Inquiry[]    @relation("AssignedInquiries")
+  assignedProperties Property[]         @relation("AdminProperties")
+  assignedInquiries  Inquiry[]          @relation("AssignedInquiries")
   vaultAssets        VaultAsset[]
+  vaultDocuments     VaultDocument[]
+  conciergeRequests  ConciergeRequest[]
+  nominees           Nominee[]
+  legacyDocuments    LegacyDocument[]
 
   @@index([role, isActive])
   @@index([email])
@@ -170,6 +192,7 @@ model Property {
   inquiries           Inquiry[]
   siteVisits          SiteVisit[]
   vaultAssets         VaultAsset[]
+  conciergeRequests   ConciergeRequest[]
 
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
@@ -480,9 +503,165 @@ model VaultAsset {
   monthlyRentalYield Decimal? @db.Decimal(15, 2)
   occupancyStatus    String   @default("OCCUPIED")
 
+  leases             Lease[]
+  paymentMilestones  PaymentMilestone[]
+  documents          VaultDocument[]
+
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
   @@index([userId])
   @@index([propertyId])
 }
+
+// ----------------------------------------------------
+// THE VAULT: LEASES & TENANCY
+// ----------------------------------------------------
+
+model Lease {
+  id           String      @id @default(cuid())
+  vaultAssetId String
+  vaultAsset   VaultAsset  @relation(fields: [vaultAssetId], references: [id], onDelete: Cascade)
+
+  tenantName   String
+  leaseStart   DateTime
+  leaseExpiry  DateTime
+  monthlyRent  Decimal     @db.Decimal(15, 2)
+  rentStatus   RentStatus  @default(PAID)
+  lastPayment  DateTime?
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([vaultAssetId])
+}
+
+// ----------------------------------------------------
+// THE VAULT: PAYMENT MILESTONES
+// ----------------------------------------------------
+
+model PaymentMilestone {
+  id           String                 @id @default(cuid())
+  vaultAssetId String
+  vaultAsset   VaultAsset             @relation(fields: [vaultAssetId], references: [id], onDelete: Cascade)
+
+  name         String
+  amount       Decimal                @db.Decimal(15, 2)
+  dueDate      DateTime
+  status       PaymentMilestoneStatus @default(UPCOMING)
+  paidAmount   Decimal?               @db.Decimal(15, 2)
+
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  @@index([vaultAssetId])
+}
+
+// ----------------------------------------------------
+// THE VAULT: SECURE DOCUMENT REPOSITORY
+// ----------------------------------------------------
+
+model VaultDocument {
+  id           String      @id @default(cuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  vaultAssetId String?
+  vaultAsset   VaultAsset? @relation(fields: [vaultAssetId], references: [id], onDelete: SetNull)
+
+  name         String
+  type         String      // "Ownership Documents" | "Financial Reports" | "Tax & Legal" | "Floor Plans" | "Brochures"
+  fileUrl      String
+  sizeLabel    String?     // e.g. "2.4 MB"
+  iconKey      String?     // e.g. "description", "receipt_long", "gavel"
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([vaultAssetId])
+}
+
+// ----------------------------------------------------
+// THE VAULT: CONCIERGE SERVICE REQUESTS
+// ----------------------------------------------------
+
+model ConciergeRequest {
+  id          String                 @id @default(cuid())
+  userId      String
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  propertyId  String?
+  property    Property?              @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  type        String                 // "resale" | "visit" | "maintenance" | "tax" | "legal" | "other"
+  description String                 @db.Text
+  status      ConciergeRequestStatus @default(PENDING)
+
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  @@index([userId])
+  @@index([propertyId])
+}
+
+// ----------------------------------------------------
+// THE VAULT: NOMINEE & SUCCESSION
+// ----------------------------------------------------
+
+model Nominee {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name         String
+  relationship String
+  email        String?
+  phone        String?
+  share        Int      @default(100)
+  isPrimary    Boolean  @default(false)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ----------------------------------------------------
+// THE VAULT: LEGACY & ESTATE DOCUMENTS
+// ----------------------------------------------------
+
+model LegacyDocument {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name       String
+  type       String   // "Will" | "Trust" | "Power of Attorney" | "Healthcare Directive"
+  fileUrl    String
+  uploadedAt DateTime @default(now())
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ----------------------------------------------------
+// HOMEPAGE HERO HIGHLIGHTS (UP TO 3 SPOTLIGHTS)
+// ----------------------------------------------------
+
+model HeroHighlight {
+  id        String   @id @default(cuid())
+  name      String   // e.g. "Carlton", "Oxygen Forest"
+  tagline   String   // e.g. "Luxury Experiences • Andhra Pradesh"
+  linkUrl   String   // e.g. "/property/carlton" or "/franchise/carlton-spa"
+  icon      String   @default("hotel_class")
+  order     Int      @default(1)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, order])
+}
+

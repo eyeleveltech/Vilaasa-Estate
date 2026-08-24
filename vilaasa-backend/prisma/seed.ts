@@ -18,6 +18,13 @@ async function main() {
   console.log("🌱 Starting comprehensive database seeding for Vilaasa Estates...");
 
   // 1. Clean existing data
+  await prisma.heroHighlight.deleteMany();
+  await prisma.legacyDocument.deleteMany();
+  await prisma.nominee.deleteMany();
+  await prisma.conciergeRequest.deleteMany();
+  await prisma.vaultDocument.deleteMany();
+  await prisma.paymentMilestone.deleteMany();
+  await prisma.lease.deleteMany();
   await prisma.vaultAsset.deleteMany();
   await prisma.channelPartner.deleteMany();
   await prisma.siteVisit.deleteMany();
@@ -905,33 +912,304 @@ async function main() {
 
     console.log(" Seeded Client Inquiries with complete audit timelines.");
 
-    // Seed Vault Assets for Demo Investor
-    await prisma.vaultAsset.createMany({
+    // 8. Seed Comprehensive Vault Ecosystem for Demo Investor
+    const asset1 = await prisma.vaultAsset.create({
+      data: {
+        userId: demoInvestorUser.id,
+        propertyId: allProps[0].id,
+        unitNumber: "Villa Signature #07",
+        purchaseDate: new Date("2023-06-15"),
+        purchasePrice: 42000000,
+        currentValuation: 48500000,
+        monthlyRentalYield: 250000,
+        occupancyStatus: "OCCUPIED",
+      },
+    });
+
+    const asset2 = await prisma.vaultAsset.create({
+      data: {
+        userId: demoInvestorUser.id,
+        propertyId: allProps[1] ? allProps[1].id : allProps[0].id,
+        unitNumber: "Presidential Penthouse 402",
+        purchaseDate: new Date("2024-01-20"),
+        purchasePrice: 28000000,
+        currentValuation: 31500000,
+        monthlyRentalYield: 85000,
+        occupancyStatus: "OCCUPIED",
+      },
+    });
+
+    const asset3 = await prisma.vaultAsset.create({
+      data: {
+        userId: demoInvestorUser.id,
+        propertyId: allProps[2] ? allProps[2].id : allProps[0].id,
+        unitNumber: "Ayurvedic Sanctuary Suite #12",
+        purchaseDate: new Date("2024-05-10"),
+        purchasePrice: 15000000,
+        currentValuation: 16800000,
+        monthlyRentalYield: 110000,
+        occupancyStatus: "VACANT",
+      },
+    });
+
+    // Seed Leases
+    await prisma.lease.createMany({
+      data: [
+        {
+          vaultAssetId: asset1.id,
+          tenantName: "Paradise Hospitality Pvt Ltd",
+          leaseStart: new Date("2024-04-01"),
+          leaseExpiry: new Date("2027-03-31"),
+          monthlyRent: 250000,
+          rentStatus: "PAID",
+          lastPayment: new Date("2025-01-01"),
+        },
+        {
+          vaultAssetId: asset2.id,
+          tenantName: "Mr. Arun Sharma",
+          leaseStart: new Date("2024-01-15"),
+          leaseExpiry: new Date(Date.now() + 35 * 24 * 60 * 60 * 1000), // Expiring in 35 days (Action item!)
+          monthlyRent: 85000,
+          rentStatus: "OVERDUE", // Overdue notice (Action item!)
+          lastPayment: new Date("2024-11-15"),
+        },
+      ],
+    });
+
+    // Seed Payment Milestones
+    await prisma.paymentMilestone.createMany({
+      data: [
+        {
+          vaultAssetId: asset1.id,
+          name: "Initial Booking Deposit",
+          amount: 10500000,
+          dueDate: new Date("2023-06-15"),
+          status: "COMPLETED",
+          paidAmount: 10500000,
+        },
+        {
+          vaultAssetId: asset1.id,
+          name: "Foundation & Substructure",
+          amount: 10500000,
+          dueDate: new Date("2023-11-20"),
+          status: "COMPLETED",
+          paidAmount: 10500000,
+        },
+        {
+          vaultAssetId: asset1.id,
+          name: "Superstructure Completion",
+          amount: 10500000,
+          dueDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // Due in 45 days (Action item!)
+          status: "UPCOMING",
+          paidAmount: 0,
+        },
+        {
+          vaultAssetId: asset1.id,
+          name: "Handover & Title Registration",
+          amount: 10500000,
+          dueDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
+          status: "PENDING",
+          paidAmount: 0,
+        },
+        {
+          vaultAssetId: asset2.id,
+          name: "Full Capital Disbursement",
+          amount: 28000000,
+          dueDate: new Date("2024-01-20"),
+          status: "COMPLETED",
+          paidAmount: 28000000,
+        },
+      ],
+    });
+
+    // Seed Vault Documents
+    await prisma.vaultDocument.createMany({
+      data: [
+        {
+          userId: demoInvestorUser.id,
+          vaultAssetId: asset1.id,
+          name: "Title Deed & Conveyance Certificate",
+          type: "Ownership Documents",
+          fileUrl: "https://pdfobject.com/pdf/sample.pdf",
+          sizeLabel: "2.4 MB",
+          iconKey: "description",
+        },
+        {
+          userId: demoInvestorUser.id,
+          vaultAssetId: asset1.id,
+          name: "Purchase & Sale Agreement",
+          type: "Ownership Documents",
+          fileUrl: "https://pdfobject.com/pdf/sample.pdf",
+          sizeLabel: "4.8 MB",
+          iconKey: "description",
+        },
+        {
+          userId: demoInvestorUser.id,
+          vaultAssetId: asset1.id,
+          name: "Q4 2024 Yield & Payout Statement",
+          type: "Financial Reports",
+          fileUrl: "https://pdfobject.com/pdf/sample.pdf",
+          sizeLabel: "1.2 MB",
+          iconKey: "receipt_long",
+        },
+        {
+          userId: demoInvestorUser.id,
+          vaultAssetId: asset2.id,
+          name: "Annual Asset Valuation Dossier 2024",
+          type: "Financial Reports",
+          fileUrl: "https://pdfobject.com/pdf/sample.pdf",
+          sizeLabel: "3.5 MB",
+          iconKey: "assessment",
+        },
+        {
+          userId: demoInvestorUser.id,
+          vaultAssetId: asset1.id,
+          name: "Withholding Tax Certificate (FY24-25)",
+          type: "Tax & Legal",
+          fileUrl: "https://pdfobject.com/pdf/sample.pdf",
+          sizeLabel: "890 KB",
+          iconKey: "gavel",
+        },
+        {
+          userId: demoInvestorUser.id,
+          vaultAssetId: asset2.id,
+          name: "RERA Escrow Compliance Audit",
+          type: "Tax & Legal",
+          fileUrl: "https://pdfobject.com/pdf/sample.pdf",
+          sizeLabel: "1.8 MB",
+          iconKey: "verified",
+        },
+        {
+          userId: demoInvestorUser.id,
+          vaultAssetId: asset1.id,
+          name: "Architectural Blueprint & CAD Layout",
+          type: "Floor Plans",
+          fileUrl: "https://pdfobject.com/pdf/sample.pdf",
+          sizeLabel: "8.6 MB",
+          iconKey: "architecture",
+        },
+      ],
+    });
+
+    // Seed Concierge Requests
+    await prisma.conciergeRequest.createMany({
       data: [
         {
           userId: demoInvestorUser.id,
           propertyId: allProps[0].id,
-          unitNumber: "Villa Signature #07",
-          purchaseDate: new Date("2023-06-15"),
-          purchasePrice: 42000000,
-          currentValuation: 48500000,
-          monthlyRentalYield: 240000,
-          occupancyStatus: "OCCUPIED",
+          type: "resale",
+          description:
+            "Requesting updated institutional valuation dossier for prospective off-market portfolio buyer.",
+          status: "COMPLETED",
         },
         {
           userId: demoInvestorUser.id,
           propertyId: allProps[1] ? allProps[1].id : allProps[0].id,
-          unitNumber: "Penthouse Sky Suite A",
-          purchaseDate: new Date("2024-01-20"),
-          purchasePrice: 28000000,
-          currentValuation: 31500000,
-          monthlyRentalYield: 160000,
-          occupancyStatus: "OCCUPIED",
+          type: "visit",
+          description:
+            "VIP private airport limousine pickup and site walkthrough for family office delegation.",
+          status: "IN_PROGRESS",
+        },
+        {
+          userId: demoInvestorUser.id,
+          type: "tax",
+          description:
+            "Annual tax withholding certificate request for FY 2024-2025 filing.",
+          status: "PENDING",
         },
       ],
     });
-    console.log(" Seeded Demo Investor Vault Assets.");
+
+    // Seed Nominees
+    await prisma.nominee.createMany({
+      data: [
+        {
+          userId: demoInvestorUser.id,
+          name: "Priya Kumar",
+          relationship: "Spouse",
+          email: "priya.kumar@familyoffice.ae",
+          phone: "+971508889901",
+          share: 50,
+          isPrimary: true,
+        },
+        {
+          userId: demoInvestorUser.id,
+          name: "Arjun Kumar",
+          relationship: "Son",
+          email: "arjun.kumar@familyoffice.ae",
+          phone: "+971508889902",
+          share: 25,
+          isPrimary: false,
+        },
+        {
+          userId: demoInvestorUser.id,
+          name: "Ananya Kumar",
+          relationship: "Daughter",
+          email: "ananya.kumar@familyoffice.ae",
+          phone: "+971508889903",
+          share: 25,
+          isPrimary: false,
+        },
+      ],
+    });
+
+    // Seed Legacy Documents
+    await prisma.legacyDocument.createMany({
+      data: [
+        {
+          userId: demoInvestorUser.id,
+          name: "Last Will & Testament (DIFC Court Registered)",
+          type: "Will",
+          fileUrl: "https://pdfobject.com/pdf/sample.pdf",
+        },
+        {
+          userId: demoInvestorUser.id,
+          name: "Family Discretionary Wealth Trust Deed",
+          type: "Trust",
+          fileUrl: "https://pdfobject.com/pdf/sample.pdf",
+        },
+        {
+          userId: demoInvestorUser.id,
+          name: "Enduring Power of Attorney & Healthcare Directive",
+          type: "Power of Attorney",
+          fileUrl: "https://pdfobject.com/pdf/sample.pdf",
+        },
+      ],
+    });
+
+    console.log(" Seeded Demo Investor Vault Ecosystem (Assets, Leases, Payments, Documents, Concierge, Nominees, Legacy Docs).");
   }
+
+  // 12. Seed Homepage Hero Highlights
+  await prisma.heroHighlight.createMany({
+    data: [
+      {
+        name: "Carlton",
+        tagline: "Luxury Experiences • Andhra Pradesh",
+        linkUrl: "/property/carlton",
+        icon: "hotel_class",
+        order: 1,
+        isActive: true,
+      },
+      {
+        name: "Oxygen Forest",
+        tagline: "Luxury Farm Living • Hyderabad",
+        linkUrl: "/property/oxygen-forest",
+        icon: "park",
+        order: 2,
+        isActive: true,
+      },
+      {
+        name: "Ayurvedic Sanctuary",
+        tagline: "Holistic Wellness • Kerala",
+        linkUrl: "/franchise/carlton-wellness-spa",
+        icon: "spa",
+        order: 3,
+        isActive: true,
+      },
+    ],
+  });
+  console.log(" Seeded 3 Homepage Hero Spotlight Highlights.");
 
   console.log(" Seeded 6 Ultra-Luxury Estates across Dubai and India.");
   console.log(" Database Seeding Completed Successfully!");

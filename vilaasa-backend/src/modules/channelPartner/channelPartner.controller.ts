@@ -8,10 +8,12 @@ import {
   RegisterChannelPartnerInput,
   UpdatePartnerStatusInput,
   PartnerFilterQuery,
+  OnboardChannelPartnerInput,
 } from "./channelPartner.schema";
 import {
   sendPartnerRegistrationEmail,
   sendPartnerApprovedEmail,
+  sendPartnerOnboardingEmail,
 } from "../../services/email.service";
 
 /**
@@ -152,6 +154,7 @@ export const updatePartnerStatus = asyncHandler(
     }
 
     let userId = partner.userId;
+    let generatedPassword: string | undefined = undefined;
 
     // If approving, provision user account if doesn't already exist
     if (status === "APPROVED" && !userId) {
@@ -160,9 +163,9 @@ export const updatePartnerStatus = asyncHandler(
       });
 
       if (!existingUser) {
-        // Generate random initial password
-        const initialPassword = `Partner@Vilaasa${Math.floor(1000 + Math.random() * 9000)}`;
-        const passwordHash = await bcrypt.hash(initialPassword, 12);
+        // Generate secure initial password
+        generatedPassword = `Partner@Vilaasa${Math.floor(1000 + Math.random() * 9000)}`;
+        const passwordHash = await bcrypt.hash(generatedPassword, 12);
 
         existingUser = await prisma.user.create({
           data: {
@@ -177,10 +180,12 @@ export const updatePartnerStatus = asyncHandler(
 
       userId = existingUser.id;
 
-      // Send congratulations / approval email
-      sendPartnerApprovedEmail({
+      // Send congratulations / credentials email
+      sendPartnerOnboardingEmail({
         name: partner.name,
         email: partner.email,
+        password: generatedPassword,
+        company: partner.company || undefined,
       }).catch((err) => console.error("Email dispatch failed:", err));
     }
 
@@ -201,3 +206,95 @@ export const updatePartnerStatus = asyncHandler(
     );
   },
 );
+
+/**
+ * @desc    Super Admin direct Channel Partner onboarding (with password provision & email dispatch)
+ * @route   POST /api/v1/channel-partners/admin/onboard
+ * @access  Protected (Super Admin only)
+ */
+export const onboardChannelPartner = asyncHandler(
+  async (req: Request, res: Response) => {
+    const data = req.body as OnboardChannelPartnerInput;
+
+    // 1. Check if email already registered as user
+    const existingUser = await prisma.user.findUnique({
+      where: { email: data.email },
+    });
+
+    if (existingUser) {
+      throw ApiError.badRequest(
+        "A user with this email address is already registered in the system",
+      );
+    }
+
+    // 2. Check if partner record exists
+    let partner = await prisma.channelPartner.findUnique({
+      where: { email: data.email },
+    });
+
+    const passwordHash = await bcrypt.hash(data.password, 12);
+
+    // 3. Create User account with role CHANNEL_PARTNER
+    const user = await prisma.user.create({
+      data: {
+        email: data.email,
+        passwordHash,
+        name: data.name,
+        phone: data.phone,
+        phoneCode: data.phoneCode || "+91",
+        licenseNumber: data.licenseNumber,
+        role: "CHANNEL_PARTNER",
+        isActive: true,
+      },
+    });
+
+    // 4. Create or update ChannelPartner record in APPROVED status
+    if (partner) {
+      partner = await prisma.channelPartner.update({
+        where: { id: partner.id },
+        data: {
+          name: data.name,
+          phone: data.phone || partner.phone,
+          company: data.company || partner.company,
+          city: data.city || partner.city,
+          experience: data.experience || partner.experience,
+          status: "APPROVED",
+          userId: user.id,
+          approvedById: req.user?.id || null,
+        },
+      });
+    } else {
+      partner = await prisma.channelPartner.create({
+        data: {
+          name: data.name,
+          email: data.email,
+          phone: data.phone || "",
+          company: data.company || "Independent Brokerage",
+          city: data.city || "Dubai & India",
+          experience: data.experience || "5+ Years",
+          status: "APPROVED",
+          userId: user.id,
+          approvedById: req.user?.id || null,
+        },
+      });
+    }
+
+    // 5. Send automated luxury credentials email
+    sendPartnerOnboardingEmail({
+      name: partner.name,
+      email: partner.email,
+      password: data.password,
+      company: partner.company || undefined,
+    }).catch((err) =>
+      console.error("[Email] Partner credentials dispatch failed:", err),
+    );
+
+    return res.status(201).json(
+      ApiResponse.created(
+        { partner, user: { id: user.id, email: user.email, name: user.name, role: user.role } },
+        "Channel partner onboarded successfully and credentials dispatched via email",
+      ),
+    );
+  },
+);
+

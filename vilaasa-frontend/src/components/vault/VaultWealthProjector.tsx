@@ -39,7 +39,7 @@ export function VaultWealthProjector({ assets }: VaultWealthProjectorProps) {
   const totalPurchasePrice = assets.reduce((sum, a) => sum + (a.purchasePrice || a.value * 0.85), 0);
   const totalCurrentValue = assets.reduce((sum, a) => sum + (a.currentEstimate || a.value), 0);
   const unrealizedGain = totalCurrentValue - totalPurchasePrice;
-  const gainPercentage = ((unrealizedGain / totalPurchasePrice) * 100).toFixed(1);
+  const gainPercentage = totalPurchasePrice > 0 ? ((unrealizedGain / totalPurchasePrice) * 100).toFixed(1) : "0.0";
 
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">

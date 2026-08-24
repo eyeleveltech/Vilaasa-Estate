@@ -40,6 +40,36 @@ const VaultPortfolio = lazy(() =>
     default: m.VaultPortfolio,
   })),
 );
+const VaultTenancyPage = lazy(() =>
+  import("./vault/pages/VaultTenancyPage").then((m) => ({
+    default: m.VaultTenancyPage,
+  })),
+);
+const VaultConstructionPage = lazy(() =>
+  import("./vault/pages/VaultConstructionPage").then((m) => ({
+    default: m.VaultConstructionPage,
+  })),
+);
+const VaultPaymentsPage = lazy(() =>
+  import("./vault/pages/VaultPaymentsPage").then((m) => ({
+    default: m.VaultPaymentsPage,
+  })),
+);
+const VaultDocumentsPage = lazy(() =>
+  import("./vault/pages/VaultDocumentsPage").then((m) => ({
+    default: m.VaultDocumentsPage,
+  })),
+);
+const VaultConciergePage = lazy(() =>
+  import("./vault/pages/VaultConciergePage").then((m) => ({
+    default: m.VaultConciergePage,
+  })),
+);
+const VaultNomineePage = lazy(() =>
+  import("./vault/pages/VaultNomineePage").then((m) => ({
+    default: m.VaultNomineePage,
+  })),
+);
 const NotFound = lazy(() => import("./pages/NotFound"));
 const SplashGateway = lazy(() =>
   import("./components/SplashGateway").then((m) => ({
@@ -107,6 +137,11 @@ const AdminFranchiseDetail = lazy(() =>
 const AdminVaultManagement = lazy(() =>
   import("./admin/pages/AdminVaultManagement").then((m) => ({
     default: m.AdminVaultManagement,
+  })),
+);
+const AdminHeroHighlights = lazy(() =>
+  import("./admin/pages/AdminHeroHighlights").then((m) => ({
+    default: m.AdminHeroHighlights,
   })),
 );
 
@@ -198,6 +233,12 @@ const App = () => (
                 <Route index element={<Navigate to="/vault/dashboard" replace />} />
                 <Route path="dashboard" element={<VaultDashboard />} />
                 <Route path="portfolio" element={<VaultPortfolio />} />
+                <Route path="tenancy" element={<VaultTenancyPage />} />
+                <Route path="construction" element={<VaultConstructionPage />} />
+                <Route path="payments" element={<VaultPaymentsPage />} />
+                <Route path="documents" element={<VaultDocumentsPage />} />
+                <Route path="concierge" element={<VaultConciergePage />} />
+                <Route path="nominees" element={<VaultNomineePage />} />
               </Route>
 
               {/* Dedicated Partner Portal Routes */}
@@ -250,12 +291,19 @@ const App = () => (
                   element={<AdminFranchiseForm />}
                 />
                 <Route path="franchises/:id" element={<AdminFranchiseDetail />} />
-                <Route path="vault" element={<AdminVaultManagement />} />
+                <Route
+                  path="vault"
+                  element={<Navigate to="/admin/channel-partners" replace />}
+                />
                 <Route path="inquiries" element={<AdminInquiriesList />} />
                 <Route path="site-visits" element={<AdminSiteVisits />} />
                 <Route
                   path="channel-partners"
                   element={<AdminChannelPartners />}
+                />
+                <Route
+                  path="hero-highlights"
+                  element={<AdminHeroHighlights />}
                 />
               </Route>
 

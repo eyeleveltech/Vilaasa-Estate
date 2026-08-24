@@ -2,35 +2,43 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { Progress } from "@/components/ui/progress";
-
-interface Payment {
-  id: string;
-  property: string;
-  milestone: string;
-  amount: number;
-  dueDate: string;
-  status: "upcoming" | "pending" | "completed";
-  paidAmount?: number;
-  totalAmount?: number;
-}
+import {
+  useVaultPayments,
+  PaymentItem,
+  PaymentProgressItem,
+} from "@/vault/hooks/useVaultSections";
 
 interface VaultPaymentsProps {
-  payments: Payment[];
+  payments?: PaymentItem[];
+  paymentProgress?: PaymentProgressItem[];
 }
 
-export function VaultPayments({ payments }: VaultPaymentsProps) {
+export function VaultPayments({
+  payments: propPayments,
+  paymentProgress: propProgress,
+}: VaultPaymentsProps = {}) {
+  const { data: hookData, loading } = useVaultPayments();
   const { formatAmount } = useCurrency();
 
-  const upcomingPayments = payments.filter(p => p.status === "upcoming");
-  const pendingPayments = payments.filter(p => p.status === "pending");
-  const completedPayments = payments.filter(p => p.status === "completed");
+  const payments = propPayments || hookData.payments;
+  const paymentProgress = propProgress || hookData.paymentProgress;
+
+  const upcomingPayments = payments.filter((p) => p.status === "upcoming");
+  const pendingPayments = payments.filter((p) => p.status === "pending");
+  const completedPayments = payments.filter((p) => p.status === "completed");
 
   const totalUpcoming = upcomingPayments.reduce((sum, p) => sum + p.amount, 0);
 
-  // Mock payment progress data
-  const paymentProgress = [
-    { property: "Palm Royale Villa", paid: 11000000, total: 22000000 },
-  ];
+  if (!propPayments && loading) {
+    return (
+      <div className="flex items-center justify-center p-12 text-muted-foreground">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <span>Loading payment schedules...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

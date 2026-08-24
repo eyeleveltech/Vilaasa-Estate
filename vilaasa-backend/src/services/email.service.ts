@@ -451,3 +451,72 @@ export const sendVaultOnboardingEmail = async (investor: {
     text: `Dear ${investor.name}, your Private Vault account at Vilaasa Estates is now active. Access URL: ${portalUrl} | Email: ${investor.email} ${investor.password ? `| Temporary Password: ${investor.password}` : ""}`,
   });
 };
+
+/**
+ * Sends Channel Partner Onboarding Welcome & Credentials Email
+ */
+export const sendPartnerOnboardingEmail = async (partner: {
+  name: string;
+  email: string;
+  password?: string;
+  company?: string;
+  portalUrl?: string;
+}): Promise<{ success: boolean }> => {
+  const frontendUrl = getFrontendUrl();
+  const portalUrl = partner.portalUrl || `${frontendUrl}/partner/login`;
+
+  const body = `
+    <h2 style="color: #4db960; font-size: 20px; font-weight: 400; margin-top: 0;">Welcome to the Vilaasa Partner Network</h2>
+    <p>Dear ${partner.name},</p>
+    <p>We are pleased to confirm that your institutional partner profile has been provisioned on the <strong>Vilaasa Estates Channel Partner Network</strong>${partner.company ? ` representing <strong>${partner.company}</strong>` : ""}.</p>
+    
+    <div class="gold-box" style="text-align: left; background: #141417; border: 1px solid #27272a; padding: 20px 24px; border-radius: 8px;">
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #4db960; font-weight: 700; margin-bottom: 12px;">Partner Access Credentials</div>
+      <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+        <tr>
+          <td style="padding: 6px 0; color: #71717a; width: 35%;">Partner Portal:</td>
+          <td style="padding: 6px 0; color: #ffffff; font-weight: 600;"><a href="${portalUrl}" style="color: #4db960; text-decoration: none;">${portalUrl}</a></td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #71717a;">Login Username:</td>
+          <td style="padding: 6px 0; color: #ffffff; font-weight: 600; font-family: monospace;">${partner.email}</td>
+        </tr>
+        ${
+          partner.password
+            ? `<tr>
+          <td style="padding: 6px 0; color: #71717a;">Temporary Key:</td>
+          <td style="padding: 6px 0; color: #4db960; font-weight: 700; font-family: monospace; font-size: 14px;">${partner.password}</td>
+        </tr>`
+            : ""
+        }
+      </table>
+    </div>
+
+    <div style="text-align: center; margin: 28px 0 16px;">
+      <a href="${portalUrl}" class="btn" style="padding: 14px 36px; font-size: 12px;">Access Partner Portal</a>
+    </div>
+
+    <p style="font-size: 12px; color: #71717a; margin-top: 24px; line-height: 1.6;">
+      <strong>Security Advisory:</strong> Please keep these credentials confidential. You can update your access password in your partner settings upon logging in. Through this portal, you can register prospective VIP clients, request off-market inventory blocks, and track commission settlements in real time.
+    </p>
+
+    <p style="margin-top: 20px; font-size: 13px; color: #a1a1aa;">
+      With highest consideration,<br>
+      <strong style="color: #4db960;">Institutional Partnership Desk</strong><br>
+      <span style="font-size: 11px; color: #71717a;">Vilaasa Estates Institutional Advisory</span>
+    </p>
+  `;
+
+  const html = wrapInLuxuryTemplate(
+    "Your Partner Portal Credentials — Vilaasa Estates",
+    body,
+  );
+
+  return sendEmail({
+    to: partner.email,
+    subject: `Your Channel Partner Credentials & Portal Access — Vilaasa Estates`,
+    html,
+    text: `Dear ${partner.name}, your Channel Partner account at Vilaasa Estates is active. Access URL: ${portalUrl} | Username: ${partner.email} ${partner.password ? `| Temporary Password: ${partner.password}` : ""}`,
+  });
+};
+

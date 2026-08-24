@@ -13,6 +13,7 @@ import {
   X,
   ShieldCheck,
   ExternalLink,
+  Sparkles,
 } from "lucide-react";
 import { useAdminAuth } from "../hooks/useAdminAuth";
 import vilaasaLogo from "@/assets/vilaasa-logo.svg";
@@ -40,12 +41,6 @@ export const AdminLayout: React.FC = () => {
       superAdminOnly: true,
     },
     {
-      label: "The Vault",
-      path: "/admin/vault",
-      icon: Lock,
-      superAdminOnly: true,
-    },
-    {
       label: "Inquiries",
       path: "/admin/inquiries",
       icon: Inbox,
@@ -61,6 +56,12 @@ export const AdminLayout: React.FC = () => {
       icon: Users,
       superAdminOnly: true,
     },
+    {
+      label: "Hero Highlights",
+      path: "/admin/hero-highlights",
+      icon: Sparkles,
+      superAdminOnly: true,
+    },
   ];
 
   const navItems = allNavItems.filter(
@@ -73,14 +74,14 @@ export const AdminLayout: React.FC = () => {
     if (path.includes("/admin/franchises/") && path.includes("/edit")) return "Edit Franchise";
     if (path.startsWith("/admin/franchises/")) return "Franchise Opportunity Dossier";
     if (path === "/admin/franchises") return "Franchise Asset Management";
-    if (path === "/admin/vault") return "The Vault — Investor Asset Custody";
     if (path.includes("/admin/properties/new")) return "Add New Property";
     if (path.includes("/edit")) return "Edit Property";
     if (path.startsWith("/admin/properties/")) return "Property Details";
     if (path === "/admin/properties") return "Property Management";
     if (path === "/admin/inquiries") return "Client Inquiries Pipeline";
     if (path === "/admin/site-visits") return "Private Estate Site Inspections";
-    if (path === "/admin/channel-partners") return "Channel Partner Directory";
+    if (path === "/admin/channel-partners") return "Channel Partner Directory & Onboarding";
+    if (path === "/admin/hero-highlights") return "Homepage Hero Spotlight Customizer";
     return "Executive Dashboard";
   };
 

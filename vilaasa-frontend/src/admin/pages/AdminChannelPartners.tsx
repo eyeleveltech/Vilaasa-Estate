@@ -15,12 +15,18 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
+  UserPlus,
+  Sparkles,
+  Eye,
+  EyeOff,
+  X,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../api/axios";
 import { ChannelPartner, ApiResponse } from "../types/admin.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const AdminChannelPartners: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"PENDING" | "APPROVED" | "REJECTED">(
@@ -40,6 +46,22 @@ export const AdminChannelPartners: React.FC = () => {
     approved: 0,
     rejected: 0,
   });
+
+  // Onboard Partner Modal State
+  const [onboardModal, setOnboardModal] = useState({
+    open: false,
+    name: "",
+    email: "",
+    phone: "",
+    phoneCode: "+91",
+    company: "",
+    city: "",
+    licenseNumber: "",
+    experience: "5+ Years",
+    password: "",
+    submitting: false,
+  });
+  const [showPassword, setShowPassword] = useState(false);
 
   // Confirm Action Dialog
   const [actionDialog, setActionDialog] = useState<{
@@ -114,6 +136,66 @@ export const AdminChannelPartners: React.FC = () => {
     fetchStats();
   }, [fetchPartners, fetchStats]);
 
+  // Generate Strong Random Password
+  const generateRandomPassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*";
+    let pwd = "Vilaasa@";
+    for (let i = 0; i < 6; i++) {
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setOnboardModal((prev) => ({ ...prev, password: pwd }));
+    setShowPassword(true);
+    toast.success("Generated secure temporary partner key");
+  };
+
+  // Direct Channel Partner Onboarding Submit
+  const handleOnboardPartnerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!onboardModal.name || !onboardModal.email || !onboardModal.password) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    setOnboardModal((prev) => ({ ...prev, submitting: true }));
+    try {
+      const res = await api.post("/channel-partners/admin/onboard", {
+        name: onboardModal.name.trim(),
+        email: onboardModal.email.trim(),
+        phone: onboardModal.phone.trim() || undefined,
+        phoneCode: onboardModal.phoneCode,
+        company: onboardModal.company.trim() || undefined,
+        city: onboardModal.city.trim() || undefined,
+        licenseNumber: onboardModal.licenseNumber.trim() || undefined,
+        experience: onboardModal.experience || undefined,
+        password: onboardModal.password,
+      });
+
+      if (res.data.success) {
+        toast.success("Channel Partner onboarded & login credentials emailed successfully!");
+        setOnboardModal({
+          open: false,
+          name: "",
+          email: "",
+          phone: "",
+          phoneCode: "+91",
+          company: "",
+          city: "",
+          licenseNumber: "",
+          experience: "5+ Years",
+          password: "",
+          submitting: false,
+        });
+        setActiveTab("APPROVED");
+        fetchPartners();
+        fetchStats();
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to onboard channel partner");
+    } finally {
+      setOnboardModal((prev) => ({ ...prev, submitting: false }));
+    }
+  };
+
   // Handle Approve/Reject Action
   const handleConfirmAction = async () => {
     if (!actionDialog) return;
@@ -166,24 +248,38 @@ export const AdminChannelPartners: React.FC = () => {
             Channel Partner Network & <span className="font-serif italic text-primary">Onboarding</span>
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Review broker agency applications, approve institutional credentials, and provision portal access.
+            Review broker agency applications, provision institutional credentials, and manage portal access.
           </p>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            fetchPartners();
-            fetchStats();
-          }}
-          className="gap-1.5 text-xs"
-        >
-          <RefreshCw
-            className={`h-3.5 w-3.5 ${loading ? "animate-spin text-primary" : ""}`}
-          />
-          <span>Refresh</span>
-        </Button>
+        <div className="flex items-center space-x-2.5">
+          <Button
+            onClick={() => {
+              generateRandomPassword();
+              setOnboardModal((prev) => ({ ...prev, open: true }));
+            }}
+            size="sm"
+            className="gap-1.5 text-xs font-semibold uppercase tracking-wider"
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            <span>Onboard Partner</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              fetchPartners();
+              fetchStats();
+            }}
+            className="gap-1.5 text-xs"
+          >
+            <RefreshCw
+              className={`h-3.5 w-3.5 ${loading ? "animate-spin text-primary" : ""}`}
+            />
+            <span>Refresh</span>
+          </Button>
+        </div>
       </div>
 
       {/* Top KPI Stats Bar */}
@@ -506,6 +602,292 @@ export const AdminChannelPartners: React.FC = () => {
                 {isProcessing ? "Processing..." : `Yes, ${actionDialog.newStatus}`}
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Direct Onboard Channel Partner Modal */}
+      {onboardModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center space-x-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
+                  <UserPlus className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-foreground">
+                    Onboard Channel Partner
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Provision partner credentials &amp; institutional portal access
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() =>
+                  setOnboardModal({
+                    open: false,
+                    name: "",
+                    email: "",
+                    phone: "",
+                    phoneCode: "+91",
+                    company: "",
+                    city: "",
+                    licenseNumber: "",
+                    experience: "5+ Years",
+                    password: "",
+                    submitting: false,
+                  })
+                }
+                className="text-muted-foreground hover:text-foreground p-1 rounded hover:bg-secondary transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Automated Email Notice */}
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-[11px] text-muted-foreground flex items-start gap-2.5">
+              <Mail className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <span className="font-semibold text-foreground">
+                  Automated Credential Dispatch
+                </span>
+                <p className="text-[10.5px] leading-relaxed">
+                  Upon creation, an official institutional partner welcome dossier containing secure login credentials and the Partner Portal URL will be immediately dispatched to the partner's email.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleOnboardPartnerSubmit} className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="partName" className="text-xs font-semibold">
+                    Partner Full Name <span className="text-primary">*</span>
+                  </Label>
+                  <Input
+                    id="partName"
+                    type="text"
+                    required
+                    placeholder="e.g. Tariq Al-Mansoor"
+                    value={onboardModal.name}
+                    onChange={(e) =>
+                      setOnboardModal((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
+                    className="bg-secondary/40 text-xs h-9"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="partCompany" className="text-xs font-semibold">
+                    Agency / Brokerage Name
+                  </Label>
+                  <Input
+                    id="partCompany"
+                    type="text"
+                    placeholder="e.g. Knight Frank or Luxury Realty"
+                    value={onboardModal.company}
+                    onChange={(e) =>
+                      setOnboardModal((prev) => ({
+                        ...prev,
+                        company: e.target.value,
+                      }))
+                    }
+                    className="bg-secondary/40 text-xs h-9"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="partEmail" className="text-xs font-semibold">
+                  Email Address (Login Username) <span className="text-primary">*</span>
+                </Label>
+                <Input
+                  id="partEmail"
+                  type="email"
+                  required
+                  placeholder="e.g. partner@brokerage.com"
+                  value={onboardModal.email}
+                  onChange={(e) =>
+                    setOnboardModal((prev) => ({
+                      ...prev,
+                      email: e.target.value,
+                    }))
+                  }
+                  className="bg-secondary/40 text-xs h-9"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <Label htmlFor="partCode" className="text-xs font-semibold">
+                    Code
+                  </Label>
+                  <Input
+                    id="partCode"
+                    type="text"
+                    value={onboardModal.phoneCode}
+                    onChange={(e) =>
+                      setOnboardModal((prev) => ({
+                        ...prev,
+                        phoneCode: e.target.value,
+                      }))
+                    }
+                    className="bg-secondary/40 text-xs h-9"
+                  />
+                </div>
+                <div className="space-y-1 col-span-2">
+                  <Label htmlFor="partPhone" className="text-xs font-semibold">
+                    Phone Number
+                  </Label>
+                  <Input
+                    id="partPhone"
+                    type="tel"
+                    placeholder="9876543210"
+                    value={onboardModal.phone}
+                    onChange={(e) =>
+                      setOnboardModal((prev) => ({
+                        ...prev,
+                        phone: e.target.value,
+                      }))
+                    }
+                    className="bg-secondary/40 text-xs h-9"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="partCity" className="text-xs font-semibold">
+                    Operating Territory / City
+                  </Label>
+                  <Input
+                    id="partCity"
+                    type="text"
+                    placeholder="e.g. Dubai, Mumbai, London"
+                    value={onboardModal.city}
+                    onChange={(e) =>
+                      setOnboardModal((prev) => ({
+                        ...prev,
+                        city: e.target.value,
+                      }))
+                    }
+                    className="bg-secondary/40 text-xs h-9"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="partLicense" className="text-xs font-semibold">
+                    RERA / Broker License No.
+                  </Label>
+                  <Input
+                    id="partLicense"
+                    type="text"
+                    placeholder="e.g. RERA-BRN-9982"
+                    value={onboardModal.licenseNumber}
+                    onChange={(e) =>
+                      setOnboardModal((prev) => ({
+                        ...prev,
+                        licenseNumber: e.target.value,
+                      }))
+                    }
+                    className="bg-secondary/40 text-xs h-9"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="partPass" className="text-xs font-semibold">
+                    Temporary Access Password <span className="text-primary">*</span>
+                  </Label>
+                  <button
+                    type="button"
+                    onClick={generateRandomPassword}
+                    className="text-[10px] text-primary hover:underline flex items-center gap-1 font-medium"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    <span>Generate Strong Key</span>
+                  </button>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="partPass"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    minLength={6}
+                    placeholder="Min 6 characters (e.g. Vilaasa@Partner2026)"
+                    value={onboardModal.password}
+                    onChange={(e) =>
+                      setOnboardModal((prev) => ({
+                        ...prev,
+                        password: e.target.value,
+                      }))
+                    }
+                    className="bg-secondary/40 text-xs h-9 pr-9 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-4 border-t border-border mt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setOnboardModal({
+                      open: false,
+                      name: "",
+                      email: "",
+                      phone: "",
+                      phoneCode: "+91",
+                      company: "",
+                      city: "",
+                      licenseNumber: "",
+                      experience: "5+ Years",
+                      password: "",
+                      submitting: false,
+                    })
+                  }
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={onboardModal.submitting}
+                  className="gap-1.5 font-semibold"
+                >
+                  {onboardModal.submitting ? (
+                    <>
+                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      <span>Provisioning...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-3.5 w-3.5" />
+                      <span>Onboard &amp; Dispatch Key</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

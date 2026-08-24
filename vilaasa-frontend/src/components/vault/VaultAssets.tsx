@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useVaultOverview } from "@/vault/hooks/useVaultSections";
 
 interface Asset {
   id: string;
@@ -14,12 +15,15 @@ interface Asset {
 }
 
 interface VaultAssetsProps {
-  assets: Asset[];
-  filter: "all" | "real-estate" | "franchise";
+  assets?: Asset[];
+  filter?: "all" | "real-estate" | "franchise";
 }
 
-export function VaultAssets({ assets, filter }: VaultAssetsProps) {
+export function VaultAssets({ assets: propAssets, filter = "all" }: VaultAssetsProps = {}) {
+  const { data: hookData } = useVaultOverview();
   const { formatAmount } = useCurrency();
+
+  const assets = propAssets || hookData?.portfolioData.assets || [];
 
   const filteredAssets = filter === "all" 
     ? assets 

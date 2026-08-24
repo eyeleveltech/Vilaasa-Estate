@@ -1,21 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-
-const partners = [
-  {
-    name: "Carlton",
-    slug: "carlton",
-    tagline: "Luxury Experiences • Andhra Pradesh",
-    icon: "hotel_class",
-  },
-  {
-    name: "Oxygen Forest",
-    slug: "oxygen-forest",
-    tagline: "Luxury Farm Living • Hyderabad",
-    icon: "park",
-  },
-];
+import { useHeroHighlights } from "@/hooks/useHeroHighlights";
 
 const heroVideos = [
   "/videos/hero-video.mp4",
@@ -26,6 +12,7 @@ const heroVideos = [
 ];
 
 export const HeroSection = () => {
+  const { highlights } = useHeroHighlights();
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [videoFailed, setVideoFailed] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -55,6 +42,13 @@ export const HeroSection = () => {
       });
     }
   }, [currentVideoIndex]);
+
+  const gridColsClass =
+    highlights.length === 1
+      ? "grid-cols-1"
+      : highlights.length === 2
+        ? "grid-cols-1 md:grid-cols-2"
+        : "grid-cols-1 md:grid-cols-3";
 
   return (
     <header className="relative flex min-h-screen w-full flex-col justify-center items-center overflow-hidden">
@@ -115,35 +109,65 @@ export const HeroSection = () => {
       </motion.div>
 
       {/* Partner Highlights */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1, duration: 0.8 }}
-        className="absolute bottom-0 left-0 right-0 z-20"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-foreground/10 bg-background/80 backdrop-blur-md">
-          {partners.map((partner, index) => (
-            <Link
-              key={index}
-              to={`/property/${partner.slug}`}
-            >
-              <div className="flex items-center justify-between px-6 md:px-8 py-5 group cursor-pointer hover:bg-foreground/5 transition-colors">
-                <div className="flex flex-col gap-1">
-                  <span className="text-primary font-medium text-base md:text-lg">
-                    {partner.name}
-                  </span>
-                  <span className="text-foreground/60 text-sm">
-                    {partner.tagline}
+      {highlights.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1, duration: 0.8 }}
+          className="absolute bottom-0 left-0 right-0 z-20"
+        >
+          <div
+            className={`grid ${gridColsClass} divide-y md:divide-y-0 md:divide-x divide-foreground/10 bg-background/80 backdrop-blur-md`}
+          >
+            {highlights.map((partner, index) => {
+              const destinationUrl = partner.linkUrl.startsWith("http")
+                ? partner.linkUrl
+                : partner.linkUrl.startsWith("/")
+                  ? partner.linkUrl
+                  : `/property/${partner.linkUrl}`;
+
+              const isExternal = partner.linkUrl.startsWith("http");
+
+              const content = (
+                <div className="flex items-center justify-between px-6 md:px-8 py-5 group cursor-pointer hover:bg-foreground/5 transition-colors h-full">
+                  <div className="flex flex-col gap-1 pr-3 overflow-hidden text-left">
+                    <span className="text-primary font-medium text-base md:text-lg truncate">
+                      {partner.name}
+                    </span>
+                    <span className="text-foreground/60 text-xs sm:text-sm truncate">
+                      {partner.tagline}
+                    </span>
+                  </div>
+                  <span className="material-symbols-outlined text-3xl text-foreground/40 group-hover:text-primary transition-colors shrink-0">
+                    {partner.icon}
                   </span>
                 </div>
-                <span className="material-symbols-outlined text-3xl text-foreground/40 group-hover:text-primary transition-colors">
-                  {partner.icon}
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </motion.div>
+              );
+
+              return isExternal ? (
+                <a
+                  key={partner.id || index}
+                  href={destinationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block h-full"
+                >
+                  {content}
+                </a>
+              ) : (
+                <Link
+                  key={partner.id || index}
+                  to={destinationUrl}
+                  className="block h-full"
+                >
+                  {content}
+                </Link>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
     </header>
   );
 };
+
