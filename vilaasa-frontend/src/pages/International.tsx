@@ -7,6 +7,7 @@ import { DiamondIcon } from "@/components/icons/DiamondIcon";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { Link } from "react-router-dom";
 import { useProperties } from "@/hooks/useNewProperties";
+import { CDN_ASSETS } from "@/config/cdnAssets";
 
 const benefits = [
   {

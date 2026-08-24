@@ -2,8 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import heritageVilla from "@/assets/heritage-villa.jpg";
-import spaWellness from "@/assets/spa-wellness.jpg";
+import { CDN_ASSETS } from "@/config/cdnAssets";
 import { useState } from "react";
 
 const Domestic = () => {
@@ -116,7 +115,7 @@ const Domestic = () => {
                 <div className="relative min-h-[28rem] overflow-hidden sm:aspect-[16/10] sm:min-h-0">
                   <div
                     className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                    style={{ backgroundImage: `url(${heritageVilla})` }}
+                    style={{ backgroundImage: `url(${CDN_ASSETS.domestic.heritageVilla})` }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
 
@@ -160,7 +159,7 @@ const Domestic = () => {
                 <div className="relative min-h-[28rem] overflow-hidden sm:aspect-[16/10] sm:min-h-0">
                   <div
                     className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                    style={{ backgroundImage: `url(${spaWellness})` }}
+                    style={{ backgroundImage: `url(${CDN_ASSETS.domestic.spaWellness})` }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
 

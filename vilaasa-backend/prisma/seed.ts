@@ -236,6 +236,45 @@ async function main() {
     },
   });
 
+  const locKerala = await prisma.location.create({
+    data: {
+      city: "Kumarakom",
+      country: "India",
+      community: "Vembanad Lakefront",
+      addressLine: "Vembanad Backwaters Reserve",
+      postalCode: "686563",
+      latitude: 9.6175,
+      longitude: 76.4301,
+      googleMapUrl: "https://maps.google.com/?q=9.6175,76.4301",
+    },
+  });
+
+  const locDelhi = await prisma.location.create({
+    data: {
+      city: "New Delhi",
+      country: "India",
+      community: "Chanakyapuri Diplomatic Enclave",
+      addressLine: "Shantipath Boulevard",
+      postalCode: "110021",
+      latitude: 28.5983,
+      longitude: 77.1892,
+      googleMapUrl: "https://maps.google.com/?q=28.5983,77.1892",
+    },
+  });
+
+  const locChennai = await prisma.location.create({
+    data: {
+      city: "Chennai",
+      country: "India",
+      community: "East Coast Road",
+      addressLine: "Covelong Beach Ridge",
+      postalCode: "603112",
+      latitude: 12.7924,
+      longitude: 80.2524,
+      googleMapUrl: "https://maps.google.com/?q=12.7924,80.2524",
+    },
+  });
+
   // 5. Seed Properties
 
   // Property 1: Palm Royale Signature Villa (Dubai)
@@ -558,6 +597,202 @@ async function main() {
           { amenityId: createdAmenities["Championship 18-Hole Golf Access"] },
           { amenityId: createdAmenities["Private Championship Tennis Court"] },
           { amenityId: createdAmenities["Private Infinity Pool"] },
+        ],
+      },
+    },
+  });
+
+  // Property 7 (Franchise): Wellness Resorts Kerala
+  await prisma.property.create({
+    data: {
+      slug: "wellness-resorts-kerala",
+      name: "Wellness Resorts Kerala",
+      tagline: "Ayurvedic Sanctuary & Eco-Luxury Wellness Retreat",
+      description:
+        "An ultra-luxury Ayurvedic sanctuary bringing 5,000 years of transformative wellness wisdom to institutional hospitality. Designed for high-yield investor aggregation with full operator-backed operational management under the FOCO framework.",
+      visionHeadline: "Holistic healing harmonized with luxury waterfront hospitality.",
+      type: PropertyType.FRANCHISE,
+      status: PropertyStatus.AVAILABLE,
+      price: 7000000.0,
+      currency: Currency.INR,
+      rentalYieldPercent: 24.0,
+      expectedIrrPercent: 28.5,
+      appreciationPercent: 32.0,
+      franchiseModel: "FOCO",
+      minTicketSize: 7000000.0,
+      totalProjectCost: 250000000.0,
+      paybackPeriodYears: 3.5,
+      lockInPeriodYears: 3.0,
+      expectedAnnualRoi: 24.0,
+      yieldPayoutFrequency: "QUARTERLY",
+      supportModules: [
+        "Location Scouting & Lakefront Feasibility",
+        "Biophilic Architecture & Sustainable Design",
+        "Ayurveda University Therapist Certification",
+        "Global HNW Distribution & GCC Marketing Engine",
+      ],
+      advantages: [
+        "Authentic 5,000-Year Ayurvedic Lineage",
+        "Full Operator-Backed Turnkey Handover",
+        "Quarterly Guaranteed Payout Framework",
+        "High Retention European & GCC Retreat Footfall",
+      ],
+      locationId: locKerala.id,
+      adminId: superAdmin.id,
+      media: {
+        create: [
+          {
+            mediaType: "HERO_IMAGE",
+            url: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1920&q=80",
+            altText: "Wellness Resorts Kerala Lakefront",
+            orderIndex: 0,
+            isFeatured: true,
+          },
+          {
+            mediaType: "GALLERY",
+            url: "https://images.unsplash.com/photo-1507652313519-d4e9174996dd?w=1920&q=80",
+            altText: "Overwater Ayurvedic Yoga Shala",
+            orderIndex: 1,
+          },
+        ],
+      },
+      amenities: {
+        create: [
+          { amenityId: createdAmenities["Cryo & Thermal Wellness Spa"] },
+          { amenityId: createdAmenities["Private Infinity Pool"] },
+        ],
+      },
+      financialMetrics: {
+        create: [
+          { label: "Expected Annual ROI", value: "24.0% p.a.", note: "Quarterly distribution", icon: "trending_up" },
+          { label: "Payback Period", value: "3.5 Years", note: "Capital recovery target", icon: "schedule" },
+          { label: "Min Ticket Size", value: "₹70,00,000", note: "Institutional fractional ticket", icon: "payments" },
+        ],
+      },
+    },
+  });
+
+  // Property 8 (Franchise): Carlton Wellness Spa
+  await prisma.property.create({
+    data: {
+      slug: "carlton-wellness-spa",
+      name: "Carlton Wellness Spa",
+      tagline: "European Thermal Hydrotherapy & Cryo Suites",
+      description:
+        "Signature European thermal hydrotherapy and cryogenic healing suites tailored to tier-1 luxury metropolitan hubs. High-margin recurring membership model with established private clientele across prime real estate districts.",
+      visionHeadline: "Urban thermal rejuvenation for executive leadership.",
+      type: PropertyType.FRANCHISE,
+      status: PropertyStatus.AVAILABLE,
+      price: 7000000.0,
+      currency: Currency.INR,
+      rentalYieldPercent: 26.0,
+      expectedIrrPercent: 30.0,
+      appreciationPercent: 25.0,
+      franchiseModel: "FOCO",
+      minTicketSize: 7000000.0,
+      totalProjectCost: 180000000.0,
+      paybackPeriodYears: 3.0,
+      lockInPeriodYears: 2.0,
+      expectedAnnualRoi: 26.0,
+      yieldPayoutFrequency: "MONTHLY",
+      supportModules: [
+        "Prime Tier-1 High Street & Hotel Lobby Scouting",
+        "Hydrothermal & Sensory Engineering Standards",
+        "Luxury Brand Ambassadorship & Staff Training",
+        "Proprietary VIP Membership CRM Engine",
+      ],
+      advantages: [
+        "Recurring High-Margin Private Memberships",
+        "Established Corporate Executive Footfall",
+        "Turnkey Operational Management Model",
+        "Predictable Monthly Dividend Distributions",
+      ],
+      locationId: locDelhi.id,
+      adminId: superAdmin.id,
+      media: {
+        create: [
+          {
+            mediaType: "HERO_IMAGE",
+            url: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1920&q=80",
+            altText: "Carlton Wellness Spa Reception",
+            orderIndex: 0,
+            isFeatured: true,
+          },
+        ],
+      },
+      amenities: {
+        create: [
+          { amenityId: createdAmenities["Cryo & Thermal Wellness Spa"] },
+        ],
+      },
+      financialMetrics: {
+        create: [
+          { label: "Expected Annual ROI", value: "26.0% p.a.", note: "Monthly distribution", icon: "trending_up" },
+          { label: "Payback Period", value: "3.0 Years", note: "High cashflow asset", icon: "schedule" },
+          { label: "Min Ticket Size", value: "₹70,00,000", note: "Direct equity tranche", icon: "payments" },
+        ],
+      },
+    },
+  });
+
+  // Property 9 (Franchise): Colton Beach Resort
+  await prisma.property.create({
+    data: {
+      slug: "colton-resort-chennai",
+      name: "Colton Beach Resort",
+      tagline: "Exclusive Coastal Cabana Villas & Resort Destination",
+      description:
+        "Exclusive beachfront hospitality destination on Chennai East Coast Road with private cabana villas, infinity coastal pool, and world-class destination dining under a proven franchise framework.",
+      visionHeadline: "Barefoot luxury on India's scenic Eastern Seaboard.",
+      type: PropertyType.FRANCHISE,
+      status: PropertyStatus.AVAILABLE,
+      price: 7000000.0,
+      currency: Currency.INR,
+      rentalYieldPercent: 22.0,
+      expectedIrrPercent: 25.0,
+      appreciationPercent: 28.0,
+      franchiseModel: "FOFO",
+      minTicketSize: 7000000.0,
+      totalProjectCost: 300000000.0,
+      paybackPeriodYears: 4.0,
+      lockInPeriodYears: 3.0,
+      expectedAnnualRoi: 22.0,
+      yieldPayoutFrequency: "QUARTERLY",
+      supportModules: [
+        "Coastal Land Compliance & Regulatory Sourcing",
+        "Cabana Villa Architectural Design Standards",
+        "Hospitality Service & Culinary Staff Training",
+        "Destination Wedding & Corporate Event Engine",
+      ],
+      advantages: [
+        "Rare ECR Beachfront Parcel Scarcity",
+        "High Year-Round Weekend Occupancy",
+        "Institutional Operator Royalty Structure",
+        "Central Global Reservation Engine Access",
+      ],
+      locationId: locChennai.id,
+      adminId: superAdmin.id,
+      media: {
+        create: [
+          {
+            mediaType: "HERO_IMAGE",
+            url: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1920&q=80",
+            altText: "Colton Beachfront Villa",
+            orderIndex: 0,
+            isFeatured: true,
+          },
+        ],
+      },
+      amenities: {
+        create: [
+          { amenityId: createdAmenities["Private Infinity Pool"] },
+        ],
+      },
+      financialMetrics: {
+        create: [
+          { label: "Expected Annual ROI", value: "22.0% p.a.", note: "Quarterly distribution", icon: "trending_up" },
+          { label: "Payback Period", value: "4.0 Years", note: "Beachfront asset", icon: "schedule" },
+          { label: "Min Ticket Size", value: "₹70,00,000", note: "Fractional ticket", icon: "payments" },
         ],
       },
     },

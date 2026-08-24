@@ -6,6 +6,7 @@ import { ApiResponse } from "../../utils/ApiResponse";
 import { ApiError } from "../../utils/ApiError";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { RegisterInput, LoginInput } from "./auth.schema";
+import { sendVaultOnboardingEmail } from "../../services/email.service";
 
 const generateToken = (userId: string, email: string, role: string): string => {
   const secret = process.env.JWT_SECRET || "default_jwt_secret";
@@ -58,6 +59,16 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   });
 
   const token = generateToken(user.id, user.email, user.role);
+
+  if (role === "VAULT_CLIENT") {
+    void sendVaultOnboardingEmail({
+      name: user.name,
+      email: user.email,
+      password,
+    }).catch((err) => {
+      console.error("❌ Failed to send Vault onboarding email:", err);
+    });
+  }
 
   return res.status(201).json(
     ApiResponse.created(

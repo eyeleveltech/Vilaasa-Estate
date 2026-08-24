@@ -9,13 +9,13 @@ import {
 export const LocationInputSchema = z.object({
   city: z.string().min(1, "City is required").trim(),
   country: z.string().min(1, "Country is required").trim(),
-  community: z.string().optional(),
-  addressLine: z.string().optional(),
-  postalCode: z.string().optional(),
-  latitude: z.number().optional(),
-  longitude: z.number().optional(),
-  googleMapUrl: z.string().url().optional().or(z.literal("")),
-  mapEmbedUrl: z.string().optional(),
+  community: z.string().optional().nullable(),
+  addressLine: z.string().optional().nullable(),
+  postalCode: z.string().optional().nullable(),
+  latitude: z.coerce.number().optional().nullable(),
+  longitude: z.coerce.number().optional().nullable(),
+  googleMapUrl: z.string().optional().nullable().or(z.literal("")),
+  mapEmbedUrl: z.string().optional().nullable().or(z.literal("")),
 });
 
 export const PropertyConfigurationInputSchema = z.object({
@@ -57,50 +57,52 @@ export const FinancialMetricInputSchema = z.object({
 export const CreatePropertySchema = z.object({
   name: z.string().min(2, "Property name is required").trim(),
   slug: z.string().min(2, "Slug is required").trim().optional(),
-  tagline: z.string().optional(),
+  tagline: z.string().optional().nullable(),
   description: z.string().min(10, "Description must be at least 10 characters"),
-  visionHeadline: z.string().optional(),
+  visionHeadline: z.string().optional().nullable(),
   type: z.nativeEnum(PropertyType).default(PropertyType.RESIDENTIAL_VILLA),
   status: z.nativeEnum(PropertyStatus).default(PropertyStatus.AVAILABLE),
-  price: z.number().positive("Price must be positive"),
+  price: z.coerce.number().nonnegative("Price must be non-negative").default(0),
   currency: z.nativeEnum(Currency).default(Currency.INR),
   priceOnApplication: z.boolean().default(false),
-  rentalYieldPercent: z.number().optional(),
-  expectedIrrPercent: z.number().optional(),
-  appreciationPercent: z.number().optional(),
-  totalAreaSqFt: z.number().positive().optional(),
-  bedrooms: z.number().int().nonnegative().optional(),
-  bathrooms: z.number().int().nonnegative().optional(),
+  rentalYieldPercent: z.coerce.number().optional().nullable(),
+  expectedIrrPercent: z.coerce.number().optional().nullable(),
+  appreciationPercent: z.coerce.number().optional().nullable(),
+  totalAreaSqFt: z.coerce.number().positive().optional().nullable(),
+  bedrooms: z.coerce.number().int().nonnegative().optional().nullable(),
+  bathrooms: z.coerce.number().int().nonnegative().optional().nullable(),
   furnishingStatus: z
     .nativeEnum(FurnishingStatus)
     .default(FurnishingStatus.FULLY_FURNISHED),
-  possessionDate: z
-    .string()
-    .datetime({ message: "possessionDate must be an ISO string" })
-    .optional(),
-  reraNumber: z.string().optional(),
-  ownershipType: z.string().optional(),
-  paymentPlan: z.any().optional(),
-  virtualTour360Url: z.string().url().optional().or(z.literal("")),
-  brochureUrl: z.string().url().optional().or(z.literal("")),
-  maintenanceFeePerSqFt: z.number().optional(),
-  verdictQuote: z.string().optional(),
-  verdictAuthor: z.string().optional(),
-  verdictTitle: z.string().optional(),
+  possessionDate: z.string().optional().nullable().or(z.literal("")),
+  reraNumber: z.string().optional().nullable(),
+  ownershipType: z.string().optional().nullable(),
+  paymentPlan: z.any().optional().nullable(),
+  virtualTour360Url: z.string().optional().nullable().or(z.literal("")),
+  brochureUrl: z.string().optional().nullable().or(z.literal("")),
+  maintenanceFeePerSqFt: z.coerce.number().optional().nullable(),
+  verdictQuote: z.string().optional().nullable(),
+  verdictAuthor: z.string().optional().nullable(),
+  verdictTitle: z.string().optional().nullable(),
 
   // Franchise-specific fields (only used when type = FRANCHISE)
-  franchiseModel: z.enum(["FOCO", "FOFO", "FICO"]).optional().or(z.literal("")),
-  minTicketSize: z.number().nonnegative().optional(),
-  totalProjectCost: z.number().nonnegative().optional(),
-  paybackPeriodYears: z.number().nonnegative().optional(),
-  lockInPeriodYears: z.number().nonnegative().optional(),
-  expectedAnnualRoi: z.number().nonnegative().optional(),
+  franchiseModel: z
+    .enum(["FOCO", "FOFO", "FICO"])
+    .optional()
+    .nullable()
+    .or(z.literal("")),
+  minTicketSize: z.coerce.number().nonnegative().optional().nullable(),
+  totalProjectCost: z.coerce.number().nonnegative().optional().nullable(),
+  paybackPeriodYears: z.coerce.number().nonnegative().optional().nullable(),
+  lockInPeriodYears: z.coerce.number().nonnegative().optional().nullable(),
+  expectedAnnualRoi: z.coerce.number().nonnegative().optional().nullable(),
   yieldPayoutFrequency: z
     .enum(["MONTHLY", "QUARTERLY", "ANNUALLY"])
     .optional()
+    .nullable()
     .or(z.literal("")),
-  supportModules: z.array(z.string()).optional(),
-  advantages: z.array(z.string()).optional(),
+  supportModules: z.array(z.string()).optional().nullable(),
+  advantages: z.array(z.string()).optional().nullable(),
 
   // Nested structures
   location: LocationInputSchema,

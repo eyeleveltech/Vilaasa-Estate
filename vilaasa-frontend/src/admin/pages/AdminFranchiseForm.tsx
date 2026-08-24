@@ -46,6 +46,9 @@ export const AdminFranchiseForm: React.FC = () => {
   const [existingMedia, setExistingMedia] = useState<PropertyMedia[]>([]);
 
   // Step 1 - Business Details
+  const [marketScope, setMarketScope] = useState<"DOMESTIC" | "INTERNATIONAL">(
+    "DOMESTIC",
+  );
   const [name, setName] = useState<string>("");
   const [tagline, setTagline] = useState<string>("");
   const [description, setDescription] = useState<string>("");
@@ -76,6 +79,25 @@ export const AdminFranchiseForm: React.FC = () => {
   const [city, setCity] = useState<string>("Kochi");
   const [country, setCountry] = useState<string>("India");
   const [community, setCommunity] = useState<string>("Fort Kochi Waterfront");
+
+  const handleMarketScopeChange = (scope: "DOMESTIC" | "INTERNATIONAL") => {
+    setMarketScope(scope);
+    if (scope === "DOMESTIC") {
+      setCountry("India");
+      if (!city || city === "Dubai" || city === "Abu Dhabi") {
+        setCity("Kochi");
+        setCommunity("Fort Kochi Waterfront");
+      }
+    } else {
+      if (!country || country.trim().toLowerCase() === "india") {
+        setCountry("United Arab Emirates");
+      }
+      if (!city || city === "Kochi" || city === "Goa") {
+        setCity("Dubai");
+        setCommunity("Palm Jumeirah Wellness Hub");
+      }
+    }
+  };
 
   // Load existing franchise if edit mode
   const fetchFranchiseData = useCallback(async () => {
@@ -118,8 +140,14 @@ export const AdminFranchiseForm: React.FC = () => {
         }
 
         if (prop.location) {
+          const isDom =
+            prop.location.country?.trim().toLowerCase() === "india";
+          setMarketScope(isDom ? "DOMESTIC" : "INTERNATIONAL");
           setCity(prop.location.city || "");
-          setCountry(prop.location.country || "India");
+          setCountry(
+            prop.location.country ||
+              (isDom ? "India" : "United Arab Emirates"),
+          );
           setCommunity(prop.location.community || "");
         }
 
@@ -378,6 +406,26 @@ export const AdminFranchiseForm: React.FC = () => {
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full rounded-md border border-input bg-secondary/40 px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                 />
+              </div>
+
+              {/* Market Scope */}
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="marketScope" className="text-xs font-semibold">
+                  Franchise Market Scope <span className="text-primary">*</span>
+                </Label>
+                <select
+                  id="marketScope"
+                  value={marketScope}
+                  onChange={(e) =>
+                    handleMarketScopeChange(
+                      e.target.value as "DOMESTIC" | "INTERNATIONAL",
+                    )
+                  }
+                  className="w-full rounded-md border border-input bg-secondary/40 px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none h-10"
+                >
+                  <option value="DOMESTIC">Domestic (India Collection)</option>
+                  <option value="INTERNATIONAL">International (UAE & Global)</option>
+                </select>
               </div>
 
               {/* Franchise Model */}

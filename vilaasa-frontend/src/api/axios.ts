@@ -21,12 +21,20 @@ api.interceptors.request.use(
       return config;
     }
 
+    const url = config.url || "";
     const pathname =
       typeof window !== "undefined" ? window.location.pathname : "";
-    const url = config.url || "";
     let token: string | null = null;
 
-    if (url.startsWith("/vault") || pathname.startsWith("/vault")) {
+    if (
+      url.startsWith("/vault/admin") ||
+      pathname.startsWith("/admin") ||
+      url.includes("/stats") ||
+      url.includes("/timeline") ||
+      url.includes("/status")
+    ) {
+      token = localStorage.getItem("vilaasa-admin-token");
+    } else if (url.startsWith("/vault") || pathname.startsWith("/vault")) {
       token =
         localStorage.getItem("vilaasa-vault-token") ||
         localStorage.getItem("vilaasa-admin-token");
@@ -34,13 +42,6 @@ api.interceptors.request.use(
       token =
         localStorage.getItem("vilaasa-partner-token") ||
         localStorage.getItem("vilaasa-admin-token");
-    } else if (
-      pathname.startsWith("/admin") ||
-      url.includes("/stats") ||
-      url.includes("/timeline") ||
-      url.includes("/status")
-    ) {
-      token = localStorage.getItem("vilaasa-admin-token");
     } else {
       // General fallback precedence
       token =

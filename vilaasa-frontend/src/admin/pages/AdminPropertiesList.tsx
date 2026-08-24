@@ -191,16 +191,32 @@ export const AdminPropertiesList: React.FC = () => {
             <option value="FARMLAND">Farmland</option>
           </select>
 
-          {/* Country Input */}
-          <Input
-            type="text"
-            placeholder="Country (e.g. UAE, India)"
-            value={filters.country || ""}
-            onChange={(e) =>
-              setFilters((prev) => ({ ...prev, country: e.target.value, page: 1 }))
+          {/* Market Scope Filter */}
+          <select
+            value={
+              filters.country?.trim().toLowerCase() === "india"
+                ? "DOMESTIC"
+                : filters.country?.trim().toLowerCase() === "uae" ||
+                  filters.country?.trim().toLowerCase() === "united arab emirates"
+                ? "INTERNATIONAL"
+                : ""
             }
-            className="bg-secondary/40 text-xs h-9"
-          />
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === "DOMESTIC") {
+                setFilters((prev) => ({ ...prev, country: "India", page: 1 }));
+              } else if (val === "INTERNATIONAL") {
+                setFilters((prev) => ({ ...prev, country: "UAE", page: 1 }));
+              } else {
+                setFilters((prev) => ({ ...prev, country: "", page: 1 }));
+              }
+            }}
+            className="rounded-md border border-input bg-secondary/40 px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
+          >
+            <option value="">All Markets</option>
+            <option value="DOMESTIC">Domestic (India)</option>
+            <option value="INTERNATIONAL">International (UAE & Global)</option>
+          </select>
 
           {/* Sort By */}
           <select
@@ -235,7 +251,7 @@ export const AdminPropertiesList: React.FC = () => {
                 <th className="px-5 py-3.5 font-semibold">Property Name</th>
                 <th className="px-4 py-3.5 font-semibold">Type</th>
                 <th className="px-4 py-3.5 font-semibold">Status</th>
-                <th className="px-4 py-3.5 font-semibold">Location</th>
+                <th className="px-4 py-3.5 font-semibold">Market / Location</th>
                 <th className="px-4 py-3.5 font-semibold">Price</th>
                 <th className="px-4 py-3.5 font-semibold">Beds / Baths</th>
                 <th className="px-4 py-3.5 font-semibold">Created</th>
@@ -284,7 +300,22 @@ export const AdminPropertiesList: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-4 py-4 text-foreground">
-                      {prop.location?.city}, {prop.location?.country}
+                      <div>
+                        <span>
+                          {prop.location?.city || "Unknown"}, {prop.location?.country || "UAE"}
+                        </span>
+                        <div className="mt-1">
+                          {prop.location?.country?.trim().toLowerCase() === "india" ? (
+                            <span className="inline-flex items-center rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-400">
+                              Domestic (India)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.5 text-[9px] font-medium text-sky-400">
+                              International
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-4 font-mono font-bold text-primary">
                       {prop.priceOnApplication

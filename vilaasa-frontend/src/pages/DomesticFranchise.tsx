@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import wellnessResortKerala from "@/assets/wellness-resort-kerala.jpg";
+import { CDN_ASSETS } from "@/config/cdnAssets";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useFranchiseList } from "@/hooks/useNewFranchise";
 
@@ -65,7 +65,7 @@ const DomesticFranchise = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-background z-10" />
           <div
             className="w-full h-full bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${wellnessResortKerala})` }}
+            style={{ backgroundImage: `url(${CDN_ASSETS.franchise.wellnessKerala})` }}
           />
         </div>
 

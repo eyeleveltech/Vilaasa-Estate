@@ -199,8 +199,10 @@ export const getPropertyBySlug = asyncHandler(
   async (req: Request, res: Response) => {
     const { slug } = req.params;
 
-    const property = await prisma.property.findUnique({
-      where: { slug },
+    const property = await prisma.property.findFirst({
+      where: {
+        OR: [{ slug }, { id: slug }],
+      },
       include: {
         location: true,
         configurations: {
@@ -247,7 +249,7 @@ export const getPropertyBySlug = asyncHandler(
     });
 
     if (!property || property.isDeleted) {
-      throw ApiError.notFound(`Property with slug '${slug}' was not found`);
+      throw ApiError.notFound(`Property with slug or ID '${slug}' was not found`);
     }
 
     // Increment view count asynchronously
@@ -325,9 +327,10 @@ export const createProperty = asyncHandler(
         bedrooms: data.bedrooms,
         bathrooms: data.bathrooms,
         furnishingStatus: data.furnishingStatus,
-        possessionDate: data.possessionDate
-          ? new Date(data.possessionDate)
-          : undefined,
+        possessionDate:
+          data.possessionDate && !isNaN(new Date(data.possessionDate).getTime())
+            ? new Date(data.possessionDate)
+            : undefined,
         reraNumber: data.reraNumber,
         ownershipType: data.ownershipType,
         paymentPlan: data.paymentPlan ? (data.paymentPlan as Prisma.InputJsonValue) : Prisma.JsonNull,
@@ -437,12 +440,14 @@ export const updateProperty = asyncHandler(
     const { id } = req.params;
     const data = req.body as UpdatePropertyInput;
 
-    const property = await prisma.property.findUnique({
-      where: { id },
+    const property = await prisma.property.findFirst({
+      where: {
+        OR: [{ id }, { slug: id }],
+      },
     });
 
     if (!property || property.isDeleted) {
-      throw ApiError.notFound(`Property with id '${id}' was not found`);
+      throw ApiError.notFound(`Property '${id}' was not found`);
     }
 
     let locationId = property.locationId;
@@ -482,7 +487,7 @@ export const updateProperty = asyncHandler(
     }
 
     const updated = await prisma.property.update({
-      where: { id },
+      where: { id: property.id },
       data: {
         name: data.name,
         slug: data.slug ? slugify(data.slug, { lower: true, strict: true }) : undefined,
@@ -501,9 +506,10 @@ export const updateProperty = asyncHandler(
         bedrooms: data.bedrooms,
         bathrooms: data.bathrooms,
         furnishingStatus: data.furnishingStatus,
-        possessionDate: data.possessionDate
-          ? new Date(data.possessionDate)
-          : undefined,
+        possessionDate:
+          data.possessionDate && !isNaN(new Date(data.possessionDate).getTime())
+            ? new Date(data.possessionDate)
+            : undefined,
         reraNumber: data.reraNumber,
         ownershipType: data.ownershipType,
         paymentPlan: data.paymentPlan ? (data.paymentPlan as Prisma.InputJsonValue) : undefined,
@@ -546,16 +552,18 @@ export const deleteProperty = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
 
-    const property = await prisma.property.findUnique({
-      where: { id },
+    const property = await prisma.property.findFirst({
+      where: {
+        OR: [{ id }, { slug: id }],
+      },
     });
 
     if (!property || property.isDeleted) {
-      throw ApiError.notFound(`Property with id '${id}' was not found`);
+      throw ApiError.notFound(`Property '${id}' was not found`);
     }
 
     await prisma.property.update({
-      where: { id },
+      where: { id: property.id },
       data: {
         isDeleted: true,
         status: PropertyStatus.SOLD,
@@ -564,7 +572,7 @@ export const deleteProperty = asyncHandler(
 
     return res.status(200).json(
       ApiResponse.ok(
-        { id, isDeleted: true, status: PropertyStatus.SOLD },
+        { id: property.id, isDeleted: true, status: PropertyStatus.SOLD },
         "Property soft deleted successfully",
       ),
     );

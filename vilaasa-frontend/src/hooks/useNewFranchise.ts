@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
+import { CDN_ASSETS } from "@/config/cdnAssets";
 import {
   DEFAULT_PROPERTY_IMAGE,
   DEFAULT_PROPERTY_IMAGES,
@@ -122,8 +123,7 @@ const FALLBACK_FRANCHISES: FranchiseItem[] = [
     type: "Wellness Resort",
     location: "Kerala & Pondicherry",
     price: 7000000,
-    heroImage:
-      "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1600&auto=format&fit=crop&q=80",
+    heroImage: CDN_ASSETS.franchise.wellnessKerala,
     description: [
       "An ultra-luxury Ayurvedic sanctuary bringing 5,000 years of transformative wellness wisdom to institutional hospitality.",
       "Designed for high-yield investor aggregation with full operator-backed operational management under the FOCO framework.",
@@ -204,8 +204,7 @@ const FALLBACK_FRANCHISES: FranchiseItem[] = [
     type: "Luxury Day Spa",
     location: "Mumbai, Delhi, Bangalore",
     price: 7000000,
-    heroImage:
-      "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1600&auto=format&fit=crop&q=80",
+    heroImage: CDN_ASSETS.franchise.carltonSpa,
     description: [
       "Signature European thermal hydrotherapy and cryogenic healing suites tailored to tier-1 luxury metropolitan hubs.",
       "High-margin recurring membership model with established private clientele across prime real estate districts.",
@@ -260,8 +259,7 @@ const FALLBACK_FRANCHISES: FranchiseItem[] = [
     type: "Boutique Beach Resort",
     location: "Chennai ECR",
     price: 7000000,
-    heroImage:
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1600&auto=format&fit=crop&q=80",
+    heroImage: CDN_ASSETS.franchise.coltonResort,
     description: [
       "Exclusive beachfront hospitality destination on Chennai East Coast Road with private cabana villas and coastal dining.",
     ],

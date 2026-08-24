@@ -40,6 +40,9 @@ export const AdminPropertyForm: React.FC = () => {
   const [existingMedia, setExistingMedia] = useState<Property["media"]>([]);
 
   // Step 1: Basic Info
+  const [marketScope, setMarketScope] = useState<"DOMESTIC" | "INTERNATIONAL">(
+    "DOMESTIC",
+  );
   const [name, setName] = useState<string>("");
   const [tagline, setTagline] = useState<string>("");
   const [type, setType] = useState<PropertyType>("RESIDENTIAL_VILLA");
@@ -62,13 +65,36 @@ export const AdminPropertyForm: React.FC = () => {
   const [priceOnApplication, setPriceOnApplication] = useState<boolean>(false);
   const [rentalYieldPercent, setRentalYieldPercent] = useState<string>("");
   const [expectedIrrPercent, setExpectedIrrPercent] = useState<string>("");
-  const [city, setCity] = useState<string>("");
-  const [country, setCountry] = useState<string>("");
+  const [city, setCity] = useState<string>("Goa");
+  const [country, setCountry] = useState<string>("India");
   const [community, setCommunity] = useState<string>("");
   const [addressLine, setAddressLine] = useState<string>("");
   const [latitude, setLatitude] = useState<string>("");
   const [longitude, setLongitude] = useState<string>("");
   const [googleMapUrl, setGoogleMapUrl] = useState<string>("");
+
+  const handleMarketScopeChange = (scope: "DOMESTIC" | "INTERNATIONAL") => {
+    setMarketScope(scope);
+    if (scope === "DOMESTIC") {
+      setCountry("India");
+      if (currency === "AED" || currency === "USD") {
+        setCurrency("INR");
+      }
+      if (!city || city === "Dubai" || city === "Abu Dhabi") {
+        setCity("Goa");
+      }
+    } else {
+      if (!country || country.trim().toLowerCase() === "india") {
+        setCountry("United Arab Emirates");
+      }
+      if (currency === "INR") {
+        setCurrency("AED");
+      }
+      if (!city || city === "Goa" || city === "Mumbai" || city === "Kumarakom") {
+        setCity("Dubai");
+      }
+    }
+  };
 
   // Load existing property in edit mode
   useEffect(() => {
@@ -76,15 +102,10 @@ export const AdminPropertyForm: React.FC = () => {
       const fetchPropertyForEdit = async () => {
         setLoading(true);
         try {
-          const res = await api.get<ApiResponse<Property[]>>("/properties", {
-            params: { limit: 50 },
-          });
-          const match = res.data.data.find((p) => p.id === id || p.slug === id);
-
-          if (match) {
-            const detailRes = await api.get<ApiResponse<Property>>(
-              `/properties/${match.slug}`,
-            );
+          const detailRes = await api.get<ApiResponse<Property>>(
+            `/properties/${id}`,
+          );
+          if (detailRes.data.success && detailRes.data.data) {
             const prop = detailRes.data.data;
 
             setCreatedPropertyId(prop.id);
@@ -113,8 +134,14 @@ export const AdminPropertyForm: React.FC = () => {
             setExpectedIrrPercent(prop.expectedIrrPercent?.toString() || "");
 
             if (prop.location) {
+              const isDom =
+                prop.location.country?.trim().toLowerCase() === "india";
+              setMarketScope(isDom ? "DOMESTIC" : "INTERNATIONAL");
               setCity(prop.location.city || "");
-              setCountry(prop.location.country || "");
+              setCountry(
+                prop.location.country ||
+                  (isDom ? "India" : "United Arab Emirates"),
+              );
               setCommunity(prop.location.community || "");
               setAddressLine(prop.location.addressLine || "");
               setLatitude(prop.location.latitude?.toString() || "");
@@ -376,7 +403,27 @@ export const AdminPropertyForm: React.FC = () => {
                 />
               </div>
 
-              {/* Type */}
+              {/* Market Scope */}
+              <div className="space-y-1.5">
+                <Label htmlFor="marketScope" className="text-xs font-semibold">
+                  Market Scope <span className="text-primary">*</span>
+                </Label>
+                <select
+                  id="marketScope"
+                  value={marketScope}
+                  onChange={(e) =>
+                    handleMarketScopeChange(
+                      e.target.value as "DOMESTIC" | "INTERNATIONAL",
+                    )
+                  }
+                  className="w-full rounded-md border border-input bg-secondary/40 px-3 py-2 text-xs sm:text-sm text-foreground focus:border-primary focus:outline-none"
+                >
+                  <option value="DOMESTIC">Domestic (India Collection)</option>
+                  <option value="INTERNATIONAL">International (UAE & Global)</option>
+                </select>
+              </div>
+
+              {/* Property Type */}
               <div className="space-y-1.5">
                 <Label htmlFor="type" className="text-xs font-semibold">
                   Property Type <span className="text-primary">*</span>
@@ -397,8 +444,8 @@ export const AdminPropertyForm: React.FC = () => {
                 </select>
               </div>
 
-              {/* Status */}
-              <div className="space-y-1.5">
+              {/* Listing Status */}
+              <div className="space-y-1.5 md:col-span-2">
                 <Label htmlFor="status" className="text-xs font-semibold">
                   Listing Status <span className="text-primary">*</span>
                 </Label>
@@ -672,6 +719,51 @@ export const AdminPropertyForm: React.FC = () => {
                   onChange={(e) => setExpectedIrrPercent(e.target.value)}
                   className="bg-secondary/40 h-10 font-mono"
                 />
+              </div>
+
+              {/* Regional Presets */}
+              <div className="space-y-1.5 md:col-span-2 pt-1 pb-1">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    Quick Region Presets ({marketScope === "DOMESTIC" ? "India" : "International"})
+                  </Label>
+                  <span className="text-[10px] text-primary">Click to prefill</span>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {(marketScope === "DOMESTIC"
+                    ? [
+                        { city: "Goa", community: "Assagao Waterfront", country: "India" },
+                        { city: "Mumbai", community: "Bandra West", country: "India" },
+                        { city: "Kumarakom", community: "Vembanad Lakefront", country: "India" },
+                        { city: "Alibaug", community: "Mandwa Coast", country: "India" },
+                        { city: "Delhi NCR", community: "Golf Course Road", country: "India" },
+                        { city: "Hyderabad", community: "Jubilee Hills", country: "India" },
+                        { city: "Bangalore", community: "Indiranagar", country: "India" },
+                      ]
+                    : [
+                        { city: "Dubai", community: "Palm Jumeirah", country: "United Arab Emirates" },
+                        { city: "Dubai", community: "Downtown Dubai", country: "United Arab Emirates" },
+                        { city: "Dubai", community: "Emirates Hills", country: "United Arab Emirates" },
+                        { city: "Dubai", community: "Dubai Marina", country: "United Arab Emirates" },
+                        { city: "Abu Dhabi", community: "Saadiyat Island", country: "United Arab Emirates" },
+                        { city: "London", community: "Mayfair", country: "United Kingdom" },
+                        { city: "Bali", community: "Uluwatu Clifftop", country: "Indonesia" },
+                      ]
+                  ).map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setCity(preset.city);
+                        setCommunity(preset.community);
+                        setCountry(preset.country);
+                      }}
+                      className="rounded-full border border-border bg-secondary/50 hover:bg-primary/20 hover:border-primary/50 px-3 py-1 text-xs text-foreground transition-all duration-150 active:scale-95"
+                    >
+                      {preset.city} • {preset.community}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* City & Country */}

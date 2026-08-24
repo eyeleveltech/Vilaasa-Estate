@@ -115,15 +115,10 @@ export const AdminPropertyDetail: React.FC = () => {
     if (!id) return;
     setLoading(true);
     try {
-      const listRes = await api.get<ApiResponse<Property[]>>("/properties", {
-        params: { limit: 50 },
-      });
-      const match = listRes.data.data.find((p) => p.id === id || p.slug === id);
-
-      if (match) {
-        const detailRes = await api.get<ApiResponse<Property>>(
-          `/properties/${match.slug}`,
-        );
+      const detailRes = await api.get<ApiResponse<Property>>(
+        `/properties/${id}`,
+      );
+      if (detailRes.data.success && detailRes.data.data) {
         setProperty(detailRes.data.data);
       }
     } catch {

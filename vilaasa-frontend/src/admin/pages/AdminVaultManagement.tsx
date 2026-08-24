@@ -20,7 +20,9 @@ import {
   ShieldCheck,
   UserPlus,
   Eye,
+  EyeOff,
   KeyRound,
+  Mail,
   X,
   Sparkles,
   ChevronLeft,
@@ -366,6 +368,19 @@ export const AdminVaultManagement: React.FC = () => {
     }
   };
 
+  const [showInvestorPassword, setShowInvestorPassword] =
+    useState<boolean>(false);
+
+  const generateRandomPassword = () => {
+    const chars =
+      "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*";
+    let pass = "Vilaasa@";
+    for (let i = 0; i < 6; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setOnboardInvestorModal((prev) => ({ ...prev, password: pass }));
+  };
+
   // Handlers: Onboard Investor
   const handleOnboardInvestorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -380,21 +395,20 @@ export const AdminVaultManagement: React.FC = () => {
 
     setOnboardInvestorModal((prev) => ({ ...prev, submitting: true }));
     try {
-      const res = await api.post<ApiResponse<{ user: unknown }>>(
-        "/auth/register",
-        {
-          name: onboardInvestorModal.name.trim(),
-          email: onboardInvestorModal.email.trim(),
-          phone: onboardInvestorModal.phone.trim() || undefined,
-          phoneCode: onboardInvestorModal.phoneCode,
-          password: onboardInvestorModal.password,
-          role: "VAULT_CLIENT",
-        },
-      );
+      const res = await api.post<
+        ApiResponse<{ user: unknown; emailSent?: boolean }>
+      >("/vault/admin/onboard-investor", {
+        name: onboardInvestorModal.name.trim(),
+        email: onboardInvestorModal.email.trim(),
+        phone: onboardInvestorModal.phone.trim() || undefined,
+        phoneCode: onboardInvestorModal.phoneCode,
+        password: onboardInvestorModal.password,
+      });
 
       if (res.data.success) {
         toast.success(
-          "Investor account created! Share credentials with client.",
+          `Investor account created! Access credentials have been emailed to ${onboardInvestorModal.email.trim()}.`,
+          { duration: 6000 },
         );
         setOnboardInvestorModal({
           open: false,
@@ -408,8 +422,11 @@ export const AdminVaultManagement: React.FC = () => {
         fetchInvestors();
         fetchOverview();
       }
-    } catch {
-      toast.error("Failed to onboard investor. Email may already be in use.");
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message ||
+        "Failed to onboard investor. Email may already be in use.";
+      toast.error(msg);
     } finally {
       setOnboardInvestorModal((prev) => ({ ...prev, submitting: false }));
     }
@@ -1567,6 +1584,19 @@ export const AdminVaultManagement: React.FC = () => {
               </button>
             </div>
 
+            {/* Automated Email Notice */}
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-[11px] text-muted-foreground flex items-start gap-2.5">
+              <Mail className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <span className="font-semibold text-foreground">
+                  Automated Credential Dispatch
+                </span>
+                <p className="text-[10.5px] leading-relaxed">
+                  Upon onboarding, an official private client dossier containing secure access credentials and the Vault portal link will be immediately dispatched to the investor's email.
+                </p>
+              </div>
+            </div>
+
             <form onSubmit={handleOnboardInvestorSubmit} className="space-y-3">
               <div className="space-y-1">
                 <Label htmlFor="invName" className="text-xs font-semibold">
@@ -1647,24 +1677,48 @@ export const AdminVaultManagement: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="invPass" className="text-xs font-semibold">
-                  Temporary Access Password <span className="text-primary">*</span>
-                </Label>
-                <Input
-                  id="invPass"
-                  type="password"
-                  required
-                  minLength={8}
-                  placeholder="Min 8 characters (e.g. Vault2026@Secret)"
-                  value={onboardInvestorModal.password}
-                  onChange={(e) =>
-                    setOnboardInvestorModal((prev) => ({
-                      ...prev,
-                      password: e.target.value,
-                    }))
-                  }
-                  className="bg-secondary/40 text-xs h-9"
-                />
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="invPass" className="text-xs font-semibold">
+                    Temporary Access Password <span className="text-primary">*</span>
+                  </Label>
+                  <button
+                    type="button"
+                    onClick={generateRandomPassword}
+                    className="text-[10px] text-primary hover:underline flex items-center gap-1 font-medium"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    <span>Generate Strong Key</span>
+                  </button>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="invPass"
+                    type={showInvestorPassword ? "text" : "password"}
+                    required
+                    minLength={6}
+                    placeholder="Min 6 characters (e.g. Vault2026@Secret)"
+                    value={onboardInvestorModal.password}
+                    onChange={(e) =>
+                      setOnboardInvestorModal((prev) => ({
+                        ...prev,
+                        password: e.target.value,
+                      }))
+                    }
+                    className="bg-secondary/40 text-xs h-9 pr-9 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowInvestorPassword(!showInvestorPassword)}
+                    className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                    title={showInvestorPassword ? "Hide password" : "Show password"}
+                  >
+                    {showInvestorPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="flex justify-end space-x-2 pt-3">
@@ -1690,10 +1744,14 @@ export const AdminVaultManagement: React.FC = () => {
                   type="submit"
                   size="sm"
                   disabled={onboardInvestorModal.submitting}
+                  className="gap-1.5"
                 >
-                  {onboardInvestorModal.submitting
-                    ? "Registering..."
-                    : "Create Investor Account"}
+                  <Mail className="h-3.5 w-3.5" />
+                  <span>
+                    {onboardInvestorModal.submitting
+                      ? "Onboarding & Emailing..."
+                      : "Onboard & Send Credentials"}
+                  </span>
                 </Button>
               </div>
             </form>

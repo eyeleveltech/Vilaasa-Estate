@@ -23,6 +23,16 @@ export const QuickUpdateValuationSchema = z.object({
   monthlyRentalYield: z.number().nonnegative().optional(),
 });
 
+export const OnboardInvestorSchema = z.object({
+  name: z.string().min(2, "Full name must be at least 2 characters").trim(),
+  email: z.string().email("A valid email address is required").trim().toLowerCase(),
+  phone: z.string().optional(),
+  phoneCode: z.string().optional().default("+91"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
 export type CreateVaultAssetInput = z.infer<typeof CreateVaultAssetSchema>;
 export type UpdateVaultAssetInput = z.infer<typeof UpdateVaultAssetSchema>;
 export type QuickUpdateValuationInput = z.infer<typeof QuickUpdateValuationSchema>;
+export type OnboardInvestorInput = z.infer<typeof OnboardInvestorSchema>;
+

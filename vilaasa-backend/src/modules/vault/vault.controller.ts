@@ -11,7 +11,9 @@ import {
   CreateVaultAssetInput,
   UpdateVaultAssetInput,
   QuickUpdateValuationInput,
+  OnboardInvestorInput,
 } from "./vault.schema";
+import { sendVaultOnboardingEmail } from "../../services/email.service";
 
 const generateToken = (userId: string, email: string, role: string): string => {
   return jwt.sign(
@@ -829,3 +831,66 @@ export const quickUpdateValuation = asyncHandler(
     );
   },
 );
+
+/**
+ * @desc    Onboard a new Private Client / Investor into The Vault and email credentials
+ * @route   POST /api/v1/vault/admin/onboard-investor
+ * @access  Protected (SUPER_ADMIN only)
+ */
+export const onboardInvestor = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { name, email, phone, phoneCode, password } =
+      req.body as OnboardInvestorInput;
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (existingUser) {
+      throw ApiError.badRequest("An investor account with this email already exists");
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const user = await prisma.user.create({
+      data: {
+        name: name.trim(),
+        email: normalizedEmail,
+        phone: phone?.trim() || null,
+        phoneCode: phoneCode?.trim() || "+91",
+        passwordHash,
+        role: Role.VAULT_CLIENT,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        phoneCode: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+
+    // Send high-priority onboarding email with credentials asynchronously
+    void sendVaultOnboardingEmail({
+      name: user.name,
+      email: user.email,
+      password,
+    }).catch((err) => {
+      console.error("❌ Failed to send Vault onboarding email to:", user.email, err);
+    });
+
+    return res.status(201).json(
+      ApiResponse.created(
+        { user, emailSent: true },
+        `Investor account onboarded successfully. Access credentials have been dispatched to ${user.email}.`,
+      ),
+    );
+  },
+);
+

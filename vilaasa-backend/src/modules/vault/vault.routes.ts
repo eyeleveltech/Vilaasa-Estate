@@ -12,11 +12,13 @@ import {
   getAdminAllVaultAssets,
   getAdminInvestors,
   quickUpdateValuation,
+  onboardInvestor,
 } from "./vault.controller";
 import {
   CreateVaultAssetSchema,
   UpdateVaultAssetSchema,
   QuickUpdateValuationSchema,
+  OnboardInvestorSchema,
 } from "./vault.schema";
 import { LoginSchema } from "../auth/auth.schema";
 import { validate } from "../../middlewares/validate";
@@ -32,6 +34,14 @@ router.post("/login", validate(LoginSchema), vaultLogin);
 router.get("/portfolio", verifyJWT, getMyPortfolio);
 
 // Super Admin specialized dashboard endpoints
+router.post(
+  "/admin/onboard-investor",
+  verifyJWT,
+  authorizeRoles(Role.SUPER_ADMIN),
+  validate(OnboardInvestorSchema),
+  onboardInvestor,
+);
+
 router.get(
   "/admin/overview",
   verifyJWT,

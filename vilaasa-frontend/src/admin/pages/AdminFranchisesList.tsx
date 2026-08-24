@@ -44,12 +44,14 @@ export const AdminFranchisesList: React.FC = () => {
   const [filters, setFilters] = useState<{
     franchiseModel: "FOCO" | "FOFO" | "FICO" | "";
     status: PropertyStatus | "";
+    market: "DOMESTIC" | "INTERNATIONAL" | "";
     search: string;
     page: number;
     limit: number;
   }>({
     franchiseModel: "",
     status: "",
+    market: "",
     search: "",
     page: 1,
     limit: 12,
@@ -72,6 +74,8 @@ export const AdminFranchisesList: React.FC = () => {
 
       if (filters.franchiseModel) params.franchiseModel = filters.franchiseModel;
       if (filters.status) params.status = filters.status;
+      if (filters.market === "DOMESTIC") params.country = "India";
+      if (filters.market === "INTERNATIONAL") params.country = "UAE";
       if (filters.search.trim()) params.search = filters.search.trim();
 
       const res = await api.get<ApiResponse<Property[]>>("/properties", {
@@ -220,6 +224,23 @@ export const AdminFranchisesList: React.FC = () => {
             />
           </div>
 
+          {/* Market Filter */}
+          <select
+            value={filters.market || ""}
+            onChange={(e) =>
+              setFilters((prev) => ({
+                ...prev,
+                market: e.target.value as "DOMESTIC" | "INTERNATIONAL" | "",
+                page: 1,
+              }))
+            }
+            className="rounded-md border border-input bg-secondary/40 px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
+          >
+            <option value="">All Markets</option>
+            <option value="DOMESTIC">Domestic (India)</option>
+            <option value="INTERNATIONAL">International (UAE & Global)</option>
+          </select>
+
           {/* Model Filter */}
           <select
             value={filters.franchiseModel || ""}
@@ -258,7 +279,7 @@ export const AdminFranchisesList: React.FC = () => {
           </select>
 
           {/* Clear button */}
-          {(filters.franchiseModel || filters.status || filters.search) && (
+          {(filters.franchiseModel || filters.status || filters.market || filters.search) && (
             <Button
               type="button"
               variant="ghost"
@@ -267,6 +288,7 @@ export const AdminFranchisesList: React.FC = () => {
                 setFilters({
                   franchiseModel: "",
                   status: "",
+                  market: "",
                   search: "",
                   page: 1,
                   limit: 12,
@@ -354,10 +376,20 @@ export const AdminFranchisesList: React.FC = () => {
                             >
                               {item.name}
                             </Link>
-                            <p className="text-[11px] text-muted-foreground line-clamp-1">
-                              {item.tagline ||
-                                `${item.location.city}, ${item.location.country}`}
-                            </p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              {item.location?.country?.trim().toLowerCase() === "india" ? (
+                                <span className="inline-flex items-center rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.2 text-[9px] font-medium text-amber-400">
+                                  Domestic
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center rounded border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.2 text-[9px] font-medium text-sky-400">
+                                  International
+                                </span>
+                              )}
+                              <span className="text-[11px] text-muted-foreground line-clamp-1">
+                                {item.location?.city}, {item.location?.country}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </td>
