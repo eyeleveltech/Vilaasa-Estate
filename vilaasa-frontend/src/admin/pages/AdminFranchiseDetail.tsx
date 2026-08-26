@@ -288,9 +288,14 @@ export const AdminFranchiseDetail: React.FC = () => {
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground">
                   Architectural Vision & Business Model
                 </h3>
+                {franchise.visionHeadline && (
+                  <p className="text-base font-medium text-foreground">
+                    &quot;{franchise.visionHeadline}&quot;
+                  </p>
+                )}
                 {franchise.tagline && (
-                  <p className="text-sm font-medium text-primary italic">
-                    "{franchise.tagline}"
+                  <p className="text-xs font-medium text-primary italic">
+                    {franchise.tagline}
                   </p>
                 )}
                 <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
@@ -298,12 +303,42 @@ export const AdminFranchiseDetail: React.FC = () => {
                 </p>
               </div>
 
+              {/* Financial Blueprint (Custom Specs) */}
+              {Array.isArray(franchise.customSpecs) && franchise.customSpecs.length > 0 && (
+                <div className="rounded-xl border border-border bg-card p-6 shadow-xl space-y-4">
+                  <div className="flex items-center justify-between border-b border-border pb-3">
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-primary" />
+                      <span>Financial Blueprint (Admin Defined)</span>
+                    </h3>
+                    <span className="text-[11px] text-muted-foreground">
+                      Public Dossier Metrics
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {franchise.customSpecs.map((spec: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-lg bg-secondary/30 border border-border"
+                      >
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">
+                          {spec.label}
+                        </p>
+                        <p className="text-sm font-bold text-primary mt-0.5">
+                          {spec.value}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Support & Training Modules */}
               <div className="rounded-xl border border-border bg-card p-6 shadow-xl space-y-4">
                 <div className="flex items-center justify-between border-b border-border pb-3">
                   <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-primary" />
-                    <span>Turnkey Support & Enablement Modules</span>
+                    <span>Comprehensive Ecosystem (Support & Training)</span>
                   </h3>
                   <span className="text-[11px] text-muted-foreground">
                     Operator-backed
@@ -312,17 +347,31 @@ export const AdminFranchiseDetail: React.FC = () => {
                 {Array.isArray(franchise.supportModules) &&
                 franchise.supportModules.length > 0 ? (
                   <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                    {franchise.supportModules.map((module, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-start space-x-2.5 rounded-lg bg-secondary/30 p-3 border border-border"
-                      >
-                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                        <span className="text-xs text-foreground font-medium">
-                          {module}
-                        </span>
-                      </div>
-                    ))}
+                    {franchise.supportModules.map((module: any, idx) => {
+                      const name = typeof module === "object" && module !== null ? module.name : String(module);
+                      const icon = typeof module === "object" && module !== null && module.icon ? module.icon : "storefront";
+                      const desc = typeof module === "object" && module !== null ? module.description : null;
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-start space-x-2.5 rounded-lg bg-secondary/30 p-3 border border-border"
+                        >
+                          <span className="material-symbols-outlined text-primary text-lg shrink-0 mt-0.5">
+                            {icon}
+                          </span>
+                          <div>
+                            <span className="text-xs text-foreground font-semibold block">
+                              {name}
+                            </span>
+                            {desc && (
+                              <span className="text-[11px] text-muted-foreground block mt-0.5 leading-relaxed">
+                                {desc}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground">
@@ -336,7 +385,7 @@ export const AdminFranchiseDetail: React.FC = () => {
                 <div className="flex items-center justify-between border-b border-border pb-3">
                   <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-primary" />
-                    <span>Value Propositions & Advantages</span>
+                    <span>Key Benefits (The FOCO Advantage)</span>
                   </h3>
                   <span className="text-[11px] text-muted-foreground">
                     Institutional Moat
@@ -345,17 +394,31 @@ export const AdminFranchiseDetail: React.FC = () => {
                 {Array.isArray(franchise.advantages) &&
                 franchise.advantages.length > 0 ? (
                   <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                    {franchise.advantages.map((adv, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-start space-x-2.5 rounded-lg bg-emerald-500/5 p-3 border border-emerald-500/20"
-                      >
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-                        <span className="text-xs text-foreground font-medium">
-                          {adv}
-                        </span>
-                      </div>
-                    ))}
+                    {franchise.advantages.map((adv: any, idx) => {
+                      const name = typeof adv === "object" && adv !== null ? adv.name : String(adv);
+                      const icon = typeof adv === "object" && adv !== null && adv.icon ? adv.icon : "verified_user";
+                      const desc = typeof adv === "object" && adv !== null ? adv.description : null;
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-start space-x-2.5 rounded-lg bg-emerald-500/5 p-3 border border-emerald-500/20"
+                        >
+                          <span className="material-symbols-outlined text-emerald-400 text-lg shrink-0 mt-0.5">
+                            {icon}
+                          </span>
+                          <div>
+                            <span className="text-xs text-foreground font-semibold block">
+                              {name}
+                            </span>
+                            {desc && (
+                              <span className="text-[11px] text-muted-foreground block mt-0.5 leading-relaxed">
+                                {desc}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground">

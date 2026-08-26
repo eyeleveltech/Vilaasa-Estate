@@ -485,7 +485,7 @@ export const AdminPropertyDetail: React.FC = () => {
               {property.name}
             </h2>
             <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
-              {property.type.replace(/_/g, " ")}
+              {property.customType || property.type.replace(/_/g, " ")}
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
@@ -638,6 +638,24 @@ export const AdminPropertyDetail: React.FC = () => {
                 )}
               </div>
             </div>
+
+            {property.customSpecs && property.customSpecs.length > 0 && (
+              <div className="space-y-3 pt-4 border-t border-border">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Custom & At-a-Glance Specifications
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                  {property.customSpecs.map((spec, idx) => (
+                    <div key={idx} className="p-2.5 rounded-lg bg-secondary/40 border border-border">
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                        {spec.label}
+                      </span>
+                      <p className="font-semibold text-foreground mt-0.5">{spec.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Concept, Vision & Editorial Verdict */}
             <div className="space-y-4 pt-4 border-t border-border">

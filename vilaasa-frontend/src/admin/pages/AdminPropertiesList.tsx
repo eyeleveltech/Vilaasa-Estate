@@ -287,8 +287,8 @@ export const AdminPropertiesList: React.FC = () => {
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-4 text-muted-foreground">
-                      {prop.type.replace(/_/g, " ")}
+                    <td className="px-4 py-4 text-muted-foreground font-medium">
+                      {prop.customType || prop.type.replace(/_/g, " ")}
                     </td>
                     <td className="px-4 py-4">
                       <span

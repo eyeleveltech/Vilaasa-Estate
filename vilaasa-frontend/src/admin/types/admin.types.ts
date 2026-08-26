@@ -157,6 +157,7 @@ export interface Property {
   description: string;
   visionHeadline?: string | null;
   type: PropertyType;
+  customType?: string | null;
   status: PropertyStatus;
   isDeleted: boolean;
   views: number;
@@ -177,6 +178,7 @@ export interface Property {
   virtualTour360Url?: string | null;
   brochureUrl?: string | null;
   maintenanceFeePerSqFt?: number | null;
+  customSpecs?: { label: string; value: string }[] | null;
   verdictQuote?: string | null;
   verdictAuthor?: string | null;
   verdictTitle?: string | null;

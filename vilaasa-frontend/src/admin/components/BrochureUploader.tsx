@@ -170,13 +170,13 @@ export const BrochureUploader: React.FC<BrochureUploaderProps> = ({
         <div className="space-y-1">
           <Input
             type="url"
-            placeholder="https://res.cloudinary.com/vilaasa/sample-brochure.pdf"
+            placeholder="https://drive.google.com/file/d/1A2B3C4D5E6F.../view?usp=sharing"
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="bg-secondary/40 h-10"
+            className="bg-secondary/40 h-10 text-xs font-mono"
           />
           <p className="text-[11px] text-muted-foreground">
-            Paste external PDF dossier or architectural catalogue URL
+            Paste Google Drive shareable link or external PDF dossier URL
           </p>
         </div>
       ) : (

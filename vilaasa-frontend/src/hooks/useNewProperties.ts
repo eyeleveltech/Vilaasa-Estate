@@ -35,9 +35,9 @@ function transformToListItem(prop: BackendProperty): PropertyListItem {
       ? `${prop.location.city}, ${prop.location.country}`
       : "Dubai, UAE",
     price: Number(prop.price),
-    type: prop.type
+    type: prop.customType || (prop.type
       ? prop.type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
-      : "Luxury Villa",
+      : "Luxury Villa"),
     roi: prop.rentalYieldPercent
       ? `${prop.rentalYieldPercent}% Net Yield`
       : "High Appreciation",
@@ -70,33 +70,41 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
       image: m.url,
     }));
 
-  const specs = [];
+  const specs: { label: string; value: string }[] = [];
   
-  if (prop.type) {
-    specs.push({ label: "Property Type", value: prop.type.replace(/_/g, " ") });
-  }
-  if (prop.location?.city) {
-    specs.push({ label: "Location", value: prop.location.city });
-  }
-  if (prop.price && Number(prop.price) > 0) {
-    specs.push({ label: "Minimum Investment", value: `${prop.currency} ${Number(prop.price).toLocaleString()}` });
-  }
+  if (prop.customSpecs && Array.isArray(prop.customSpecs) && prop.customSpecs.length > 0) {
+    for (const item of prop.customSpecs) {
+      if (item && item.label && item.value) {
+        specs.push({ label: item.label, value: item.value });
+      }
+    }
+  } else {
+    if (prop.type) {
+      specs.push({ label: "Property Type", value: prop.type.replace(/_/g, " ") });
+    }
+    if (prop.location?.city) {
+      specs.push({ label: "Location", value: prop.location.city });
+    }
+    if (prop.price && Number(prop.price) > 0) {
+      specs.push({ label: "Minimum Investment", value: `${prop.currency} ${Number(prop.price).toLocaleString()}` });
+    }
 
-  if (prop.bedrooms) {
-    specs.push({ label: "Bedrooms", value: `${prop.bedrooms} BHK` });
-  }
-  if (prop.bathrooms) {
-    specs.push({ label: "Bathrooms", value: `${prop.bathrooms}` });
-  }
-  if (prop.totalAreaSqFt) {
-    specs.push({ label: "Built-up Area", value: `${prop.totalAreaSqFt.toLocaleString()} Sq.Ft.` });
-  }
-  if (prop.furnishingStatus) {
-    specs.push({ label: "Furnishing", value: prop.furnishingStatus.replace(/_/g, " ") });
-  }
+    if (prop.bedrooms) {
+      specs.push({ label: "Bedrooms", value: `${prop.bedrooms} BHK` });
+    }
+    if (prop.bathrooms) {
+      specs.push({ label: "Bathrooms", value: `${prop.bathrooms}` });
+    }
+    if (prop.totalAreaSqFt) {
+      specs.push({ label: "Built-up Area", value: `${prop.totalAreaSqFt.toLocaleString()} Sq.Ft.` });
+    }
+    if (prop.furnishingStatus) {
+      specs.push({ label: "Furnishing", value: prop.furnishingStatus.replace(/_/g, " ") });
+    }
 
-  if (prop.configurations && prop.configurations.length > 0) {
-    specs.push({ label: "Configuration", value: prop.configurations[0].unitType });
+    if (prop.configurations && prop.configurations.length > 0) {
+      specs.push({ label: "Configuration", value: prop.configurations[0].unitType });
+    }
   }
 
   const financials = (prop.financialMetrics || []).map((f) => ({
@@ -135,7 +143,7 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
       ? `${prop.location.city}, ${prop.location.country}`
       : "Dubai, UAE",
     country: prop.location?.country || "UAE",
-    type: prop.type ? prop.type.replace(/_/g, " ") : "Luxury Estate",
+    type: prop.customType || (prop.type ? prop.type.replace(/_/g, " ") : "Luxury Estate"),
     price: Number(prop.price),
     priceValue: prop.priceOnApplication
       ? "Price on Application"

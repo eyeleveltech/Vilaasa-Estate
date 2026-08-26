@@ -38,6 +38,7 @@ export interface FranchiseItem {
   support_training_para?: string[];
   support_training?: PropertyAmenity[];
   advantages?: PropertyAmenity[];
+  visionHeadline?: string;
 }
 
 export interface FranchiseListItem {
@@ -99,8 +100,11 @@ interface BackendProperty {
   lockInPeriodYears?: number | null;
   expectedAnnualRoi?: number | null;
   yieldPayoutFrequency?: string | null;
-  supportModules?: string[] | null;
-  advantages?: string[] | null;
+  supportModules?: any;
+  advantages?: any;
+  customSpecs?: { label: string; value: string }[] | null;
+  financialMetrics?: { label: string; value: string; note?: string; icon?: string }[] | null;
+  visionHeadline?: string | null;
   location?: BackendLocation | null;
   media?: BackendMedia[];
   amenities?: BackendAmenityRel[];
@@ -316,7 +320,10 @@ export function transformPropertyToFranchise(prop: BackendProperty): FranchiseIt
       : "Prime Location",
     price: minTicket,
     heroImage: heroUrl,
-    description: [prop.description],
+    visionHeadline: prop.visionHeadline || undefined,
+    description: prop.description
+      ? prop.description.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)
+      : [prop.description || ""],
     franchiseModel: model,
     minTicketSize: minTicket,
     totalProjectCost: projectCost,
@@ -344,40 +351,59 @@ export function transformPropertyToFranchise(prop: BackendProperty): FranchiseIt
         value: `${model} (Franchise Owned Company Operated)`,
       },
     ],
-    galleryImages: (prop.media || []).map((m, idx) => ({
-      name: m.altText || `${prop.name} View ${idx + 1}`,
-      description: "Franchise Asset",
-      image: m.url,
-    })),
-    financial: [
-      {
-        label: "Total Project Cost",
-        value: `${prop.currency} ${projectCost.toLocaleString()}`,
-      },
-      {
-        label: "Min Ticket Size",
-        value: `${prop.currency} ${minTicket.toLocaleString()}`,
-      },
-      {
-        label: "Lock In Period",
-        value: lockIn,
-      },
-      {
-        label: "Yield Payout",
-        value: payout,
-      },
-    ],
-    support_training_para: supportModules.length
-      ? supportModules
-      : [
-          "Full turnkey operational management, brand licensing, site selection, and marketing enablement.",
-        ],
-    support_training: supportModules.length
-      ? supportModules.map((mod, idx) => ({
-          icon: idx === 0 ? "storefront" : idx === 1 ? "design_services" : idx === 2 ? "school" : "campaign",
-          name: mod.split(" ")[0] + " " + (mod.split(" ")[1] || "Module"),
-          description: mod,
+    galleryImages: (prop.media || [])
+      .filter((m) => m.mediaType === "GALLERY" || m.mediaType === "HERO_IMAGE")
+      .map((m, idx) => ({
+        name: m.altText || `${prop.name} View ${idx + 1}`,
+        description: m.altText || "",
+        image: m.url,
+      })),
+    financial: (prop.customSpecs && Array.isArray(prop.customSpecs) && prop.customSpecs.length > 0)
+      ? prop.customSpecs.map((s) => ({
+          label: s.label,
+          value: s.value,
         }))
+      : (prop.financialMetrics && Array.isArray(prop.financialMetrics) && prop.financialMetrics.length > 0)
+      ? prop.financialMetrics.map((f) => ({
+          label: f.label,
+          value: f.value,
+        }))
+      : [
+          {
+            label: "Total Project Cost",
+            value: `${prop.currency} ${projectCost.toLocaleString()}`,
+          },
+          {
+            label: "Min Ticket Size",
+            value: `${prop.currency} ${minTicket.toLocaleString()}`,
+          },
+          {
+            label: "Lock In Period",
+            value: lockIn,
+          },
+          {
+            label: "Yield Payout",
+            value: payout,
+          },
+        ],
+    support_training_para: [
+      "Turnkey institutional development covering location scouting, biophilic architectural styling, therapist certification, and international marketing.",
+    ],
+    support_training: Array.isArray(prop.supportModules) && prop.supportModules.length > 0
+      ? prop.supportModules.map((mod: any, idx: number) => {
+          if (typeof mod === "object" && mod !== null && mod.name) {
+            return {
+              name: mod.name,
+              icon: mod.icon || "storefront",
+              description: mod.description || "",
+            };
+          }
+          return {
+            icon: idx === 0 ? "storefront" : idx === 1 ? "design_services" : idx === 2 ? "school" : "campaign",
+            name: String(mod).split(" ")[0] + " " + (String(mod).split(" ")[1] || "Module"),
+            description: String(mod),
+          };
+        })
       : [
           {
             icon: "storefront",
@@ -390,12 +416,21 @@ export function transformPropertyToFranchise(prop: BackendProperty): FranchiseIt
             description: "Bespoke interior fitout matching luxury brand guidelines.",
           },
         ],
-    advantages: advantagesList.length
-      ? advantagesList.map((adv, idx) => ({
-          icon: idx === 0 ? "spa" : idx === 1 ? "self_improvement" : "psychiatry",
-          name: adv.split(" ")[0] + " " + (adv.split(" ")[1] || "Advantage"),
-          description: adv,
-        }))
+    advantages: Array.isArray(prop.advantages) && prop.advantages.length > 0
+      ? prop.advantages.map((adv: any, idx: number) => {
+          if (typeof adv === "object" && adv !== null && adv.name) {
+            return {
+              name: adv.name,
+              icon: adv.icon || "verified_user",
+              description: adv.description || "",
+            };
+          }
+          return {
+            icon: idx === 0 ? "verified_user" : idx === 1 ? "payments" : "trending_up",
+            name: String(adv).split(" ")[0] + " " + (String(adv).split(" ")[1] || "Advantage"),
+            description: String(adv),
+          };
+        })
       : (prop.amenities || []).map((a) => ({
           icon: a.amenity.iconKey || "spa",
           name: a.amenity.name,

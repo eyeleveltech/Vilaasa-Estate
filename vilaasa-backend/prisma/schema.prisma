@@ -133,6 +133,7 @@ model Property {
   description         String           @db.Text
   visionHeadline      String?
   type                PropertyType     @default(RESIDENTIAL_VILLA)
+  customType          String?
   status              PropertyStatus   @default(AVAILABLE)
   isDeleted           Boolean          @default(false)
   views               Int              @default(0)
@@ -159,6 +160,7 @@ model Property {
   virtualTour360Url   String?
   brochureUrl         String?          // Direct PDF Brochure URL (e.g. Cloudinary PDF link)
   maintenanceFeePerSqFt Decimal?       @db.Decimal(10, 2)
+  customSpecs         Json?            // User-defined free-text specifications [{ label: string, value: string }]
 
   // Editorial Verdict
   verdictQuote        String?          @db.Text

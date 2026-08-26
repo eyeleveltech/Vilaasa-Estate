@@ -106,6 +106,30 @@
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
   }
+
+  /* Global native select and option dark luxury styling */
+  select {
+    color-scheme: dark;
+  }
+
+  select option {
+    background-color: #0c1813 !important;
+    color: #f3f4f6 !important;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  select option:hover,
+  select option:focus,
+  select option:checked {
+    background-color: #152e23 !important;
+    color: #10b981 !important;
+  }
+
+  select optgroup {
+    background-color: #08110d !important;
+    color: #9ca3af !important;
+  }
 }
 
 @layer utilities {

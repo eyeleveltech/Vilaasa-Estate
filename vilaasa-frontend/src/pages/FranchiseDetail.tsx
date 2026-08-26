@@ -160,10 +160,16 @@ const FranchiseDetail = () => {
               The Vision
             </span>
             <h2 className="text-3xl md:text-4xl font-light text-foreground mt-4 mb-8">
-              Where culinary artistry meets{" "}
-              <span className="italic text-gold-accent">
-                intelligent capital.
-              </span>
+              {franchise.visionHeadline ? (
+                franchise.visionHeadline
+              ) : (
+                <>
+                  Where culinary artistry meets{" "}
+                  <span className="italic text-gold-accent">
+                    intelligent capital.
+                  </span>
+                </>
+              )}
             </h2>
             {franchise.description.map((para, idx) => (
               <p

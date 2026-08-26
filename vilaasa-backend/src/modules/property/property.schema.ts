@@ -65,6 +65,7 @@ export const CreatePropertySchema = z.object({
   description: z.string().min(10, "Description must be at least 10 characters"),
   visionHeadline: z.string().optional().nullable(),
   type: z.nativeEnum(PropertyType).default(PropertyType.RESIDENTIAL_VILLA),
+  customType: z.string().optional().nullable(),
   status: z.nativeEnum(PropertyStatus).default(PropertyStatus.AVAILABLE),
   price: z.coerce.number().nonnegative("Price must be non-negative").default(0),
   currency: z.nativeEnum(Currency).default(Currency.INR),
@@ -85,6 +86,7 @@ export const CreatePropertySchema = z.object({
   virtualTour360Url: z.string().optional().nullable().or(z.literal("")),
   brochureUrl: z.string().optional().nullable().or(z.literal("")),
   maintenanceFeePerSqFt: z.coerce.number().optional().nullable(),
+  customSpecs: z.array(z.object({ label: z.string(), value: z.string() })).optional().nullable(),
   verdictQuote: z.string().optional().nullable(),
   verdictAuthor: z.string().optional().nullable(),
   verdictTitle: z.string().optional().nullable(),
@@ -105,8 +107,8 @@ export const CreatePropertySchema = z.object({
     .optional()
     .nullable()
     .or(z.literal("")),
-  supportModules: z.array(z.string()).optional().nullable(),
-  advantages: z.array(z.string()).optional().nullable(),
+  supportModules: z.any().optional().nullable(),
+  advantages: z.any().optional().nullable(),
 
   // Nested structures
   location: LocationInputSchema,
@@ -196,6 +198,7 @@ export interface CreatePropertyInput {
   description: string;
   visionHeadline?: string;
   type: PropertyType;
+  customType?: string;
   status: PropertyStatus;
   price: number;
   currency: Currency;
@@ -214,6 +217,7 @@ export interface CreatePropertyInput {
   virtualTour360Url?: string;
   brochureUrl?: string;
   maintenanceFeePerSqFt?: number;
+  customSpecs?: { label: string; value: string }[];
   verdictQuote?: string;
   verdictAuthor?: string;
   verdictTitle?: string;
@@ -224,8 +228,8 @@ export interface CreatePropertyInput {
   lockInPeriodYears?: number;
   expectedAnnualRoi?: number;
   yieldPayoutFrequency?: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | "";
-  supportModules?: string[];
-  advantages?: string[];
+  supportModules?: any;
+  advantages?: any;
   location: LocationInput;
   configurations?: PropertyConfigurationInput[];
   media?: PropertyMediaInput[];
