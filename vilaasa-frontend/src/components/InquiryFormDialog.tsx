@@ -26,7 +26,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { CountryCodeSelect } from "./CountryCodeSelect";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { markOtpVerified } from "@/lib/otpAccess";
+import { markOtpVerified, isOtpVerified } from "@/lib/otpAccess";
 import api from "@/api/axios";
 
 interface InquiryFormDialogProps {
@@ -159,6 +159,54 @@ export const InquiryFormDialog = ({
       return;
     }
 
+    // 🚀 If user already verified OTP in the last 2 hours -> Skip OTP popup!
+    if (isOtpVerified()) {
+      setIsSubmitting(true);
+      try {
+        persistLeadProfile();
+        onVerified?.();
+
+        await api.post("/inquiries", {
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          phone: `${formData.phoneCountryCode} ${formData.phone}`.trim(),
+          investmentType: formData.investmentType,
+          investmentRange: getSelectedInvestmentRangeLabel(formData.investmentRange),
+          currency: currency || "INR",
+          propertyId: projectId || undefined,
+          source: projectId
+            ? projectType === "franchise"
+              ? "FRANCHISE_DETAIL"
+              : "PROPERTY_DETAIL"
+            : "HERO_INQUIRY",
+        });
+
+        setStep("success");
+        toast({
+          title: "Session Active",
+          description: "Inquiry submitted under your verified session. Redirecting...",
+        });
+
+        setTimeout(() => {
+          onOpenChange(false);
+          if (projectId) {
+            navigate(projectType === "real-estate" ? `/property/${projectId}` : `/franchise/${projectId}`);
+          }
+          setStep("form");
+        }, 1200);
+      } catch (error: any) {
+        toast({
+          title: "Submission Error",
+          description: error?.response?.data?.message || "Something went wrong",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    // If not verified or 2 hours expired -> Proceed with standard OTP request:
     setIsSubmitting(true);
     try {
       const res = await api.post("/auth/otp/send", {
@@ -230,7 +278,11 @@ export const InquiryFormDialog = ({
         ),
         currency: currency || "INR",
         propertyId: projectId || undefined,
-        source: "HERO_INQUIRY",
+        source: projectId
+          ? projectType === "franchise"
+            ? "FRANCHISE_DETAIL"
+            : "PROPERTY_DETAIL"
+          : "HERO_INQUIRY",
       });
 
       setStep("success");

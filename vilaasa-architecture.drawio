@@ -1,0 +1,442 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="Vilaasa Architecture" version="24.7.6" type="device">
+  <!-- PAGE 1: HIGH-LEVEL ARCHITECTURE -->
+  <diagram id="page1" name="1. High-Level Architecture">
+    <mxGraphModel dx="1920" dy="1080" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1080" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title1" value="VILAASA ESTATES — SYSTEM ARCHITECTURE" style="text;html=1;fontSize=22;fontStyle=1;align=center;fontColor=#1A1A2E;" vertex="1" parent="1">
+          <mxGeometry x="460" y="20" width="600" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="users_group" value="USERS" style="swimlane;startSize=30;fillColor=#E8EAF6;strokeColor=#3F51B5;fontStyle=1;fontSize=14;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="200" height="300" as="geometry"/>
+        </mxCell>
+        <mxCell id="u1" value="VIP Buyer&#xa;(Public Visitor)" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1565C0;" vertex="1" parent="users_group">
+          <mxGeometry x="60" y="40" width="80" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="u2" value="Super Admin" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#C62828;" vertex="1" parent="users_group">
+          <mxGeometry x="60" y="100" width="80" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="u3" value="Channel Partner&#xa;(Broker)" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;" vertex="1" parent="users_group">
+          <mxGeometry x="60" y="160" width="80" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="u4" value="Vault Investor&#xa;(HNWI)" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F57F17;" vertex="1" parent="users_group">
+          <mxGeometry x="60" y="220" width="80" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe_group" value="FRONTEND — React 18 + Vite 5 + TypeScript" style="swimlane;startSize=30;fillColor=#E3F2FD;strokeColor=#1565C0;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="80" width="380" height="380" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe_pub" value="PUBLIC PORTAL&#xa;14 Pages&#xa;─────────────&#xa;src/pages/*.tsx&#xa;src/components/*.tsx" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=10;align=center;" vertex="1" parent="fe_group">
+          <mxGeometry x="20" y="40" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe_admin" value="ADMIN PORTAL&#xa;14 Pages&#xa;─────────────&#xa;src/admin/pages/*.tsx&#xa;src/admin/components/*.tsx" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=10;align=center;" vertex="1" parent="fe_group">
+          <mxGeometry x="200" y="40" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe_partner" value="PARTNER PORTAL&#xa;6 Pages&#xa;─────────────&#xa;src/partner/pages/*.tsx&#xa;src/partner/components/*.tsx" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;align=center;" vertex="1" parent="fe_group">
+          <mxGeometry x="20" y="140" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe_vault" value="VAULT PORTAL&#xa;9 Pages&#xa;─────────────&#xa;src/vault/pages/*.tsx&#xa;src/vault/components/*.tsx" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F57F17;fontSize=10;align=center;" vertex="1" parent="fe_group">
+          <mxGeometry x="200" y="140" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe_api" value="Axios HTTP Client&#xa;src/api/axios.ts&#xa;─────────────&#xa;Bearer Token Interceptor&#xa;401 Auto-redirect" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#0277BD;fontSize=10;align=center;fontStyle=1;" vertex="1" parent="fe_group">
+          <mxGeometry x="60" y="240" width="260" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe_ctx" value="CurrencyContext&#xa;src/contexts/CurrencyContext.tsx&#xa;INR | USD | AED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=9;align=center;" vertex="1" parent="fe_group">
+          <mxGeometry x="110" y="320" width="160" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="be_group" value="BACKEND — Express 4 + TypeScript + Prisma 5" style="swimlane;startSize=30;fillColor=#FFF3E0;strokeColor=#E65100;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="740" y="80" width="440" height="380" as="geometry"/>
+        </mxCell>
+        <mxCell id="be_mw" value="MIDDLEWARE STACK&#xa;────────────────&#xa;Helmet | CORS | Morgan&#xa;Rate Limit (100/15min)&#xa;Body Parser (16KB)&#xa;────────────────&#xa;src/middlewares/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=10;align=center;" vertex="1" parent="be_group">
+          <mxGeometry x="20" y="40" width="180" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="be_auth_mw" value="JWT Auth + RBAC&#xa;────────────────&#xa;auth.ts | role.ts&#xa;validate.ts (Zod)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCCBC;strokeColor=#BF360C;fontSize=10;align=center;" vertex="1" parent="be_group">
+          <mxGeometry x="240" y="40" width="180" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="be_modules" value="10 ROUTE MODULES (60+ Endpoints)&#xa;─────────────────────────&#xa;auth | property | inquiry | media&#xa;siteVisit | channelPartner | vault&#xa;amenity | construction | heroHighlight&#xa;─────────────────────────&#xa;src/modules/*/*.controller.ts&#xa;src/modules/*/*.routes.ts&#xa;src/modules/*/*.schema.ts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FF8F00;fontSize=10;align=center;fontStyle=1;" vertex="1" parent="be_group">
+          <mxGeometry x="20" y="160" width="400" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="be_svc" value="Email Service&#xa;src/services/email.service.ts&#xa;7 luxury HTML templates" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#AD1457;fontSize=10;align=center;" vertex="1" parent="be_group">
+          <mxGeometry x="20" y="290" width="180" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="be_cfg" value="Config&#xa;src/config/db.ts&#xa;src/config/cloudinary.ts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#283593;fontSize=10;align=center;" vertex="1" parent="be_group">
+          <mxGeometry x="240" y="290" width="180" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="db_group" value="DATABASE — PostgreSQL (Neon Serverless)" style="swimlane;startSize=30;fillColor=#E8F5E9;strokeColor=#2E7D32;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="80" width="280" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="db_core" value="25 Models | 10 Enums&#xa;25+ Indexes&#xa;────────────────&#xa;prisma/schema.prisma&#xa;4 Migrations" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#A5D6A7;strokeColor=#2E7D32;fontSize=11;align=center;" vertex="1" parent="db_group">
+          <mxGeometry x="60" y="40" width="160" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="ext_group" value="EXTERNAL SERVICES" style="swimlane;startSize=30;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="290" width="280" height="280" as="geometry"/>
+        </mxCell>
+        <mxCell id="ext_smtp" value="Zoho Mail SMTP&#xa;smtppro.zoho.com:465&#xa;Transactional Emails" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#6A1B9A;fontSize=10;align=center;" vertex="1" parent="ext_group">
+          <mxGeometry x="20" y="40" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ext_cdn" value="Cloudinary CDN&#xa;Image / Video / PDF&#xa;Upload + Transform + Deliver" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1C4E9;strokeColor=#4527A0;fontSize=10;align=center;" vertex="1" parent="ext_group">
+          <mxGeometry x="20" y="100" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ext_render" value="Render.com&#xa;Backend Hosting&#xa;render.yaml" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#311B92;fontSize=10;align=center;" vertex="1" parent="ext_group">
+          <mxGeometry x="20" y="160" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ext_wa" value="WhatsApp Deep Links&#xa;LiveConcierge.tsx&#xa;India / Dubai / Franchise" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C5CAE9;strokeColor=#1A237E;fontSize=10;align=center;" vertex="1" parent="ext_group">
+          <mxGeometry x="20" y="220" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" edge="1" source="u1" target="fe_pub" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" edge="1" source="u2" target="fe_admin" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" edge="1" source="u3" target="fe_partner" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" edge="1" source="u4" target="fe_vault" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" value="REST API" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2;strokeColor=#1565C0;" edge="1" source="fe_api" target="be_mw" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" edge="1" source="be_modules" target="db_core" parent="1" style="strokeWidth=2;strokeColor=#2E7D32;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" edge="1" source="be_svc" target="ext_smtp" parent="1" style="strokeColor=#AD1457;dashed=1;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" edge="1" source="be_cfg" target="ext_cdn" parent="1" style="strokeColor=#4527A0;dashed=1;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e9" edge="1" source="be_cfg" target="db_core" parent="1" style="strokeColor=#283593;dashed=1;"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- PAGE 2: AUTH AND OTP FLOW -->
+  <diagram id="page2" name="2. Auth and OTP Flow">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title2" value="AUTH &amp; OTP VERIFICATION FLOW" style="text;html=1;fontSize=20;fontStyle=1;align=center;fontColor=#1A1A2E;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="400" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="al_title" value="ADMIN / PARTNER LOGIN" style="text;html=1;fontSize=14;fontStyle=5;fontColor=#C62828;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="250" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="al1" value="AdminLogin.tsx&#xa;PartnerLogin.tsx" style="rounded=1;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="110" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="al2" value="useAdminAuth.ts&#xa;login()" style="rounded=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="220" y="110" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="al3" value="POST /auth/login&#xa;validate(LoginSchema)" style="rounded=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="400" y="110" width="170" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="al4" value="auth.controller.ts&#xa;bcrypt + jwt.sign()" style="rounded=1;fillColor=#FFF8E1;strokeColor=#FF8F00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="610" y="110" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="al5" value="PostgreSQL&#xa;User table" style="shape=cylinder3;size=10;fillColor=#A5D6A7;strokeColor=#2E7D32;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="800" y="100" width="110" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="al6" value="localStorage&#xa;vilaasa-admin-token" style="rounded=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="950" y="110" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ale1" edge="1" source="al1" target="al2" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ale2" edge="1" source="al2" target="al3" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ale3" edge="1" source="al3" target="al4" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ale4" edge="1" source="al4" target="al5" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ale5" value="JWT" edge="1" source="al4" target="al6" parent="1" style="strokeColor=#7B1FA2;dashed=1;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="otp_title" value="PUBLIC BUYER OTP (2-Hour Session)" style="text;html=1;fontSize=14;fontStyle=5;fontColor=#0277BD;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="350" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="otp1" value="1. InquiryFormDialog.tsx&#xa;Fill Name/Email/Phone" style="rounded=1;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="170" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="otp2" value="2. otpAccess.ts&#xa;isOtpVerified()?" style="rhombus;fillColor=#FFF9C4;strokeColor=#F57F17;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="250" y="230" width="150" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="otp3" value="Active → Skip OTP&#xa;Direct Submit" style="rounded=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="250" y="330" width="150" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="otp4" value="3. POST /auth/otp/send" style="rounded=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="240" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="otp5" value="4. sendOtp()&#xa;6-digit, 10min TTL" style="rounded=1;fillColor=#FFF8E1;strokeColor=#FF8F00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="630" y="240" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="otp6" value="OtpRecord&#xa;create()" style="shape=cylinder3;size=10;fillColor=#A5D6A7;strokeColor=#2E7D32;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="810" y="230" width="100" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="otp7" value="5. sendOtpEmail()&#xa;email.service.ts" style="rounded=1;fillColor=#FCE4EC;strokeColor=#AD1457;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="950" y="240" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="otp8" value="Zoho SMTP" style="ellipse;fillColor=#E1BEE7;strokeColor=#6A1B9A;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="245" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="otp9" value="6. Enter 6-digit OTP&#xa;input-otp.tsx" style="rounded=1;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="400" width="170" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="otp10" value="7. POST /auth/otp/verify" style="rounded=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="250" y="400" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="otp11" value="8. verifyOtp()&#xa;attempts &lt; 5&#xa;Auto-provision User" style="rounded=1;fillColor=#FFF8E1;strokeColor=#FF8F00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="450" y="395" width="150" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="otp12" value="9. setOtpVerified()&#xa;2hr localStorage TTL" style="rounded=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="640" y="400" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="otp13" value="10. POST /inquiries&#xa;Create lead + Timeline" style="rounded=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="840" y="400" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="oe1" edge="1" source="otp1" target="otp2" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe2" value="Yes" edge="1" source="otp2" target="otp3" parent="1" style="strokeColor=#2E7D32;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe3" value="No" edge="1" source="otp2" target="otp4" parent="1" style="strokeColor=#E65100;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe4" edge="1" source="otp4" target="otp5" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe5" edge="1" source="otp5" target="otp6" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe6" edge="1" source="otp5" target="otp7" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe7" edge="1" source="otp7" target="otp8" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe8" edge="1" source="otp9" target="otp10" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe9" edge="1" source="otp10" target="otp11" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe10" edge="1" source="otp11" target="otp12" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe11" edge="1" source="otp12" target="otp13" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="vl_title" value="VAULT INVESTOR LOGIN" style="text;html=1;fontSize=14;fontStyle=5;fontColor=#F57F17;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="250" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="vl1" value="VaultLogin.tsx" style="rounded=1;fillColor=#FFF9C4;strokeColor=#F57F17;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="130" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="vl2" value="useVault.ts&#xa;vaultLogin()" style="rounded=1;fillColor=#FFF8E1;strokeColor=#FF8F00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="210" y="535" width="130" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="vl3" value="POST /vault/login&#xa;vault.controller.ts" style="rounded=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="380" y="535" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="vl4" value="vilaasa-vault-token&#xa;vilaasa-vault-user" style="rounded=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="570" y="535" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="vl5" value="VaultProtectedRoute&#xa;JWT exp check" style="rounded=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="760" y="535" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="vle1" edge="1" source="vl1" target="vl2" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="vle2" edge="1" source="vl2" target="vl3" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="vle3" edge="1" source="vl3" target="vl4" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="vle4" edge="1" source="vl4" target="vl5" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- PAGE 3: MAIN BUSINESS FLOW -->
+  <diagram id="page3" name="3. Main Business Flow">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title3" value="MAIN BUSINESS FLOW — Property Discovery to Investment" style="text;html=1;fontSize=20;fontStyle=1;align=center;fontColor=#1A1A2E;" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="bf1" value="1. ADMIN CREATES&#xa;AdminPropertyForm.tsx&#xa;4-step wizard" style="rounded=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="180" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="bf2" value="POST /properties&#xa;createProperty()" style="rounded=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="80" width="150" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="bf3" value="Upload Media&#xa;→ Cloudinary CDN" style="rounded=1;fillColor=#D1C4E9;strokeColor=#4527A0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="450" y="80" width="150" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="bf4" value="Property Live&#xa;/property/:slug" style="rounded=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="640" y="80" width="140" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="bf5" value="2. BUYER BROWSES&#xa;Domestic / International&#xa;GET /properties" style="rounded=1;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="180" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="bf6" value="3. DETAIL PAGE&#xa;PropertyDetail.tsx&#xa;Views++" style="rounded=1;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="170" width="150" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="bf7" value="4. OTP GATE&#xa;InquiryFormDialog&#xa;2hr session" style="rounded=1;fillColor=#FFF9C4;strokeColor=#F57F17;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="170" width="150" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="bf8" value="5. INQUIRY&#xa;POST /inquiries&#xa;Status: NEW" style="rounded=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="640" y="170" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="bf9" value="6. ADMIN CRM&#xa;AdminInquiriesList&#xa;NEW → CONTACTED → QUALIFIED" style="rounded=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="270" width="220" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="bf10" value="7. SITE VISIT&#xa;POST /site-visits&#xa;Send itinerary email" style="rounded=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="270" width="170" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="bf11" value="8. NEGOTIATION&#xa;→ NEGOTIATING&#xa;Follow-ups tracked" style="rounded=1;fillColor=#FFF9C4;strokeColor=#F57F17;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="510" y="270" width="160" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="bf12" value="9. CLOSED_WON&#xa;or CLOSED_LOST" style="rounded=1;fillColor=#A5D6A7;strokeColor=#1B5E20;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="710" y="270" width="140" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="bf13" value="10. VAULT ONBOARD&#xa;onboard-investor&#xa;Send welcome email" style="rounded=1;fillColor=#FFF9C4;strokeColor=#F57F17;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="370" width="180" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="bf14" value="11. ASSIGN ASSET&#xa;POST /vault/assets&#xa;Set acquisition price" style="rounded=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="370" width="170" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="bf15" value="12. INVESTOR PORTAL&#xa;VaultDashboard.tsx&#xa;Portfolio · Tenancy · Payments&#xa;Documents · Concierge · Nominees" style="rounded=1;fillColor=#BBDEFB;strokeColor=#0D47A1;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="470" y="360" width="220" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="pf_title" value="CHANNEL PARTNER FLOW" style="text;html=1;fontSize=13;fontStyle=5;fontColor=#2E7D32;" vertex="1" parent="1">
+          <mxGeometry x="40" y="470" width="250" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="pf1" value="Register&#xa;POST /channel-partners/register&#xa;Status: PENDING" style="rounded=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="200" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="pf2" value="Admin Approves&#xa;PATCH /:id/status&#xa;Auto-create User" style="rounded=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="280" y="500" width="170" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="pf3" value="Partner Portal&#xa;Inventory · Leads · Visits" style="rounded=1;fillColor=#C8E6C9;strokeColor=#1B5E20;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="500" width="170" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="be1" edge="1" source="bf1" target="bf2" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="be2" edge="1" source="bf2" target="bf3" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="be3" edge="1" source="bf3" target="bf4" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="be4" edge="1" source="bf5" target="bf6" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="be5" edge="1" source="bf6" target="bf7" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="be6" edge="1" source="bf7" target="bf8" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="be7" edge="1" source="bf8" target="bf9" parent="1" style="edgeStyle=orthogonalEdgeStyle;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="be8" edge="1" source="bf9" target="bf10" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="be9" edge="1" source="bf10" target="bf11" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="be10" edge="1" source="bf11" target="bf12" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="be11" value="WON" edge="1" source="bf12" target="bf13" parent="1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#1B5E20;strokeWidth=2;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="be12" edge="1" source="bf13" target="bf14" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="be13" edge="1" source="bf14" target="bf15" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="pe1" edge="1" source="pf1" target="pf2" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="pe2" edge="1" source="pf2" target="pf3" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- PAGE 4: DATABASE ARCHITECTURE -->
+  <diagram id="page4" name="4. Database Architecture">
+    <mxGraphModel dx="1920" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title4" value="DATABASE — 25 Models, PostgreSQL + Prisma" style="text;html=1;fontSize=20;fontStyle=1;align=center;fontColor=#1A1A2E;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_user" value="User&#xa;─────────&#xa;id (PK) · email (UK)&#xa;passwordHash · name&#xa;phone? · role: Role&#xa;isActive · licenseNumber?" style="rounded=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=10;fontStyle=1;align=center;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="200" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_property" value="Property&#xa;─────────&#xa;id (PK) · slug (UK)&#xa;name · type · status&#xa;price · currency · views&#xa;isDeleted · locationId&#xa;adminId? · 15+ more fields" style="rounded=1;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=10;fontStyle=1;align=center;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="320" y="70" width="210" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_location" value="Location&#xa;─────────&#xa;id · city · country&#xa;lat/lng · googleMapUrl" style="rounded=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=10;align=center;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="600" y="80" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_config" value="PropertyConfiguration&#xa;propertyId → Property&#xa;unitType · areaSqFt · price" style="rounded=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=9;align=center;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="600" y="180" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_media" value="PropertyMedia&#xa;propertyId → Property&#xa;mediaType · url (Cloudinary)&#xa;orderIndex · isFeatured" style="rounded=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=9;align=center;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="800" y="80" width="170" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_amenity" value="Amenity ←→ PropertyOnAmenity&#xa;name (UK) · iconKey · category" style="rounded=1;fillColor=#FFF8E1;strokeColor=#FF8F00;fontSize=9;align=center;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="800" y="170" width="170" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_otp" value="OtpRecord ⚠️&#xa;email · otp (PLAIN TEXT)&#xa;expiresAt · verified · attempts" style="rounded=1;fillColor=#FFCDD2;strokeColor=#D32F2F;fontSize=9;align=center;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="220" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_inquiry" value="Inquiry (CRM Lead)&#xa;─────────&#xa;name · email · phone&#xa;investmentType · status&#xa;source · propertyId?&#xa;assignedAgentId? · UTM" style="rounded=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;fontStyle=1;align=center;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="310" width="200" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_timeline" value="InquiryTimeline&#xa;inquiryId → Inquiry&#xa;fromStatus → toStatus" style="rounded=1;fillColor=#E8F5E9;strokeColor=#388E3C;fontSize=9;align=center;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="280" y="340" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_sitevisit" value="SiteVisit&#xa;propertyId → Property&#xa;name · scheduledDate/Time&#xa;visitType · status" style="rounded=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=9;align=center;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="280" y="250" width="160" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_partner" value="ChannelPartner&#xa;email (UK) · name · company&#xa;status: PENDING|APPROVED&#xa;userId? (UK) → User" style="rounded=1;fillColor=#C8E6C9;strokeColor=#1B5E20;fontSize=9;align=center;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="280" y="420" width="180" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="vault_title" value="THE VAULT" style="text;html=1;fontSize=13;fontStyle=5;fontColor=#F57F17;" vertex="1" parent="1">
+          <mxGeometry x="540" y="275" width="100" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_vasset" value="VaultAsset&#xa;userId → User · propertyId → Property&#xa;unitNumber · purchasePrice&#xa;currentValuation · monthlyRentalYield" style="rounded=1;fillColor=#FFF9C4;strokeColor=#F57F17;fontSize=9;fontStyle=1;align=center;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="530" y="300" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_lease" value="Lease&#xa;vaultAssetId · tenantName&#xa;monthlyRent · rentStatus" style="rounded=1;fillColor=#FFF8E1;strokeColor=#FF8F00;fontSize=9;align=center;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="790" y="290" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_payment" value="PaymentMilestone&#xa;vaultAssetId · amount&#xa;dueDate · status" style="rounded=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=9;align=center;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="790" y="355" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_vdoc" value="VaultDocument · ConciergeRequest&#xa;Nominee · LegacyDocument&#xa;All → userId / vaultAssetId" style="rounded=1;fillColor=#E1BEE7;strokeColor=#6A1B9A;fontSize=9;align=center;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="530" y="395" width="220" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_hero" value="HeroHighlight&#xa;name · tagline · linkUrl&#xa;isActive (max 3)" style="rounded=1;fillColor=#FCE4EC;strokeColor=#AD1457;fontSize=9;align=center;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="80" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_construction" value="ConstructionAsset (1:1 Property)&#xa;→ Milestones[] · Gallery[]&#xa;structure/interior/overall %" style="rounded=1;fillColor=#FFE0B2;strokeColor=#BF360C;fontSize=9;align=center;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="150" width="190" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="r1" edge="1" source="m_property" target="m_location" parent="1" style="endArrow=block;strokeColor=#2E7D32;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="r2" edge="1" source="m_property" target="m_user" parent="1" style="endArrow=block;strokeColor=#C62828;dashed=1;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="r3" edge="1" source="m_config" target="m_property" parent="1" style="endArrow=block;strokeColor=#1565C0;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="r4" edge="1" source="m_media" target="m_property" parent="1" style="endArrow=block;strokeColor=#7B1FA2;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="r5" edge="1" source="m_inquiry" target="m_property" parent="1" style="endArrow=block;strokeColor=#2E7D32;dashed=1;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="r6" edge="1" source="m_timeline" target="m_inquiry" parent="1" style="endArrow=block;strokeColor=#388E3C;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="r7" edge="1" source="m_sitevisit" target="m_property" parent="1" style="endArrow=block;strokeColor=#E65100;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="r8" edge="1" source="m_vasset" target="m_user" parent="1" style="endArrow=block;strokeColor=#F57F17;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="r9" edge="1" source="m_vasset" target="m_property" parent="1" style="endArrow=block;strokeColor=#FF8F00;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="r10" edge="1" source="m_lease" target="m_vasset" parent="1" style="endArrow=block;strokeColor=#FF8F00;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="r11" edge="1" source="m_payment" target="m_vasset" parent="1" style="endArrow=block;strokeColor=#E65100;"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- PAGE 5: FRONTEND COMPONENT TREE -->
+  <diagram id="page5" name="5. Frontend Component Tree">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title5" value="FRONTEND COMPONENT TREE" style="text;html=1;fontSize=20;fontStyle=1;align=center;fontColor=#1A1A2E;" vertex="1" parent="1">
+          <mxGeometry x="500" y="20" width="400" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="app" value="App.tsx (BrowserRouter)" style="rounded=1;fillColor=#1A1A2E;fontColor=#FFFFFF;strokeColor=#1A1A2E;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="550" y="70" width="200" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="prov" value="CurrencyProvider · Toaster · ScrollToTop · LiveConcierge · SplashGateway" style="rounded=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="370" y="125" width="560" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="pub_root" value="PUBLIC (14 Pages)" style="rounded=1;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="180" width="160" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="adm_root" value="ADMIN (14 Pages)" style="rounded=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="180" width="160" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="ptr_root" value="PARTNER (6 Pages)" style="rounded=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="780" y="180" width="160" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="vlt_root" value="VAULT (9 Pages)" style="rounded=1;fillColor=#FFF9C4;strokeColor=#F57F17;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="180" width="160" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="pub_pages" value="Index · Domestic · DomesticRealEstate&#xa;DomesticFranchise · International&#xa;PropertyDetail · FranchiseDetail&#xa;WealthProjector · Calendar · Contact&#xa;Privacy · Terms · Disclaimer · 404" style="rounded=1;fillColor=#E3F2FD;strokeColor=#90CAF9;fontSize=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="235" width="200" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="pub_comp" value="Navbar · Footer · HeroSection&#xa;Gallery · InquiryFormDialog&#xa;CalanderDialog · CurrencyToggle&#xa;LiveConcierge · SplashGateway&#xa;ShareButtons · PartnerLoginDialog" style="rounded=1;fillColor=#E8EAF6;strokeColor=#3F51B5;fontSize=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="340" width="200" height="85" as="geometry"/>
+        </mxCell>
+        <mxCell id="adm_pages" value="Login · Dashboard · PropertiesList&#xa;PropertyForm · PropertyDetail&#xa;FranchisesList · FranchiseForm&#xa;FranchiseDetail · InquiriesList&#xa;ViewingsList · SiteVisits&#xa;Partners · Highlights · VaultMgmt" style="rounded=1;fillColor=#FFEBEE;strokeColor=#EF9A9A;fontSize=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="380" y="235" width="200" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="adm_comp" value="AdminLayout · AdminProtectedRoute&#xa;MediaUploader · BrochureUploader&#xa;StatsCard" style="rounded=1;fillColor=#FCE4EC;strokeColor=#E57373;fontSize=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="380" y="350" width="200" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ptr_pages" value="Login · Register · Dashboard&#xa;Inventory · Leads · SiteVisits" style="rounded=1;fillColor=#E8F5E9;strokeColor=#A5D6A7;fontSize=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="760" y="235" width="200" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="ptr_comp" value="PartnerLayout · PartnerProtectedRoute" style="rounded=1;fillColor=#E8F5E9;strokeColor=#66BB6A;fontSize=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="760" y="295" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="vlt_pages" value="Login · Dashboard · Portfolio&#xa;Tenancy · Construction · Payments&#xa;Documents · Concierge · Nominees" style="rounded=1;fillColor=#FFFDE7;strokeColor=#FFF176;fontSize=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="235" width="200" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="vlt_comp" value="VaultLayout · VaultProtectedRoute&#xa;VaultSidebar · VaultAssetCard&#xa;VaultOverview · VaultAssets&#xa;VaultWealthProjector · VaultTenancy&#xa;VaultConstruction · VaultPayments&#xa;VaultDocuments · VaultConcierge&#xa;VaultNominee" style="rounded=1;fillColor=#FFF8E1;strokeColor=#FFD54F;fontSize=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="305" width="200" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="hooks_title" value="HOOKS &amp; STATE" style="text;fontSize=11;fontStyle=5;fontColor=#311B92;" vertex="1" parent="1">
+          <mxGeometry x="40" y="450" width="120" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="hooks" value="useHeroHighlights · useNewProperties · useNewFranchise&#xa;use-mobile · use-toast · useAdminAuth · useAdminProperties&#xa;useVault · useVaultSections (tenancy/construction/payments/docs/concierge/nominees)&#xa;───────────────────────&#xa;otpAccess.ts · CurrencyContext · cdnAssets.ts · axios.ts (interceptors)" style="rounded=1;fillColor=#EDE7F6;strokeColor=#5C6BC0;fontSize=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="475" width="450" height="85" as="geometry"/>
+        </mxCell>
+        <mxCell id="ce1" edge="1" source="app" target="prov" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ce2" edge="1" source="prov" target="pub_root" parent="1" style="edgeStyle=orthogonalEdgeStyle;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ce3" edge="1" source="prov" target="adm_root" parent="1" style="edgeStyle=orthogonalEdgeStyle;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ce4" edge="1" source="prov" target="ptr_root" parent="1" style="edgeStyle=orthogonalEdgeStyle;"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ce5" edge="1" source="prov" target="vlt_root" parent="1" style="edgeStyle=orthogonalEdgeStyle;"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

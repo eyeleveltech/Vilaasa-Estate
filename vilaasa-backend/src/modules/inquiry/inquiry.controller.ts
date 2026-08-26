@@ -21,18 +21,22 @@ export const createInquiry = asyncHandler(
   async (req: Request, res: Response) => {
     const data = req.body as CreateInquiryInput;
 
+    let resolvedPropertyId: string | undefined = undefined;
     let propertyName: string | undefined = undefined;
     if (data.propertyId) {
-      const property = await prisma.property.findUnique({
-        where: { id: data.propertyId },
+      const property = await prisma.property.findFirst({
+        where: {
+          OR: [
+            { id: data.propertyId },
+            { slug: data.propertyId },
+          ],
+        },
         select: { id: true, name: true },
       });
-      if (!property) {
-        throw ApiError.badRequest(
-          `Referenced property with id '${data.propertyId}' does not exist`,
-        );
+      if (property) {
+        resolvedPropertyId = property.id;
+        propertyName = property.name;
       }
-      propertyName = property.name;
     }
 
     const inquiry = await prisma.inquiry.create({
@@ -43,7 +47,7 @@ export const createInquiry = asyncHandler(
         investmentType: data.investmentType,
         investmentRange: data.investmentRange,
         currency: data.currency,
-        propertyId: data.propertyId,
+        propertyId: resolvedPropertyId,
         source: data.source,
         utmSource: data.utmSource,
         utmMedium: data.utmMedium,
@@ -100,6 +104,7 @@ export const getInquiries = asyncHandler(
       status,
       propertyId,
       source,
+      investmentType,
       search,
       page = 1,
       limit = 20,
@@ -112,6 +117,7 @@ export const getInquiries = asyncHandler(
     if (status) where.status = status;
     if (propertyId) where.propertyId = propertyId;
     if (source) where.source = source;
+    if (investmentType) where.investmentType = investmentType;
 
     if (search) {
       where.OR = [
@@ -141,6 +147,17 @@ export const getInquiries = asyncHandler(
               name: true,
               price: true,
               currency: true,
+              location: {
+                select: {
+                  city: true,
+                  country: true,
+                },
+              },
+              media: {
+                where: { isFeatured: true },
+                select: { url: true },
+                take: 1,
+              },
             },
           },
           assignedAgent: {
@@ -411,3 +428,61 @@ export const getInquiryStats = asyncHandler(
     );
   },
 );
+
+/**
+ * @desc    Silent audit log: Records property view from an active 2-hour OTP session
+ * @route   POST /api/v1/inquiries/track-view
+ * @access  Public (Session Lead)
+ */
+export const trackPropertyView = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { propertyId, propertyName, email, phone, name } = req.body;
+
+    if (!propertyId) {
+      throw ApiError.badRequest("propertyId is required");
+    }
+
+    // 1. Resolve property
+    const property = await prisma.property.findFirst({
+      where: {
+        OR: [{ id: propertyId }, { slug: propertyId }],
+      },
+      select: { id: true, name: true },
+    });
+
+    if (property) {
+      // Increment total property views counter
+      void prisma.property.update({
+        where: { id: property.id },
+        data: { views: { increment: 1 } },
+      });
+    }
+
+    // 2. If verified lead email exists, link activity to lead history
+    if (email && property) {
+      const existingInquiry = await prisma.inquiry.findFirst({
+        where: { email },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (existingInquiry) {
+        // Append to lead timeline
+        void prisma.inquiryTimeline.create({
+          data: {
+            inquiryId: existingInquiry.id,
+            toStatus: existingInquiry.status,
+            note: `VIP Client viewed portfolio asset: "${property.name}" during active 2-hour session`,
+          },
+        });
+      }
+    }
+
+    return res.status(200).json(
+      ApiResponse.ok(
+        { tracked: true, propertyId: property?.id || propertyId },
+        "Property view tracked successfully",
+      ),
+    );
+  },
+);
+

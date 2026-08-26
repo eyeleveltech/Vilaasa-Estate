@@ -334,3 +334,35 @@ export const getPropertyMedia = asyncHandler(
     );
   },
 );
+
+/**
+ * @desc    Update media asset metadata (caption/altText, mediaType, isFeatured)
+ * @route   PATCH /api/v1/media/:mediaId
+ * @access  Protected (SUPER_ADMIN)
+ */
+export const updateMedia = asyncHandler(async (req: Request, res: Response) => {
+  const { mediaId } = req.params;
+  const { altText, mediaType, isFeatured } = req.body;
+
+  const existing = await prisma.propertyMedia.findUnique({
+    where: { id: mediaId },
+  });
+
+  if (!existing) {
+    throw ApiError.notFound(`Media record with id '${mediaId}' not found`);
+  }
+
+  const updated = await prisma.propertyMedia.update({
+    where: { id: mediaId },
+    data: {
+      altText: altText !== undefined ? altText : undefined,
+      mediaType: mediaType !== undefined ? mediaType : undefined,
+      isFeatured: isFeatured !== undefined ? Boolean(isFeatured) : undefined,
+    },
+  });
+
+  return res.status(200).json(
+    ApiResponse.ok(updated, "Media asset updated successfully"),
+  );
+});
+

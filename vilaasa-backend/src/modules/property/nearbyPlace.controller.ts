@@ -7,8 +7,10 @@ import { asyncHandler } from "../../utils/asyncHandler";
 
 export const NearbyPlaceSchema = z.object({
   name: z.string().min(1, "Place name is required"),
-  distance: z.string().min(1, "Distance is required"),
-  category: z.string().optional(),
+  distance: z.string().optional().nullable().default("Nearby"),
+  category: z.string().optional().nullable(),
+  travelTime: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
 });
 
 export const UpdateNearbyPlaceSchema = NearbyPlaceSchema.partial();
@@ -39,6 +41,8 @@ export const getNearbyPlaces = asyncHandler(
       name: string;
       distance: string;
       category: string | null;
+      travelTime: string | null;
+      description: string | null;
     }
 
     const places: NearbyPlaceItem[] = await prisma.nearbyPlace.findMany({
@@ -84,8 +88,10 @@ export const addNearbyPlace = asyncHandler(
       data: {
         propertyId,
         name: data.name,
-        distance: data.distance,
-        category: data.category,
+        distance: data.distance || "Nearby",
+        category: data.category ?? null,
+        travelTime: data.travelTime ?? null,
+        description: data.description ?? null,
       },
     });
 
@@ -118,9 +124,11 @@ export const updateNearbyPlace = asyncHandler(
     const updated = await prisma.nearbyPlace.update({
       where: { id: placeId },
       data: {
-        name: data.name,
-        distance: data.distance,
-        category: data.category,
+        name: data.name !== undefined ? data.name : undefined,
+        distance: data.distance !== undefined ? (data.distance || "Nearby") : undefined,
+        category: data.category !== undefined ? data.category : undefined,
+        travelTime: data.travelTime !== undefined ? data.travelTime : undefined,
+        description: data.description !== undefined ? data.description : undefined,
       },
     });
 

@@ -1,15 +1,23 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CDN_ASSETS } from "@/config/cdnAssets";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useFranchiseList } from "@/hooks/useNewFranchise";
+import { InquiryFormDialog } from "@/components/InquiryFormDialog";
+import { isOtpVerified } from "@/lib/otpAccess";
 
 const DomesticFranchise = () => {
+  const navigate = useNavigate();
   const [activeType, setActiveType] = useState<string | null>(null);
   const [location, setLocation] = useState<string | null>(null);
+  const [inquiryOpen, setInquiryOpen] = useState(false);
+  const [selectedFranchise, setSelectedFranchise] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const { formatAmount, formatDynamicValue } = useCurrency();
   // const { data: products = [], isLoading, isError } = useProperties();
@@ -53,6 +61,20 @@ const DomesticFranchise = () => {
   const clearFilters = () => {
     setActiveType(null);
     setLocation(null);
+  };
+
+  const openInquiry = (franchise: { id: string; name: string }) => {
+    if (isOtpVerified()) {
+      navigate(`/franchise/${franchise.id}`);
+      return;
+    }
+    setSelectedFranchise(franchise);
+    setInquiryOpen(true);
+  };
+
+  const handleInquiryOpenChange = (open: boolean) => {
+    setInquiryOpen(open);
+    if (!open) setSelectedFranchise(null);
   };
 
   return (
@@ -180,10 +202,7 @@ const DomesticFranchise = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <Link
-                  to={`/franchise/${franchise.id}`}
-                  className="group block w-full overflow-hidden rounded-sm border border-border bg-card text-left transition-all hover:border-gold/50"
-                >
+                <div className="group block w-full overflow-hidden rounded-sm border border-border bg-card text-left transition-all hover:border-gold/50">
                   <div className="relative aspect-[4/3] overflow-hidden">
                     <div
                       className="h-full w-full bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
@@ -249,12 +268,16 @@ const DomesticFranchise = () => {
                     </div>
 
                     <div className="mt-4 w-full">
-                      <span className="inline-flex w-full justify-center bg-gold py-2 text-sm font-bold uppercase tracking-wider text-gold-foreground transition-colors group-hover:bg-gold/90">
+                      <button
+                        type="button"
+                        onClick={() => openInquiry({ id: franchise.id, name: franchise.name })}
+                        className="inline-flex w-full justify-center bg-gold py-2 text-sm font-bold uppercase tracking-wider text-gold-foreground transition-colors hover:bg-gold/90"
+                      >
                         View Details
-                      </span>
+                      </button>
                     </div>
                   </div>
-                </Link>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -271,6 +294,15 @@ const DomesticFranchise = () => {
           )}
         </div>
       </section>
+
+      <InquiryFormDialog
+        key={selectedFranchise?.id ?? "inquiry"}
+        open={inquiryOpen}
+        onOpenChange={handleInquiryOpenChange}
+        projectType="franchise"
+        projectId={selectedFranchise?.id}
+        projectName={selectedFranchise?.name}
+      />
 
       <Footer />
     </div>

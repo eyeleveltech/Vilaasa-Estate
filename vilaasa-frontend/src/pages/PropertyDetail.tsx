@@ -1,21 +1,28 @@
 import { motion } from "framer-motion";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { DiamondIcon } from "@/components/icons/DiamondIcon";
 import { ShareButtons } from "@/components/ShareButtons";
 import { CalanderDialog } from "@/components/CalanderDialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Gallery from "@/components/Gallery";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useProperty } from "@/hooks/useNewProperties";
 import { useToast } from "@/hooks/use-toast";
+import { InquiryFormDialog } from "@/components/InquiryFormDialog";
+import { trackSilentPropertyView, isOtpVerified } from "@/lib/otpAccess";
 import api from "@/api/axios";
 
 const PropertyDetail = () => {
+  const navigate = useNavigate();
   const [openCalendar, setOpenCalendar] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => isOtpVerified());
+  const [inquiryDialogOpen, setInquiryDialogOpen] = useState<boolean>(() => !isOtpVerified());
   const [requested, setRequested] = useState<number[]>([]);
+  const [costSheetModalOpen, setCostSheetModalOpen] = useState(false);
+  const [selectedUnitIdx, setSelectedUnitIdx] = useState<number | null>(null);
   const { id } = useParams<{ id: string }>();
   const { data: property, isLoading, isError } = useProperty(id || "the-aurum");
   const { formatAmount, formatDynamicValue } = useCurrency();
@@ -23,14 +30,19 @@ const PropertyDetail = () => {
   const configurations = property?.configurations ?? [];
   const hasArea = configurations.some((c) => Boolean(c.area));
 
+  // 🚀 Silent View Tracking Effect for active 2-hour session
+  useEffect(() => {
+    if (isUnlocked && property?.id) {
+      trackSilentPropertyView(property.id, property.name);
+    }
+  }, [isUnlocked, property?.id, property?.name]);
+
   // console.log(property);
 
   const handleRequest = (idx: number) => {
     if (requested.includes(idx)) return;
-
-    setRequested((prev) => [...prev, idx]);
-
-    // your API / modal / logic here
+    setSelectedUnitIdx(idx);
+    setCostSheetModalOpen(true);
   };
 
   // Loading state
@@ -151,89 +163,134 @@ const PropertyDetail = () => {
       </header>
 
       {/* Concept Section */}
-      <section className="border-y border-border bg-card px-4 py-14 md:px-10 md:py-20">
-        <div className="mx-auto grid max-w-[1280px] grid-cols-1 items-center gap-10 md:gap-16 lg:grid-cols-2">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="flex flex-col gap-6"
-          >
-            <span className="text-primary/60 uppercase tracking-[0.2em] text-xs font-bold">
-              Concept & Vision
-            </span>
-            <h2 className="text-2xl font-light text-foreground sm:text-3xl md:text-4xl">
-              {property.visionHeadline}
-            </h2>
-            {property.description.map((para, idx) => (
-              <p
-                key={idx}
-                dangerouslySetInnerHTML={{ __html: para }}
-                className="text-sm leading-relaxed text-muted-foreground md:text-base"
-              />
-            ))}
-          </motion.div>
+      {(property.visionHeadline || (property.description && property.description.length > 0) || property.verdict?.quote) && (
+        <section className="border-y border-border bg-card px-4 py-14 md:px-10 md:py-20">
+          <div className="mx-auto grid max-w-[1280px] grid-cols-1 items-center gap-10 md:gap-16 lg:grid-cols-2">
+            {(property.visionHeadline || (property.description && property.description.length > 0)) && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className="flex flex-col gap-6 lg:col-span-1"
+              >
+                <span className="text-primary/60 uppercase tracking-[0.2em] text-xs font-bold">
+                  Concept & Vision
+                </span>
+                {property.visionHeadline && (
+                  <h2 className="text-2xl font-light text-foreground sm:text-3xl md:text-4xl">
+                    {property.visionHeadline}
+                  </h2>
+                )}
+                {property.description && property.description.map((para, idx) => (
+                  <p
+                    key={idx}
+                    dangerouslySetInnerHTML={{ __html: para }}
+                    className="text-sm leading-relaxed text-muted-foreground md:text-base"
+                  />
+                ))}
+              </motion.div>
+            )}
 
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="rounded-lg border border-primary/20 bg-background p-5 md:p-8"
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <span className="material-symbols-outlined text-primary">
-                verified
-              </span>
-              <span className="text-primary font-medium">
-                The Vilaasa Verdict
-              </span>
-            </div>
-            <p className="mb-6 text-base italic leading-relaxed text-foreground/90 md:text-lg">
-              "{property.verdict.quote}"
-            </p>
-          </motion.div>
-        </div>
-      </section>
+            {property.verdict?.quote && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className={`rounded-lg border border-primary/20 bg-background p-5 md:p-8 ${!(property.visionHeadline || (property.description && property.description.length > 0)) ? "lg:col-span-2 lg:max-w-2xl lg:mx-auto" : ""}`}
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="material-symbols-outlined text-primary">
+                    verified
+                  </span>
+                  <span className="text-primary font-medium">
+                    The Vilaasa Verdict
+                  </span>
+                </div>
+                <p className="mb-4 text-base italic leading-relaxed text-foreground/90 md:text-lg">
+                  &quot;{property.verdict.quote}&quot;
+                </p>
+                {(property.verdict.author || property.verdict.title) && (
+                  <div className="border-t border-border/50 pt-3 text-xs text-muted-foreground">
+                    {property.verdict.author && (
+                      <p className="font-semibold text-foreground/90">
+                        {property.verdict.author}
+                      </p>
+                    )}
+                    {property.verdict.title && (
+                      <p className="text-[11px] text-muted-foreground">
+                        {property.verdict.title}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* At a Glance */}
-      {property.specs.length > 0 && (
+      {(property.specs.length > 0 || property.brochure || property.virtualTour360Url) && (
         <section className="px-4 py-14 md:px-10 md:py-20">
           <div className="max-w-[1280px] mx-auto">
-            <h2 className="mb-6 text-2xl font-light text-foreground md:mb-8">
-              At a Glance
-            </h2>
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-5">
-              {property.specs.map((spec, idx) => (
-                <motion.div
-                  key={spec.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="flex flex-col gap-2 rounded border border-border bg-card p-4"
-                >
-                  <span className="text-muted-foreground text-xs uppercase tracking-wider">
-                    {spec.label}
-                  </span>
-                  <span className="text-foreground font-medium">
-                    {formatDynamicValue(spec.value)}
-                  </span>
-                </motion.div>
-              ))}
-            </div>
-            {property.brochure && (
-              <a
-                href={property.brochure}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button variant="outline" className="mt-8 w-full gap-2 sm:w-auto">
-                  <span className="material-symbols-outlined text-lg">
-                    download
-                  </span>
-                  Download Brochure
-                </Button>
-              </a>
+            {property.specs.length > 0 && (
+              <>
+                <h2 className="mb-6 text-2xl font-light text-foreground md:mb-8">
+                  At a Glance
+                </h2>
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-5">
+                  {property.specs.map((spec, idx) => (
+                    <motion.div
+                      key={spec.label}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="flex flex-col gap-2 rounded border border-border bg-card p-4"
+                    >
+                      <span className="text-muted-foreground text-xs uppercase tracking-wider">
+                        {spec.label}
+                      </span>
+                      <span className="text-foreground font-medium">
+                        {formatDynamicValue(spec.value)}
+                      </span>
+                    </motion.div>
+                  ))}
+                </div>
+              </>
+            )}
+            
+            {(property.brochure || property.virtualTour360Url) && (
+              <div className="mt-8 flex flex-wrap gap-4">
+                {property.brochure && (
+                  <a
+                    href={property.brochure}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button variant="outline" className="w-full gap-2 sm:w-auto">
+                      <span className="material-symbols-outlined text-lg">
+                        download
+                      </span>
+                      Download Brochure
+                    </Button>
+                  </a>
+                )}
+                {property.virtualTour360Url && (
+                  <a
+                    href={property.virtualTour360Url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button variant="outline" className="w-full gap-2 sm:w-auto">
+                      <span className="material-symbols-outlined text-lg">
+                        view_in_ar
+                      </span>
+                      Virtual Tour 360
+                    </Button>
+                  </a>
+                )}
+              </div>
             )}
           </div>
         </section>
@@ -261,7 +318,7 @@ const PropertyDetail = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 md:gap-6">
               {property.financials.map((item, idx) => (
                 <motion.div
                   key={item.label}
@@ -403,44 +460,78 @@ const PropertyDetail = () => {
       )}
 
       {/* Location */}
-      <section className="border-y border-border bg-card px-4 py-14 md:px-10 md:py-20">
-        <div className="max-w-[1280px] mx-auto">
-          <div className="mb-6 flex items-center gap-2 md:mb-8">
-            <span className="material-symbols-outlined text-primary">map</span>
-            <h2 className="text-xl font-light text-foreground sm:text-2xl">
-              Location & Connectivity
-            </h2>
-          </div>
+      {(property.googleMapLink || (property.nearbyLocations && property.nearbyLocations.length > 0)) && (
+        <section className="border-y border-border bg-card px-4 py-14 md:px-10 md:py-20">
+          <div className="max-w-[1280px] mx-auto">
+            <div className="mb-6 flex items-center gap-2 md:mb-8">
+              <span className="material-symbols-outlined text-primary">map</span>
+              <h2 className="text-xl font-light text-foreground sm:text-2xl">
+                Location & Connectivity
+              </h2>
+            </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
-            {property.googleMapLink && (
-              <div className="aspect-video rounded-lg border border-border bg-background lg:col-span-2">
-                <iframe
-                  title="Google Map"
-                  src={property.googleMapLink}
-                  className="w-full h-full border-0 object-cover"
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  allowFullScreen
-                />
-              </div>
-            )}
-            <div className="flex flex-col gap-4">
-              {property.nearbyLocations.map((loc) => (
-                <div
-                  key={loc.name}
-                  className="flex items-center justify-between p-4 bg-background rounded border border-border"
-                >
-                  <span className="text-foreground">{loc.name}</span>
-                  <span className="text-muted-foreground text-sm">
-                    {loc.distance}
-                  </span>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
+              {property.googleMapLink && (
+                <div className="aspect-video rounded-lg border border-border bg-background lg:col-span-2 overflow-hidden relative">
+                  <iframe
+                    title="Google Map"
+                    src={(() => {
+                      const url = property.googleMapLink;
+                      if (!url) return "";
+                      // If they pasted an iframe snippet
+                      if (url.includes("<iframe") && url.includes("src=")) {
+                        const match = url.match(/src="([^"]+)"/);
+                        if (match && match[1]) return match[1];
+                      }
+                      // If it's already an embed URL
+                      if (url.includes("/embed")) {
+                        return url;
+                      }
+                      // If it's a standard link, Google blocks it in iframes due to SAMEORIGIN.
+                      // Generate a generic embed map using the property name and location.
+                      // We append &t=k to default to Satellite view to match the requested aesthetic.
+                      const query = encodeURIComponent(`${property.name}, ${property.location}`);
+                      return `https://maps.google.com/maps?q=${query}&t=k&z=14&output=embed`;
+                    })()}
+                    className="absolute inset-0 w-full h-full border-0 object-cover"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    allowFullScreen
+                  />
                 </div>
-              ))}
+              )}
+                <div className="flex flex-col gap-4">
+                  {property.nearbyLocations && property.nearbyLocations.map((loc) => (
+                    <div
+                      key={loc.name}
+                      className="flex flex-col p-4 bg-background rounded-lg border border-border shadow-sm"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-foreground font-medium">{loc.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground text-sm font-medium">
+                            {loc.distance}
+                          </span>
+                        </div>
+                      </div>
+                      {loc.travelTime && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground/80 mb-2">
+                          <span className="material-symbols-outlined text-[14px]">directions_car</span>
+                          <span>{loc.travelTime}</span>
+                        </div>
+                      )}
+                      {loc.description && (
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                          {loc.description}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Sticky Footer CTA */}
       <div className="sticky bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-md md:px-10 md:py-4">
@@ -550,6 +641,86 @@ const PropertyDetail = () => {
           })();
         }}
       />
+
+      {/* 🔐 Locked Dossier Gate if User lands directly on URL without verifying */}
+      {!isUnlocked && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl p-4">
+          <div className="max-w-md w-full text-center space-y-6 p-8 rounded-2xl border border-primary/30 bg-card/95 shadow-2xl">
+            <div className="h-16 w-16 mx-auto rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
+              <span className="material-symbols-outlined text-3xl text-primary">
+                lock
+              </span>
+            </div>
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary block mb-2">
+                Confidential Portfolio Asset
+              </span>
+              <h2 className="text-2xl font-light text-foreground">
+                {property.name}
+              </h2>
+              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                Access to full architectural dossiers, floor plans, financial intelligence, and private viewings requires identity verification.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 pt-2">
+              <Button
+                onClick={() => setInquiryDialogOpen(true)}
+                className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-wider py-3"
+              >
+                Unlock Private Dossier (OTP)
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => navigate(-1)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Return to Portfolio
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inquiry & Verification Dialog */}
+      <InquiryFormDialog
+        open={inquiryDialogOpen}
+        onOpenChange={(open) => {
+          setInquiryDialogOpen(open);
+        }}
+        projectType="real-estate"
+        projectId={property.id}
+        projectName={property.name}
+        onVerified={() => {
+          setIsUnlocked(true);
+          setInquiryDialogOpen(false);
+        }}
+      />
+
+      {/* Cost Sheet Request Dialog */}
+      <InquiryFormDialog
+        open={costSheetModalOpen}
+        onOpenChange={(open) => setCostSheetModalOpen(open)}
+        projectType="real-estate"
+        projectId={property.id}
+        projectName={property.name}
+        notes={
+          selectedUnitIdx !== null && configurations[selectedUnitIdx]
+            ? `Requested Cost Sheet for ${configurations[selectedUnitIdx].unitType} (${
+                configurations[selectedUnitIdx].areaSqFt
+                  ? `${configurations[selectedUnitIdx].areaSqFt} Sq.Ft.`
+                  : ""
+              })`
+            : undefined
+        }
+        onVerified={() => {
+          if (selectedUnitIdx !== null) {
+            setRequested((prev) => [...prev, selectedUnitIdx]);
+          }
+          setCostSheetModalOpen(false);
+          setSelectedUnitIdx(null);
+        }}
+      />
+
       <Footer />
     </div>
   );

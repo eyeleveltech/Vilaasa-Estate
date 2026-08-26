@@ -17,6 +17,8 @@ import {
   X,
   Plus,
   CheckCircle,
+  MessageCircle,
+  CalendarCheck,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../api/axios";
@@ -24,6 +26,7 @@ import {
   Inquiry,
   InquiryStatus,
   InquiryTimeline,
+  Property,
   ApiResponse,
 } from "../types/admin.types";
 import { Button } from "@/components/ui/button";
@@ -32,6 +35,7 @@ import { Label } from "@/components/ui/label";
 
 export const AdminInquiriesList: React.FC = () => {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [statusFilter, setStatusFilter] = useState<InquiryStatus | "">("");
   const [investmentTypeFilter, setInvestmentTypeFilter] = useState<string>("");
@@ -52,6 +56,31 @@ export const AdminInquiriesList: React.FC = () => {
   const [modalFollowUpNotes, setModalFollowUpNotes] = useState<string>("");
   const [isSubmittingModal, setIsSubmittingModal] = useState<boolean>(false);
 
+  // Site Visit Booking Modal State
+  const [siteVisitInquiry, setSiteVisitInquiry] = useState<Inquiry | null>(null);
+  const [visitPropertyId, setVisitPropertyId] = useState<string>("");
+  const [visitDate, setVisitDate] = useState<string>("");
+  const [visitTime, setVisitTime] = useState<string>("11:00 AM");
+  const [visitNotes, setVisitNotes] = useState<string>("");
+  const [isBookingVisit, setIsBookingVisit] = useState<boolean>(false);
+
+  // Load properties for site visit booking dropdown
+  useEffect(() => {
+    const loadProps = async () => {
+      try {
+        const res = await api.get<ApiResponse<Property[]>>("/properties", {
+          params: { limit: 100 },
+        });
+        if (res.data.success) {
+          setProperties(res.data.data);
+        }
+      } catch {
+        // quiet error
+      }
+    };
+    loadProps();
+  }, []);
+
   const fetchInquiries = useCallback(async () => {
     setLoading(true);
     try {
@@ -65,6 +94,16 @@ export const AdminInquiriesList: React.FC = () => {
 
       if (res.data.success) {
         let filtered = res.data.data;
+        // Filter for General Callback Inquiries, Contact Form, and Franchise Requests
+        filtered = filtered.filter(
+          (inq) =>
+            !inq.propertyId ||
+            inq.source === "CONTACT_FORM" ||
+            inq.source === "CHANNEL_PARTNER_FORM" ||
+            inq.source === "VAULT_CONCIERGE" ||
+            inq.investmentType.toLowerCase() === "franchise",
+        );
+
         if (investmentTypeFilter) {
           filtered = filtered.filter(
             (inq) =>
@@ -207,6 +246,50 @@ export const AdminInquiriesList: React.FC = () => {
     }
   };
 
+  const handleBookSiteVisit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!siteVisitInquiry) return;
+    const propertyIdToUse = visitPropertyId || siteVisitInquiry.propertyId || properties[0]?.id;
+    if (!propertyIdToUse) {
+      toast.error("Please select a target estate for this inspection");
+      return;
+    }
+    if (!visitDate) {
+      toast.error("Please select a visit date");
+      return;
+    }
+
+    setIsBookingVisit(true);
+    try {
+      const res = await api.post("/site-visits", {
+        propertyId: propertyIdToUse,
+        name: siteVisitInquiry.name,
+        email: siteVisitInquiry.email,
+        phone: siteVisitInquiry.phone,
+        scheduledDate: visitDate,
+        scheduledTime: visitTime,
+        visitType: "real-estate-india",
+        notes: visitNotes || `Converted from Inquiry (ID: ${siteVisitInquiry.id})`,
+      });
+
+      if (res.data.success) {
+        // Also update inquiry status to SITE_VISIT_SCHEDULED
+        await api.patch(`/inquiries/${siteVisitInquiry.id}/status`, {
+          status: "SITE_VISIT_SCHEDULED",
+          note: `Site visit scheduled for ${visitDate} at ${visitTime}`,
+        });
+
+        toast.success("Site inspection scheduled and inquiry status updated!");
+        setSiteVisitInquiry(null);
+        fetchInquiries();
+      }
+    } catch {
+      toast.error("Failed to book site visit");
+    } finally {
+      setIsBookingVisit(false);
+    }
+  };
+
   // Client-Side CSV Export
   const exportToCSV = () => {
     if (inquiries.length === 0) {
@@ -259,21 +342,33 @@ export const AdminInquiriesList: React.FC = () => {
   const getStatusBadge = (status: InquiryStatus) => {
     switch (status) {
       case "NEW":
-        return "bg-blue-500/10 text-blue-400 border-blue-500/30";
+        return {
+          label: "Pending Callback",
+          className: "bg-amber-500/10 text-amber-400 border-amber-500/30",
+        };
       case "CONTACTED":
-        return "bg-amber-500/10 text-amber-400 border-amber-500/30";
-      case "QUALIFIED":
-        return "bg-purple-500/10 text-purple-400 border-purple-500/30";
-      case "SITE_VISIT_SCHEDULED":
-        return "bg-teal-500/10 text-teal-400 border-teal-500/30";
-      case "NEGOTIATING":
-        return "bg-orange-500/10 text-orange-400 border-orange-500/30";
+        return {
+          label: "Contacted",
+          className: "bg-blue-500/10 text-blue-400 border-blue-500/30",
+        };
       case "CLOSED_WON":
-        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+      case "QUALIFIED":
+      case "SITE_VISIT_SCHEDULED":
+      case "NEGOTIATING":
+        return {
+          label: "Completed",
+          className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+        };
       case "CLOSED_LOST":
-        return "bg-red-500/10 text-red-400 border-red-500/30";
+        return {
+          label: "Closed",
+          className: "bg-red-500/10 text-red-400 border-red-500/30",
+        };
       default:
-        return "bg-muted text-muted-foreground border-border";
+        return {
+          label: status,
+          className: "bg-muted text-muted-foreground border-border",
+        };
     }
   };
 
@@ -290,14 +385,14 @@ export const AdminInquiriesList: React.FC = () => {
           <div className="flex items-center gap-3 text-primary/80 mb-1">
             <span className="h-px w-6 bg-current" />
             <span className="uppercase tracking-[0.2em] text-[11px] font-bold">
-              Investor Relations
+              Concierge Communications
             </span>
           </div>
           <h2 className="text-2xl font-light tracking-tight text-foreground sm:text-3xl">
-            Client Inquiries & <span className="font-serif italic text-primary">CRM Pipeline</span>
+            Client Callback <span className="font-serif italic text-primary">Inquiries</span>
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Manage high-net-worth lead submissions, track interaction timelines, and schedule VIP follow-ups.
+            Manage callback requests, WhatsApp conversations, and convert inquiries to in-person site inspections.
           </p>
         </div>
 
@@ -350,13 +445,9 @@ export const AdminInquiriesList: React.FC = () => {
               className="w-full appearance-none rounded-md border border-input bg-secondary/40 px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none cursor-pointer"
             >
               <option value="">All Statuses</option>
-              <option value="NEW">New Inquiries</option>
+              <option value="NEW">Pending Callback</option>
               <option value="CONTACTED">Contacted</option>
-              <option value="QUALIFIED">Qualified VIP</option>
-              <option value="SITE_VISIT_SCHEDULED">Site Visit Scheduled</option>
-              <option value="NEGOTIATING">Negotiating</option>
-              <option value="CLOSED_WON">Closed Won</option>
-              <option value="CLOSED_LOST">Closed Lost</option>
+              <option value="CLOSED_WON">Completed</option>
             </select>
             <ChevronDown className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
           </div>
@@ -522,13 +613,16 @@ export const AdminInquiriesList: React.FC = () => {
 
                         {/* Status & Follow-Up */}
                         <td className="py-3.5 px-4">
-                          <span
-                            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${getStatusBadge(
-                              inquiry.status,
-                            )}`}
-                          >
-                            {inquiry.status.replace(/_/g, " ")}
-                          </span>
+                          {(() => {
+                            const badgeInfo = getStatusBadge(inquiry.status);
+                            return (
+                              <span
+                                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${badgeInfo.className}`}
+                              >
+                                {badgeInfo.label}
+                              </span>
+                            );
+                          })()}
                           {inquiry.followUpDate && (
                             <div className="mt-1 flex items-center space-x-1 text-[10px] text-primary">
                               <Clock className="h-3 w-3" />
@@ -544,14 +638,50 @@ export const AdminInquiriesList: React.FC = () => {
 
                         {/* Actions */}
                         <td className="py-3.5 px-4 text-right">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => openStatusModal(inquiry, e)}
-                            className="text-[11px] h-7 px-2.5 uppercase tracking-wider font-semibold"
-                          >
-                            Update Status
-                          </Button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* WhatsApp Button */}
+                            <a
+                              href={`https://wa.me/${(inquiry.phone || "").replace(/[^0-9+]/g, "").replace("+", "")}?text=${encodeURIComponent(
+                                `Hello ${inquiry.name}, thank you for contacting Vilaasa Estates. How may our private wealth concierge assist your inquiry today?`,
+                              )}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="h-7 w-7 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center transition-colors"
+                              title="WhatsApp Client"
+                            >
+                              <MessageCircle className="h-3.5 w-3.5" />
+                            </a>
+
+                            {/* Book Site Visit Button */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSiteVisitInquiry(inquiry);
+                                setVisitPropertyId(inquiry.propertyId || (properties[0]?.id || ""));
+                                setVisitDate("");
+                                setVisitTime("11:00 AM");
+                                setVisitNotes("");
+                              }}
+                              className="h-7 px-2 text-[10px] border-purple-500/30 text-purple-400 hover:bg-purple-500/10 font-semibold"
+                              title="Book In-Person Site Visit"
+                            >
+                              <CalendarCheck className="h-3 w-3 mr-1" />
+                              Book Visit
+                            </Button>
+
+                            {/* Update Status Button */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => openStatusModal(inquiry, e)}
+                              className="text-[11px] h-7 px-2.5 uppercase tracking-wider font-semibold"
+                            >
+                              Status
+                            </Button>
+                          </div>
                         </td>
                       </tr>
 
@@ -660,7 +790,7 @@ export const AdminInquiriesList: React.FC = () => {
             <div className="space-y-4 text-xs">
               {/* Status Selector */}
               <div className="space-y-1">
-                <Label className="text-xs">Select Pipeline Stage *</Label>
+                <Label className="text-xs">Select Inquiry Status *</Label>
                 <select
                   value={modalStatus}
                   onChange={(e) =>
@@ -668,15 +798,10 @@ export const AdminInquiriesList: React.FC = () => {
                   }
                   className="w-full rounded-md border border-input bg-secondary/50 px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
                 >
-                  <option value="NEW">New Inquiry</option>
+                  <option value="NEW">Pending Callback</option>
                   <option value="CONTACTED">Contacted</option>
-                  <option value="QUALIFIED">Qualified VIP Client</option>
-                  <option value="SITE_VISIT_SCHEDULED">
-                    Site Visit Scheduled
-                  </option>
-                  <option value="NEGOTIATING">In Negotiations</option>
-                  <option value="CLOSED_WON">Closed Won (Acquired)</option>
-                  <option value="CLOSED_LOST">Closed Lost</option>
+                  <option value="CLOSED_WON">Completed</option>
+                  <option value="CLOSED_LOST">Closed / Cancelled</option>
                 </select>
               </div>
 
@@ -734,6 +859,115 @@ export const AdminInquiriesList: React.FC = () => {
               </Button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Book Site Visit Modal */}
+      {siteVisitInquiry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm font-sans">
+          <div className="w-full max-w-md bg-card border border-border rounded-xl shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-purple-500/5">
+              <div className="flex items-center gap-2">
+                <CalendarCheck className="h-5 w-5 text-purple-400" />
+                <h3 className="text-sm font-medium text-foreground">
+                  Book In-Person Site Inspection
+                </h3>
+              </div>
+              <button
+                onClick={() => setSiteVisitInquiry(null)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleBookSiteVisit} className="p-6 space-y-4 text-xs">
+              <div className="p-3 rounded-lg bg-secondary/40 border border-border text-xs space-y-1">
+                <div className="text-muted-foreground">
+                  Client: <span className="text-foreground font-medium">{siteVisitInquiry.name}</span> ({siteVisitInquiry.phone})
+                </div>
+                <div className="text-muted-foreground">
+                  Email: <span className="text-foreground font-medium">{siteVisitInquiry.email}</span>
+                </div>
+              </div>
+
+              {/* Target Property */}
+              <div className="space-y-1">
+                <Label className="text-xs">Select Target Estate *</Label>
+                <select
+                  value={visitPropertyId}
+                  onChange={(e) => setVisitPropertyId(e.target.value)}
+                  className="w-full h-9 px-3 rounded-md bg-secondary/50 border border-input text-xs text-foreground focus:border-primary focus:outline-none"
+                >
+                  {properties.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Visit Date */}
+              <div className="space-y-1">
+                <Label className="text-xs">Inspection Date *</Label>
+                <Input
+                  type="date"
+                  required
+                  min={new Date().toISOString().split("T")[0]}
+                  value={visitDate}
+                  onChange={(e) => setVisitDate(e.target.value)}
+                  className="bg-secondary/50 h-9 text-xs"
+                />
+              </div>
+
+              {/* Time Slot */}
+              <div className="space-y-1">
+                <Label className="text-xs">Inspection Time Slot *</Label>
+                <select
+                  value={visitTime}
+                  onChange={(e) => setVisitTime(e.target.value)}
+                  className="w-full h-9 px-3 rounded-md bg-secondary/50 border border-input text-xs text-foreground focus:border-primary focus:outline-none"
+                >
+                  <option value="10:00 AM">10:00 AM (Morning Tour)</option>
+                  <option value="11:00 AM">11:00 AM (Executive Preview)</option>
+                  <option value="02:00 PM">02:00 PM (Afternoon Viewing)</option>
+                  <option value="04:00 PM">04:00 PM (Sunset Viewing)</option>
+                  <option value="06:00 PM">06:00 PM (Evening Tour)</option>
+                </select>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-1">
+                <Label className="text-xs">Concierge &amp; Itinerary Notes (Optional)</Label>
+                <textarea
+                  value={visitNotes}
+                  onChange={(e) => setVisitNotes(e.target.value)}
+                  placeholder="e.g. Arrange private airport transfer and champagne welcome..."
+                  rows={2}
+                  className="w-full p-2.5 rounded-md bg-secondary/50 border border-input text-xs text-foreground focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSiteVisitInquiry(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isBookingVisit}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  {isBookingVisit ? "Scheduling..." : "Confirm Site Visit"}
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </motion.div>

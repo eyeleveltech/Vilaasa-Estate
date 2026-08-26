@@ -9,6 +9,8 @@ import {
   ChevronRight,
   ChevronLeft,
   Save,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../api/axios";
@@ -25,6 +27,57 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+export const detectAmenityIcon = (name: string): string => {
+  const lower = (name || "").toLowerCase();
+  if (lower.includes("panchakarma") || lower.includes("wellness") || lower.includes("ayurved")) return "spa";
+  if (lower.includes("boat") || lower.includes("yacht") || lower.includes("marina") || lower.includes("sailing") || lower.includes("lake") || lower.includes("kayak")) return "directions_boat";
+  if (lower.includes("clubhouse") || lower.includes("club") || lower.includes("lifestyle") || lower.includes("lounge")) return "cottage";
+  if (lower.includes("helipad") || lower.includes("heli") || lower.includes("chopper") || lower.includes("aviation") || lower.includes("flight")) return "helicopter";
+  if (lower.includes("pool") || lower.includes("swim") || lower.includes("jacuzzi") || lower.includes("plunge")) return "pool";
+  if (lower.includes("gym") || lower.includes("fitness") || lower.includes("workout") || lower.includes("crossfit") || lower.includes("training")) return "fitness_center";
+  if (lower.includes("yoga") || lower.includes("meditat") || lower.includes("zen") || lower.includes("mindful")) return "self_improvement";
+  if (lower.includes("spa") || lower.includes("sauna") || lower.includes("steam") || lower.includes("massage")) return "spa";
+  if (lower.includes("tennis") || lower.includes("court") || lower.includes("racquet") || lower.includes("squash") || lower.includes("badminton")) return "sports_tennis";
+  if (lower.includes("golf") || lower.includes("putting")) return "sports_golf";
+  if (lower.includes("security") || lower.includes("cctv") || lower.includes("guard") || lower.includes("surveillance") || lower.includes("gated")) return "security";
+  if (lower.includes("garden") || lower.includes("park") || lower.includes("lawn") || lower.includes("nature") || lower.includes("landscape") || lower.includes("forest")) return "park";
+  if (lower.includes("dining") || lower.includes("restaurant") || lower.includes("culinary") || lower.includes("bistro") || lower.includes("cafe") || lower.includes("kitchen")) return "restaurant";
+  if (lower.includes("bar") || lower.includes("wine") || lower.includes("cellar") || lower.includes("cocktail") || lower.includes("pub")) return "local_bar";
+  if (lower.includes("beach") || lower.includes("coast") || lower.includes("shore") || lower.includes("sea") || lower.includes("ocean")) return "beach_access";
+  if (lower.includes("theater") || lower.includes("theatre") || lower.includes("cinema") || lower.includes("movie") || lower.includes("screening")) return "theaters";
+  if (lower.includes("concierge") || lower.includes("butler") || lower.includes("room service") || lower.includes("valet service")) return "room_service";
+  if (lower.includes("parking") || lower.includes("garage") || lower.includes("valet") || lower.includes("ev charge") || lower.includes("car")) return "local_parking";
+  if (lower.includes("wifi") || lower.includes("internet") || lower.includes("smart home") || lower.includes("automation")) return "wifi";
+  if (lower.includes("kids") || lower.includes("children") || lower.includes("play") || lower.includes("creche") || lower.includes("daycare")) return "child_care";
+  if (lower.includes("pet") || lower.includes("dog")) return "pets";
+  if (lower.includes("library") || lower.includes("study") || lower.includes("cowork") || lower.includes("business")) return "menu_book";
+  if (lower.includes("deck") || lower.includes("terrace") || lower.includes("view") || lower.includes("skyline") || lower.includes("rooftop")) return "deck";
+  if (lower.includes("hospital") || lower.includes("clinic") || lower.includes("medical") || lower.includes("health")) return "local_hospital";
+  return "star";
+};
+
+const COMMON_AMENITY_ICONS = [
+  { label: "Wellness / Leaf", icon: "eco" },
+  { label: "Spa / Lotus", icon: "spa" },
+  { label: "Yoga / Zen", icon: "self_improvement" },
+  { label: "Clubhouse", icon: "cottage" },
+  { label: "Boat Club", icon: "directions_boat" },
+  { label: "Helipad", icon: "helicopter" },
+  { label: "Pool", icon: "pool" },
+  { label: "Fitness Center", icon: "fitness_center" },
+  { label: "Tennis Court", icon: "sports_tennis" },
+  { label: "Golf Course", icon: "sports_golf" },
+  { label: "Dining / Culinary", icon: "restaurant" },
+  { label: "Lounge Bar", icon: "local_bar" },
+  { label: "Beach Access", icon: "beach_access" },
+  { label: "Security 24/7", icon: "security" },
+  { label: "Private Garden", icon: "park" },
+  { label: "Concierge Butler", icon: "room_service" },
+  { label: "Valet Parking", icon: "local_parking" },
+  { label: "High-Speed WiFi", icon: "wifi" },
+  { label: "Star / Bespoke", icon: "star" },
+];
 
 export const AdminPropertyForm: React.FC = () => {
   const navigate = useNavigate();
@@ -48,6 +101,10 @@ export const AdminPropertyForm: React.FC = () => {
   const [type, setType] = useState<PropertyType>("RESIDENTIAL_VILLA");
   const [status, setStatus] = useState<PropertyStatus>("AVAILABLE");
   const [description, setDescription] = useState<string>("");
+  const [visionHeadline, setVisionHeadline] = useState<string>("");
+  const [verdictQuote, setVerdictQuote] = useState<string>("");
+  const [verdictAuthor, setVerdictAuthor] = useState<string>("Vilaasa Advisory Board");
+  const [verdictTitle, setVerdictTitle] = useState<string>("Director of Private Client Acquisitions");
   const [bedrooms, setBedrooms] = useState<string>("");
   const [bathrooms, setBathrooms] = useState<string>("");
   const [totalAreaSqFt, setTotalAreaSqFt] = useState<string>("");
@@ -65,6 +122,12 @@ export const AdminPropertyForm: React.FC = () => {
   const [priceOnApplication, setPriceOnApplication] = useState<boolean>(false);
   const [rentalYieldPercent, setRentalYieldPercent] = useState<string>("");
   const [expectedIrrPercent, setExpectedIrrPercent] = useState<string>("");
+  const [financialMetrics, setFinancialMetrics] = useState<{label: string, value: string, note: string, icon: string}[]>([
+    { label: "Projected IRR Returns", value: "", note: "", icon: "trending_up" },
+    { label: "Annual Industry Growth", value: "", note: "", icon: "show_chart" },
+    { label: "5-Year Appreciation", value: "", note: "", icon: "monitoring" },
+    { label: "Breakeven Timeline", value: "", note: "", icon: "timelapse" },
+  ]);
   const [city, setCity] = useState<string>("Goa");
   const [country, setCountry] = useState<string>("India");
   const [community, setCommunity] = useState<string>("");
@@ -72,6 +135,9 @@ export const AdminPropertyForm: React.FC = () => {
   const [latitude, setLatitude] = useState<string>("");
   const [longitude, setLongitude] = useState<string>("");
   const [googleMapUrl, setGoogleMapUrl] = useState<string>("");
+
+  const [amenities, setAmenities] = useState<{name: string, iconKey: string, description: string}[]>([]);
+  const [nearbyPlaces, setNearbyPlaces] = useState<{name: string, distance: string, travelTime: string, category: string, description: string}[]>([]);
 
   const handleMarketScopeChange = (scope: "DOMESTIC" | "INTERNATIONAL") => {
     setMarketScope(scope);
@@ -114,6 +180,10 @@ export const AdminPropertyForm: React.FC = () => {
             setType(prop.type);
             setStatus(prop.status);
             setDescription(prop.description);
+            setVisionHeadline(prop.visionHeadline || "");
+            setVerdictQuote(prop.verdictQuote || "");
+            setVerdictAuthor(prop.verdictAuthor || "Vilaasa Advisory Board");
+            setVerdictTitle(prop.verdictTitle || "Director of Private Client Acquisitions");
             setBedrooms(prop.bedrooms?.toString() || "");
             setBathrooms(prop.bathrooms?.toString() || "");
             setTotalAreaSqFt(prop.totalAreaSqFt?.toString() || "");
@@ -147,6 +217,24 @@ export const AdminPropertyForm: React.FC = () => {
               setLatitude(prop.location.latitude?.toString() || "");
               setLongitude(prop.location.longitude?.toString() || "");
               setGoogleMapUrl(prop.location.googleMapUrl || "");
+            }
+
+            if (prop.amenities && prop.amenities.length > 0) {
+              setAmenities(prop.amenities.map((a: any) => ({
+                name: a.amenity?.name || "",
+                iconKey: a.amenity?.iconKey || detectAmenityIcon(a.amenity?.name || "") || "star",
+                description: a.description || "",
+              })));
+            }
+
+            if (prop.nearbyPlaces && prop.nearbyPlaces.length > 0) {
+              setNearbyPlaces(prop.nearbyPlaces.map((p: any) => ({
+                name: p.name || "",
+                distance: p.distance || "",
+                travelTime: p.travelTime || "",
+                category: p.category || "",
+                description: p.description || "",
+              })));
             }
 
             if (prop.media) {
@@ -199,6 +287,10 @@ export const AdminPropertyForm: React.FC = () => {
     const payload = {
       name: name.trim(),
       tagline: tagline.trim() || undefined,
+      visionHeadline: visionHeadline.trim() || undefined,
+      verdictQuote: verdictQuote.trim() || undefined,
+      verdictAuthor: verdictAuthor.trim() || undefined,
+      verdictTitle: verdictTitle.trim() || undefined,
       type,
       status,
       description: description.trim(),
@@ -222,6 +314,30 @@ export const AdminPropertyForm: React.FC = () => {
       expectedIrrPercent: expectedIrrPercent
         ? parseFloat(expectedIrrPercent)
         : undefined,
+      financialMetrics: financialMetrics
+        .filter((f) => f.label.trim() && f.value.trim())
+        .map((f) => ({
+          label: f.label.trim(),
+          value: f.value.trim(),
+          note: f.note.trim() || undefined,
+          icon: f.icon.trim() || undefined,
+        })),
+      amenities: amenities
+        .filter((a) => a.name.trim())
+        .map((a) => ({
+          name: a.name.trim(),
+          iconKey: a.iconKey.trim() || detectAmenityIcon(a.name.trim()) || "star",
+          description: a.description.trim() || undefined,
+        })),
+      nearbyPlaces: nearbyPlaces
+        .filter((p) => p.name.trim() && (p.distance.trim() || p.travelTime.trim()))
+        .map((p) => ({
+          name: p.name.trim(),
+          distance: p.distance.trim() || (p.travelTime.trim() ? `${p.travelTime.trim()} drive` : "Nearby"),
+          travelTime: p.travelTime.trim() || undefined,
+          category: p.category.trim() || undefined,
+          description: p.description.trim() || undefined,
+        })),
       location: {
         city: city.trim(),
         country: country.trim(),
@@ -464,23 +580,103 @@ export const AdminPropertyForm: React.FC = () => {
                 </select>
               </div>
 
-              {/* Description */}
+              {/* Concept & Vision Heading */}
               <div className="space-y-1.5 md:col-span-2">
-                <Label htmlFor="desc" className="text-xs font-semibold">
-                  Architectural Description <span className="text-primary">*</span>
-                </Label>
-                <textarea
-                  id="desc"
-                  rows={4}
-                  required
-                  placeholder="Detailed description of finishes, architectural vision, views..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full rounded-md border border-input bg-secondary/40 px-3.5 py-2.5 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="visionHeadline" className="text-xs font-semibold">
+                    Concept & Vision Heading
+                  </Label>
+                  <span className="text-[11px] text-primary/90 font-medium">Hero Statement</span>
+                </div>
+                <Input
+                  id="visionHeadline"
+                  type="text"
+                  placeholder="e.g. Timeless Spaces, Lifelong Wellness"
+                  value={visionHeadline}
+                  onChange={(e) => setVisionHeadline(e.target.value)}
+                  className="bg-secondary/40 h-10 font-medium"
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Minimum 20 characters. Current: {description.length}
+                  Displays as the prominent heading for the Concept & Vision section on the property page.
                 </p>
+              </div>
+
+              {/* Concept & Vision Narrative (Multi-paragraph) */}
+              <div className="space-y-1.5 md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="desc" className="text-xs font-semibold">
+                    Concept & Vision Story (Paragraphs) <span className="text-primary">*</span>
+                  </Label>
+                  <span className="text-[11px] text-muted-foreground">Tip: Separate paragraphs with a blank line</span>
+                </div>
+                <textarea
+                  id="desc"
+                  rows={6}
+                  required
+                  placeholder={`Live or Lease - Your Villa, Your Choice. This isn't just a villa — it's a second home that earns for you. With guaranteed monthly rent and full property management, it offers peace of mind and steady returns.\n\nCarlton Krillam Wellness Residences is India's first branded wellness real estate destination, thoughtfully developed to blend luxury living, authentic Ayurveda, and long-term wealth creation.\n\nEach villa is designed not only as a personal sanctuary but also as an income-generating asset. With long-term lease-back assurance, assured monthly income, lifestyle privileges, and capital appreciation potential...`}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full rounded-md border border-input bg-secondary/40 px-3.5 py-2.5 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Minimum 20 characters. Current: {description.length}. Each paragraph separated by an empty line will render as an individual clean paragraph on the public property page.
+                </p>
+              </div>
+
+              {/* The Vilaasa Verdict Card (Right-hand editorial review) */}
+              <div className="md:col-span-2 rounded-xl border border-primary/30 bg-secondary/15 p-4 sm:p-5 space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-xl">verified</span>
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground">The Vilaasa Verdict</h4>
+                    <p className="text-[11px] text-muted-foreground">
+                      Featured alongside Concept & Vision as the official editorial endorsement and investment verdict.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="verdictQuote" className="text-xs font-semibold">
+                    Verdict Quote / Editorial Rationale
+                  </Label>
+                  <textarea
+                    id="verdictQuote"
+                    rows={3}
+                    placeholder={`e.g. "Ongole's wellness positioning unlocks strong potential for superior IRR and long-term value creation."`}
+                    value={verdictQuote}
+                    onChange={(e) => setVerdictQuote(e.target.value)}
+                    className="w-full rounded-md border border-input bg-secondary/40 px-3 py-2 text-xs sm:text-sm text-foreground italic focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="verdictAuthor" className="text-xs font-semibold">
+                      Reviewer / Author
+                    </Label>
+                    <Input
+                      id="verdictAuthor"
+                      type="text"
+                      placeholder="e.g. Vilaasa Advisory Board"
+                      value={verdictAuthor}
+                      onChange={(e) => setVerdictAuthor(e.target.value)}
+                      className="bg-secondary/40 h-9 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="verdictTitle" className="text-xs font-semibold">
+                      Author Title / Role
+                    </Label>
+                    <Input
+                      id="verdictTitle"
+                      type="text"
+                      placeholder="e.g. Director of Private Client Acquisitions"
+                      value={verdictTitle}
+                      onChange={(e) => setVerdictTitle(e.target.value)}
+                      className="bg-secondary/40 h-9 text-xs"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Bedrooms & Bathrooms */}
@@ -864,16 +1060,296 @@ export const AdminPropertyForm: React.FC = () => {
                 </Label>
                 <Input
                   id="mapUrl"
-                  type="url"
-                  placeholder="https://maps.google.com/?q=..."
+                  type="text"
+                  placeholder='e.g. <iframe src="https://www.google.com/maps/embed?pb=..."></iframe>'
                   value={googleMapUrl}
                   onChange={(e) => setGoogleMapUrl(e.target.value)}
                   className="bg-secondary/40 h-10"
                 />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  For an exact pin, go to Google Maps {'>'} Share {'>'} "Embed a map" and paste the iframe snippet here. Standard links may fallback to searching the property name.
+                </p>
               </div>
-            </div>
+              </div>
 
-            {/* Step 2 Actions */}
+              {/* Financial Metrics (Fixed) */}
+              <div className="space-y-3 md:col-span-2 pt-4 border-t border-border pb-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                      Financial Intelligence Metrics
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground">
+                      Key financial indicators used across the platform.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {financialMetrics.map((metric, idx) => (
+                    <div key={idx} className="flex flex-col gap-1.5 p-3 rounded-md border border-border bg-card">
+                      <label className="text-xs font-medium text-foreground">{metric.label}</label>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Value (e.g. 18-22%)"
+                          value={metric.value}
+                          onChange={(e) => {
+                            const newMetrics = [...financialMetrics];
+                            newMetrics[idx].value = e.target.value;
+                            setFinancialMetrics(newMetrics);
+                          }}
+                          className="bg-secondary/40 h-9 text-xs flex-1"
+                        />
+                        <Input
+                          placeholder="Note (optional)"
+                          value={metric.note}
+                          onChange={(e) => {
+                            const newMetrics = [...financialMetrics];
+                            newMetrics[idx].note = e.target.value;
+                            setFinancialMetrics(newMetrics);
+                          }}
+                          className="bg-secondary/40 h-9 text-xs flex-1"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Amenities */}
+              <div className="space-y-4 pt-4 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                      Amenities
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground">
+                      Icons automatically match keywords in real-time (wellness, boat, clubhouse, helipad, pool, gym, etc.). Add descriptions for rich cards.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setAmenities([
+                        ...amenities,
+                        { name: "", iconKey: "star", description: "" },
+                      ])
+                    }
+                    className="gap-1.5 text-xs"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Add Amenity</span>
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {amenities.map((amenity, idx) => (
+                    <div
+                      key={idx}
+                      className="flex flex-col gap-2.5 p-3 rounded-lg border border-border bg-card shadow-sm hover:border-primary/30 transition-colors"
+                    >
+                      <div className="flex gap-2 items-center">
+                        {/* Live Material Icon Visual Indicator */}
+                        <div
+                          className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 border border-primary/30 text-primary shrink-0"
+                          title={`Icon: ${amenity.iconKey || "star"}`}
+                        >
+                          <span className="material-symbols-outlined text-xl">
+                            {amenity.iconKey || "star"}
+                          </span>
+                        </div>
+
+                        {/* Amenity Name with Auto Keyword Observation */}
+                        <Input
+                          placeholder="Amenity Name (e.g. Sri Sri Panchakarma Wellness Centre)"
+                          value={amenity.name}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const newAm = [...amenities];
+                            newAm[idx].name = val;
+                            const detected = detectAmenityIcon(val);
+                            if (detected && detected !== "star") {
+                              newAm[idx].iconKey = detected;
+                            } else if (!newAm[idx].iconKey) {
+                              newAm[idx].iconKey = "star";
+                            }
+                            setAmenities(newAm);
+                          }}
+                          className="bg-secondary/40 h-9 text-xs flex-1 font-medium"
+                        />
+
+                        {/* Icon Key Custom Selector */}
+                        <div className="flex items-center gap-1">
+                          <Input
+                            placeholder="Icon key"
+                            value={amenity.iconKey}
+                            onChange={(e) => {
+                              const newAm = [...amenities];
+                              newAm[idx].iconKey = e.target.value;
+                              setAmenities(newAm);
+                            }}
+                            className="bg-secondary/40 h-9 text-xs w-24 font-mono"
+                            title="Material Symbols icon key"
+                          />
+                          <select
+                            value={COMMON_AMENITY_ICONS.some((o) => o.icon === amenity.iconKey) ? amenity.iconKey : ""}
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                const newAm = [...amenities];
+                                newAm[idx].iconKey = e.target.value;
+                                setAmenities(newAm);
+                              }
+                            }}
+                            className="h-9 rounded-md border border-input bg-secondary/40 px-2 text-xs text-foreground focus:border-primary focus:outline-none"
+                            title="Quick Icon Preset"
+                          >
+                            <option value="">Presets...</option>
+                            {COMMON_AMENITY_ICONS.map((p) => (
+                              <option key={p.icon} value={p.icon}>
+                                {p.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const newAm = [...amenities];
+                            newAm.splice(idx, 1);
+                            setAmenities(newAm);
+                          }}
+                          className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive shrink-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      {/* Amenity Description Input */}
+                      <Input
+                        placeholder="Description (e.g. A curated wellness retail experience driving year-round engagement and repeat visits)"
+                        value={amenity.description}
+                        onChange={(e) => {
+                          const newAm = [...amenities];
+                          newAm[idx].description = e.target.value;
+                          setAmenities(newAm);
+                        }}
+                        className="bg-secondary/40 h-9 text-xs w-full text-foreground/90"
+                      />
+                    </div>
+                  ))}
+                  {amenities.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic text-center py-3 bg-secondary/20 rounded-md border border-dashed border-border">
+                      No amenities added yet. Click &quot;Add Amenity&quot; to define features with auto-icon recognition.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Nearby Places */}
+              <div className="space-y-4 pt-4 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">Nearby Places & Connectivity</h4>
+                    <p className="text-[11px] text-muted-foreground">
+                      Landmarks, commute hubs, airports, and points of interest.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setNearbyPlaces([...nearbyPlaces, { name: "", distance: "", travelTime: "", category: "Connectivity", description: "" }])}
+                    className="gap-1.5 text-xs"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Add Place</span>
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {nearbyPlaces.map((place, idx) => (
+                    <div key={idx} className="flex flex-col gap-2 p-3 rounded-lg border border-border bg-card shadow-sm">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Place Name (e.g. International Airport)"
+                          value={place.name}
+                          onChange={(e) => {
+                            const newPl = [...nearbyPlaces];
+                            newPl[idx].name = e.target.value;
+                            setNearbyPlaces(newPl);
+                          }}
+                          className="bg-secondary/40 h-9 text-xs flex-1 font-medium"
+                        />
+                        <Input
+                          placeholder="Distance (e.g. 15 km)"
+                          value={place.distance}
+                          onChange={(e) => {
+                            const newPl = [...nearbyPlaces];
+                            newPl[idx].distance = e.target.value;
+                            setNearbyPlaces(newPl);
+                          }}
+                          className="bg-secondary/40 h-9 text-xs flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const newPl = [...nearbyPlaces];
+                            newPl.splice(idx, 1);
+                            setNearbyPlaces(newPl);
+                          }}
+                          className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive shrink-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Travel Time (e.g. 20 Mins Drive)"
+                          value={place.travelTime}
+                          onChange={(e) => {
+                            const newPl = [...nearbyPlaces];
+                            newPl[idx].travelTime = e.target.value;
+                            setNearbyPlaces(newPl);
+                          }}
+                          className="bg-secondary/40 h-9 text-xs flex-1"
+                        />
+                        <Input
+                          placeholder="Category (e.g. Airport, Beach, Metro)"
+                          value={place.category}
+                          onChange={(e) => {
+                            const newPl = [...nearbyPlaces];
+                            newPl[idx].category = e.target.value;
+                            setNearbyPlaces(newPl);
+                          }}
+                          className="bg-secondary/40 h-9 text-xs flex-1"
+                        />
+                      </div>
+                      <Input
+                        placeholder="Description / Context (optional e.g. Direct expressway connectivity)"
+                        value={place.description}
+                        onChange={(e) => {
+                          const newPl = [...nearbyPlaces];
+                          newPl[idx].description = e.target.value;
+                          setNearbyPlaces(newPl);
+                        }}
+                        className="bg-secondary/40 h-9 text-xs w-full"
+                      />
+                    </div>
+                  ))}
+                  {nearbyPlaces.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic text-center py-3 bg-secondary/20 rounded-md border border-dashed border-border">
+                      No nearby connectivity landmarks added.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Step 2 Actions */}
             <div className="flex items-center justify-between pt-4 border-t border-border">
               <Button
                 type="button"

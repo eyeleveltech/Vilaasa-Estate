@@ -151,6 +151,7 @@ export const getProperties = asyncHandler(
               amenity: true,
             },
           },
+          nearbyPlaces: true,
           admin: {
             select: {
               id: true,
@@ -275,36 +276,34 @@ export const createProperty = asyncHandler(
 
     const slug = await generateUniqueSlug(data.name, data.slug);
 
-    // 1. Find or create Location
-    let location = await prisma.location.findFirst({
-      where: {
-        city: { equals: data.location.city, mode: "insensitive" },
-        country: { equals: data.location.country, mode: "insensitive" },
-        ...(data.location.community
-          ? {
-              community: {
-                equals: data.location.community,
-                mode: "insensitive",
-              },
-            }
-          : {}),
+    // 1. Create Unique Location for this Property
+    let location = await prisma.location.create({
+      data: {
+        city: data.location.city,
+        country: data.location.country,
+        community: data.location.community,
+        addressLine: data.location.addressLine,
+        postalCode: data.location.postalCode,
+        latitude: data.location.latitude,
+        longitude: data.location.longitude,
+        googleMapUrl: data.location.googleMapUrl,
+        mapEmbedUrl: data.location.mapEmbedUrl,
       },
     });
 
-    if (!location) {
-      location = await prisma.location.create({
-        data: {
-          city: data.location.city,
-          country: data.location.country,
-          community: data.location.community,
-          addressLine: data.location.addressLine,
-          postalCode: data.location.postalCode,
-          latitude: data.location.latitude,
-          longitude: data.location.longitude,
-          googleMapUrl: data.location.googleMapUrl,
-          mapEmbedUrl: data.location.mapEmbedUrl,
-        },
-      });
+    if (data.amenities?.length) {
+      for (const a of data.amenities) {
+        if (a.name) {
+          await prisma.amenity.upsert({
+            where: { name: a.name.trim() },
+            update: a.iconKey ? { iconKey: a.iconKey } : {},
+            create: {
+              name: a.name.trim(),
+              iconKey: a.iconKey || "star",
+            },
+          });
+        }
+      }
     }
 
     // 2. Create Property with relations
@@ -381,10 +380,27 @@ export const createProperty = asyncHandler(
           : undefined,
         amenities: data.amenities?.length
           ? {
-              create: data.amenities.map((a) => ({
-                amenityId: a.amenityId,
-                description: a.description,
-              })),
+              create: data.amenities.map((a) => {
+                if (a.amenityId) {
+                  return {
+                    description: a.description,
+                    amenity: { connect: { id: a.amenityId } },
+                  };
+                }
+
+                return {
+                  description: a.description,
+                  amenity: {
+                    connectOrCreate: {
+                      where: { name: a.name! },
+                      create: {
+                        name: a.name!,
+                        iconKey: a.iconKey || "star",
+                      },
+                    },
+                  },
+                };
+              }),
             }
           : undefined,
         nearbyPlaces: data.nearbyPlaces?.length
@@ -392,8 +408,10 @@ export const createProperty = asyncHandler(
               createMany: {
                 data: data.nearbyPlaces.map((p) => ({
                   name: p.name,
-                  distance: p.distance,
-                  category: p.category,
+                  distance: p.distance || "Nearby",
+                  category: p.category ?? null,
+                  travelTime: p.travelTime ?? null,
+                  description: p.description ?? null,
                 })),
               },
             }
@@ -404,8 +422,8 @@ export const createProperty = asyncHandler(
                 data: data.financialMetrics.map((f) => ({
                   label: f.label,
                   value: f.value,
-                  note: f.note,
-                  icon: f.icon,
+                  note: f.note ?? null,
+                  icon: f.icon ?? null,
                 })),
               },
             }
@@ -418,6 +436,8 @@ export const createProperty = asyncHandler(
         amenities: {
           include: { amenity: true },
         },
+        nearbyPlaces: true,
+        financialMetrics: true,
       },
     });
 
@@ -453,37 +473,35 @@ export const updateProperty = asyncHandler(
     let locationId = property.locationId;
 
     if (data.location) {
-      let location = await prisma.location.findFirst({
-        where: {
-          city: { equals: data.location.city, mode: "insensitive" },
-          country: { equals: data.location.country, mode: "insensitive" },
-          ...(data.location.community
-            ? {
-                community: {
-                  equals: data.location.community,
-                  mode: "insensitive",
-                },
-              }
-            : {}),
+      await prisma.location.update({
+        where: { id: locationId },
+        data: {
+          city: data.location.city,
+          country: data.location.country,
+          community: data.location.community,
+          addressLine: data.location.addressLine,
+          postalCode: data.location.postalCode,
+          latitude: data.location.latitude,
+          longitude: data.location.longitude,
+          googleMapUrl: data.location.googleMapUrl,
+          mapEmbedUrl: data.location.mapEmbedUrl,
         },
       });
+    }
 
-      if (!location) {
-        location = await prisma.location.create({
-          data: {
-            city: data.location.city,
-            country: data.location.country,
-            community: data.location.community,
-            addressLine: data.location.addressLine,
-            postalCode: data.location.postalCode,
-            latitude: data.location.latitude,
-            longitude: data.location.longitude,
-            googleMapUrl: data.location.googleMapUrl,
-            mapEmbedUrl: data.location.mapEmbedUrl,
-          },
-        });
+    if (data.amenities?.length) {
+      for (const a of data.amenities) {
+        if (a.name) {
+          await prisma.amenity.upsert({
+            where: { name: a.name.trim() },
+            update: a.iconKey ? { iconKey: a.iconKey } : {},
+            create: {
+              name: a.name.trim(),
+              iconKey: a.iconKey || "star",
+            },
+          });
+        }
       }
-      locationId = location.id;
     }
 
     const updated = await prisma.property.update({
@@ -529,11 +547,99 @@ export const updateProperty = asyncHandler(
         supportModules: data.supportModules !== undefined ? (data.supportModules as Prisma.InputJsonValue) : undefined,
         advantages: data.advantages !== undefined ? (data.advantages as Prisma.InputJsonValue) : undefined,
         locationId,
+        configurations: data.configurations
+          ? {
+              deleteMany: {},
+              createMany: {
+                data: data.configurations.map((c) => ({
+                  unitType: c.unitType,
+                  areaSqFt: c.areaSqFt,
+                  viewType: c.viewType,
+                  price: c.price,
+                  isAvailable: c.isAvailable ?? true,
+                  floorPlanUrl: c.floorPlanUrl,
+                })),
+              },
+            }
+          : undefined,
+        media: data.media
+          ? {
+              deleteMany: {},
+              createMany: {
+                data: data.media.map((m, idx) => ({
+                  mediaType: m.mediaType || "GALLERY",
+                  url: m.url,
+                  thumbnailUrl: m.thumbnailUrl,
+                  altText: m.altText,
+                  orderIndex: m.orderIndex ?? idx,
+                  isFeatured: m.isFeatured ?? idx === 0,
+                })),
+              },
+            }
+          : undefined,
+        amenities: data.amenities
+          ? {
+              deleteMany: {},
+              create: data.amenities.map((a) => {
+                if (a.amenityId) {
+                  return {
+                    description: a.description,
+                    amenity: { connect: { id: a.amenityId } },
+                  };
+                }
+
+                return {
+                  description: a.description,
+                  amenity: {
+                    connectOrCreate: {
+                      where: { name: a.name! },
+                      create: {
+                        name: a.name!,
+                        iconKey: a.iconKey || "star",
+                      },
+                    },
+                  },
+                };
+              }),
+            }
+          : undefined,
+        nearbyPlaces: data.nearbyPlaces
+          ? {
+              deleteMany: {},
+              createMany: {
+                data: data.nearbyPlaces.map((p) => ({
+                  name: p.name,
+                  distance: p.distance || "Nearby",
+                  category: p.category ?? null,
+                  travelTime: p.travelTime ?? null,
+                  description: p.description ?? null,
+                })),
+              },
+            }
+          : undefined,
+        financialMetrics: data.financialMetrics
+          ? {
+              deleteMany: {},
+              createMany: {
+                data: data.financialMetrics.map((f) => ({
+                  label: f.label,
+                  value: f.value,
+                  note: f.note ?? null,
+                  icon: f.icon ?? null,
+                })),
+              },
+            }
+          : undefined,
       },
       include: {
         location: true,
-        configurations: true,
         media: true,
+        configurations: true,
+        amenities: {
+          include: { amenity: true },
+        },
+        nearbyPlaces: true,
+        financialMetrics: true,
       },
     });
 

@@ -307,6 +307,8 @@ model NearbyPlace {
   name       String   // "Dubai International Airport"
   distance   String   // "15 Mins Drive"
   category   String?  // "Airport", "Metro", "School", "Hospital", "Shopping"
+  travelTime String?
+  description String? @db.Text
 
   @@index([propertyId])
 }

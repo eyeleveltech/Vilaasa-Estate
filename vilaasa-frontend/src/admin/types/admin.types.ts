@@ -259,6 +259,7 @@ export interface Inquiry {
       city: string;
       country: string;
     };
+    media?: Array<{ url: string }>;
   } | null;
   assignedAgentId?: string | null;
   assignedAgent?: {

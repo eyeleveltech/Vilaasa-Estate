@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   ExternalLink,
   Sparkles,
+  Eye,
 } from "lucide-react";
 import { useAdminAuth } from "../hooks/useAdminAuth";
 import vilaasaLogo from "@/assets/vilaasa-logo.svg";
@@ -33,6 +34,11 @@ export const AdminLayout: React.FC = () => {
       label: "Properties",
       path: "/admin/properties",
       icon: Building2,
+    },
+    {
+      label: "Viewing Records",
+      path: "/admin/viewing-records",
+      icon: Eye,
     },
     {
       label: "Franchises",
@@ -78,6 +84,7 @@ export const AdminLayout: React.FC = () => {
     if (path.includes("/edit")) return "Edit Property";
     if (path.startsWith("/admin/properties/")) return "Property Details";
     if (path === "/admin/properties") return "Property Management";
+    if (path === "/admin/viewing-records") return "Property Viewing Records & Access Logs";
     if (path === "/admin/inquiries") return "Client Inquiries Pipeline";
     if (path === "/admin/site-visits") return "Private Estate Site Inspections";
     if (path === "/admin/channel-partners") return "Channel Partner Directory & Onboarding";

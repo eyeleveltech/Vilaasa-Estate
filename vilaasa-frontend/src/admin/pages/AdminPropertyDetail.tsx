@@ -15,6 +15,7 @@ import {
   ExternalLink,
   DollarSign,
   CheckCircle,
+  ShieldCheck,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../api/axios";
@@ -638,13 +639,45 @@ export const AdminPropertyDetail: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-2 pt-4 border-t border-border">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Architectural Description
-              </span>
-              <p className="text-xs leading-relaxed text-foreground/90 whitespace-pre-line">
-                {property.description}
-              </p>
+            {/* Concept, Vision & Editorial Verdict */}
+            <div className="space-y-4 pt-4 border-t border-border">
+              {property.visionHeadline && (
+                <div className="space-y-1">
+                  <span className="text-[10px] font-semibold text-primary uppercase tracking-wider">
+                    Concept & Vision Headline
+                  </span>
+                  <h4 className="text-sm font-bold text-foreground">
+                    {property.visionHeadline}
+                  </h4>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Concept & Vision Narrative
+                </span>
+                <p className="text-xs leading-relaxed text-foreground/90 whitespace-pre-line">
+                  {property.description}
+                </p>
+              </div>
+
+              {property.verdictQuote && (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-2">
+                  <div className="flex items-center gap-1.5 text-primary text-xs font-semibold">
+                    <span className="material-symbols-outlined text-base">verified</span>
+                    <span>The Vilaasa Verdict</span>
+                  </div>
+                  <p className="text-xs italic text-foreground/90">
+                    &quot;{property.verdictQuote}&quot;
+                  </p>
+                  {(property.verdictAuthor || property.verdictTitle) && (
+                    <p className="text-[11px] text-muted-foreground">
+                      — {property.verdictAuthor}
+                      {property.verdictTitle ? `, ${property.verdictTitle}` : ""}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -954,20 +987,27 @@ export const AdminPropertyDetail: React.FC = () => {
                   key={item.amenityId}
                   className="flex items-center justify-between rounded-lg border border-border bg-secondary/30 p-3.5 shadow-sm hover:border-primary/40 transition-colors"
                 >
-                  <div className="space-y-0.5">
-                    <p className="text-xs font-semibold text-foreground">
-                      {item.amenity.name}
-                    </p>
-                    {item.description && (
-                      <p className="text-[11px] text-muted-foreground">
-                        {item.description}
+                  <div className="flex items-start gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded bg-primary/10 border border-primary/20 text-primary shrink-0 mt-0.5">
+                      <span className="material-symbols-outlined text-lg">
+                        {item.amenity.iconKey || "star"}
+                      </span>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-semibold text-foreground">
+                        {item.amenity.name}
                       </p>
-                    )}
+                      {item.description && (
+                        <p className="text-[11px] text-muted-foreground">
+                          {item.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <button
                     onClick={() => handleRemoveAmenity(item.amenityId)}
                     title="Remove amenity"
-                    className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors"
+                    className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -1011,16 +1051,26 @@ export const AdminPropertyDetail: React.FC = () => {
                   key={place.id}
                   className="flex items-center justify-between rounded-lg border border-border bg-secondary/30 p-3.5 hover:border-primary/40 transition-colors"
                 >
-                  <div>
-                    <span className="text-[10px] uppercase tracking-wider text-primary font-bold">
-                      {place.category || "Landmark"}
-                    </span>
-                    <p className="text-xs font-semibold text-foreground mt-0.5">{place.name}</p>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] uppercase tracking-wider text-primary font-bold">
+                        {place.category || "Landmark"}
+                      </span>
+                      {place.travelTime && (
+                        <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">
+                          {place.travelTime}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs font-semibold text-foreground">{place.name}</p>
                     <p className="text-[11px] text-muted-foreground">{place.distance}</p>
+                    {place.description && (
+                      <p className="text-[10px] text-muted-foreground/80 italic">{place.description}</p>
+                    )}
                   </div>
                   <button
                     onClick={() => place.id && handleDeleteNearby(place.id)}
-                    className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors"
+                    className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

@@ -109,6 +109,11 @@ const AdminInquiriesList = lazy(() =>
     default: m.AdminInquiriesList,
   })),
 );
+const AdminPropertyViewingsList = lazy(() =>
+  import("./admin/pages/AdminPropertyViewingsList").then((m) => ({
+    default: m.AdminPropertyViewingsList,
+  })),
+);
 const AdminSiteVisits = lazy(() =>
   import("./admin/pages/AdminSiteVisits").then((m) => ({
     default: m.AdminSiteVisits,
@@ -295,6 +300,7 @@ const App = () => (
                   path="vault"
                   element={<Navigate to="/admin/channel-partners" replace />}
                 />
+                <Route path="viewing-records" element={<AdminPropertyViewingsList />} />
                 <Route path="inquiries" element={<AdminInquiriesList />} />
                 <Route path="site-visits" element={<AdminSiteVisits />} />
                 <Route

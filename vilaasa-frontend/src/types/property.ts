@@ -11,7 +11,8 @@ export interface PropertyListItem {
   features: string[];
   image: string;
   franchiseCategory?: string;
-  return?:string
+  rawType?: string;
+  return?: string;
 }
 
 export interface PropertySpec {
@@ -49,6 +50,8 @@ export interface PropertyAmenity {
 export interface PropertyNearbyLocation {
   name: string;
   distance: string;
+  travelTime?: string;
+  description?: string;
 }
 
 export interface PropertyVerdict {
@@ -77,11 +80,11 @@ export interface PropertyDetail {
   galleryImages: PropertyGalleryImage[];
   amenities: PropertyAmenity[];
   nearbyLocations: PropertyNearbyLocation[];
-  googleMapLink: string
-  visionHeadline: string
+  googleMapLink?: string;
+  virtualTour360Url?: string;
+  visionHeadline?: string;
 }
 
-// Default placeholder images for properties
 export const DEFAULT_PROPERTY_IMAGES: Record<string, string> = {
   "the-aurum":
     "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&q=80",

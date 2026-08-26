@@ -2,6 +2,7 @@ import { Router } from "express";
 import { Role } from "@prisma/client";
 import {
   createInquiry,
+  trackPropertyView,
   getInquiries,
   getInquiryById,
   getInquiryStats,
@@ -23,6 +24,7 @@ const router = Router();
 
 // Public submission
 router.post("/", validate(CreateInquirySchema), createInquiry);
+router.post("/track-view", trackPropertyView);
 
 // Protected inquiries stats (Super Admin & Channel Partners)
 router.get(

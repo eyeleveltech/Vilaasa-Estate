@@ -37,14 +37,18 @@ export const PropertyMediaInputSchema = z.object({
 });
 
 export const PropertyAmenityInputSchema = z.object({
-  amenityId: z.string().min(1, "Amenity ID is required"),
+  amenityId: z.string().optional(),
+  name: z.string().optional(),
+  iconKey: z.string().optional(),
   description: z.string().optional(),
 });
 
 export const NearbyPlaceInputSchema = z.object({
   name: z.string().min(1, "Place name is required"),
-  distance: z.string().min(1, "Distance is required"),
-  category: z.string().optional(),
+  distance: z.string().optional().nullable().default("Nearby"),
+  category: z.string().optional().nullable(),
+  travelTime: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
 });
 
 export const FinancialMetricInputSchema = z.object({
@@ -164,7 +168,9 @@ export interface PropertyMediaInput {
 }
 
 export interface PropertyAmenityInput {
-  amenityId: string;
+  amenityId?: string;
+  name?: string;
+  iconKey?: string;
   description?: string;
 }
 
@@ -172,6 +178,8 @@ export interface NearbyPlaceInput {
   name: string;
   distance: string;
   category?: string;
+  travelTime?: string;
+  description?: string;
 }
 
 export interface FinancialMetricInput {

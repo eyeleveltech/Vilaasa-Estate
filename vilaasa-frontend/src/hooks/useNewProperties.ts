@@ -47,6 +47,7 @@ function transformToListItem(prop: BackendProperty): PropertyListItem {
     features: amenityNames.slice(0, 4),
     image: featuredMedia,
     franchiseCategory: isDomestic ? "Domestic" : "International",
+    rawType: prop.type,
     return: prop.expectedIrrPercent ? `${prop.expectedIrrPercent}% IRR` : undefined,
   };
 }
@@ -61,29 +62,42 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
     DEFAULT_PROPERTY_IMAGES[prop.slug] ||
     DEFAULT_PROPERTY_IMAGE;
 
-  const galleryImages = (prop.media || []).map((m, idx) => ({
-    name: m.altText || `${prop.name} - View ${idx + 1}`,
-    description: m.mediaType.replace(/_/g, " "),
-    image: m.url,
-  }));
+  const galleryImages = (prop.media || [])
+    .filter((m) => m.mediaType === "GALLERY" || m.mediaType === "HERO_IMAGE")
+    .map((m, idx) => ({
+      name: m.altText || `${prop.name} - View ${idx + 1}`,
+      description: m.altText || "",
+      image: m.url,
+    }));
 
-  const specs = [
-    { label: "Built-up Area", value: prop.totalAreaSqFt ? `${prop.totalAreaSqFt.toLocaleString()} Sq.Ft.` : "Custom" },
-    { label: "Bedrooms", value: prop.bedrooms ? `${prop.bedrooms} Master Suites` : "Bespoke" },
-    { label: "Bathrooms", value: prop.bathrooms ? `${prop.bathrooms} En-Suite Baths` : "Custom" },
-    { label: "Furnishing", value: prop.furnishingStatus ? prop.furnishingStatus.replace(/_/g, " ") : "Designer Furnished" },
-    { label: "Ownership", value: prop.ownershipType || "Freehold" },
-    { label: "RERA / Permit", value: prop.reraNumber || "Approved" },
-    {
-      label: "Possession",
-      value: prop.possessionDate
-        ? new Date(prop.possessionDate).toLocaleDateString("en-US", {
-            month: "short",
-            year: "numeric",
-          })
-        : "Ready to Move",
-    },
-  ];
+  const specs = [];
+  
+  if (prop.type) {
+    specs.push({ label: "Property Type", value: prop.type.replace(/_/g, " ") });
+  }
+  if (prop.location?.city) {
+    specs.push({ label: "Location", value: prop.location.city });
+  }
+  if (prop.price && Number(prop.price) > 0) {
+    specs.push({ label: "Minimum Investment", value: `${prop.currency} ${Number(prop.price).toLocaleString()}` });
+  }
+
+  if (prop.bedrooms) {
+    specs.push({ label: "Bedrooms", value: `${prop.bedrooms} BHK` });
+  }
+  if (prop.bathrooms) {
+    specs.push({ label: "Bathrooms", value: `${prop.bathrooms}` });
+  }
+  if (prop.totalAreaSqFt) {
+    specs.push({ label: "Built-up Area", value: `${prop.totalAreaSqFt.toLocaleString()} Sq.Ft.` });
+  }
+  if (prop.furnishingStatus) {
+    specs.push({ label: "Furnishing", value: prop.furnishingStatus.replace(/_/g, " ") });
+  }
+
+  if (prop.configurations && prop.configurations.length > 0) {
+    specs.push({ label: "Configuration", value: prop.configurations[0].unitType });
+  }
 
   const financials = (prop.financialMetrics || []).map((f) => ({
     label: f.label,
@@ -92,26 +106,8 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
     note: f.note || "",
   }));
 
-  // Fallback financial metrics if none seeded
-  if (financials.length === 0) {
-    if (prop.rentalYieldPercent) {
-      financials.push({
-        label: "Projected Net Yield",
-        icon: "savings",
-        value: `${prop.rentalYieldPercent}% p.a.`,
-        note: `Tax-free in ${prop.currency}`,
-      });
-    }
-    if (prop.expectedIrrPercent) {
-      financials.push({
-        label: "Target IRR",
-        icon: "trending_up",
-        value: `${prop.expectedIrrPercent}%`,
-        note: "5-Year Capital Horizon",
-      });
-    }
-  }
-
+  // No fallback financials as per user request
+  
   const configurations = (prop.configurations || []).map((c) => ({
     type: c.unitType,
     area: `${c.areaSqFt.toLocaleString()} Sq.Ft.`,
@@ -121,13 +117,15 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
 
   const amenities = (prop.amenities || []).map((a) => ({
     name: a.amenity.name,
-    icon: a.amenity.iconKey || "diamond",
-    description: a.description || "Curated bespoke amenity.",
+    icon: a.amenity.iconKey || "spa",
+    description: a.description || "",
   }));
 
   const nearbyLocations = (prop.nearbyPlaces || []).map((p) => ({
     name: p.name,
     distance: p.distance,
+    travelTime: p.travelTime,
+    description: p.description,
   }));
 
   return {
@@ -146,9 +144,14 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
     brochure:
       prop.brochureUrl ||
       prop.media?.find((m) => m.mediaType === "BROCHURE_PDF")?.url ||
-      "https://res.cloudinary.com/vilaasa/sample-brochure.pdf",
+      undefined,
     heroImage,
-    description: [prop.description],
+    description: prop.description
+      ? prop.description
+          .split(/\n\s*\n/)
+          .map((p) => p.trim())
+          .filter(Boolean)
+      : [prop.description || ""],
     verdict: {
       quote:
         prop.verdictQuote ||
@@ -159,13 +162,12 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
     specs,
     financials,
     configurations,
-    galleryImages: galleryImages.length > 0 ? galleryImages : [{ name: prop.name, description: "Estate View", image: heroImage }],
+    galleryImages: galleryImages.length > 0 ? galleryImages : [{ name: prop.name, description: "", image: heroImage }],
     amenities,
     nearbyLocations,
-    googleMapLink: prop.location?.googleMapUrl || "",
-    visionHeadline:
-      prop.visionHeadline ||
-      "Where architectural vision converges with generational prestige.",
+    visionHeadline: prop.visionHeadline || undefined,
+    virtualTour360Url: prop.virtualTour360Url,
+    googleMapLink: prop.location?.googleMapUrl,
   };
 }
 
@@ -250,14 +252,16 @@ export function useConstructionAssets() {
                 ? new Date(p.constructionAsset.lastUpdate).toISOString()
                 : new Date().toISOString(),
               milestones: (p.constructionAsset?.milestones || []).map((m) => ({
+                id: m.id || Math.random().toString(),
                 name: m.name,
-                status: m.status,
-                targetDate: new Date(m.targetDate).toLocaleDateString(),
+                status: (m.status.toLowerCase() as "completed" | "in-progress" | "upcoming") || "upcoming",
+                date: m.targetDate ? new Date(m.targetDate).toLocaleDateString() : new Date().toLocaleDateString(),
               })),
               gallery: (p.constructionAsset?.gallery || []).map((g) => ({
-                name: g.caption || "Construction Update",
-                description: new Date(g.date).toLocaleDateString(),
-                image: g.imageUrl,
+                id: g.id || Math.random().toString(),
+                url: g.imageUrl,
+                date: g.date ? new Date(g.date).toLocaleDateString() : new Date().toLocaleDateString(),
+                caption: g.caption || "Construction Update",
               })),
             }));
         }

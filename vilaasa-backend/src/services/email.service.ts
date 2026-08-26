@@ -19,12 +19,18 @@ const getFrontendUrl = (): string => {
  * Transporter singleton for SMTP email delivery
  */
 const createTransporter = () => {
-  const host = process.env.SMTP_HOST || "smtp.gmail.com";
+  const host = process.env.SMTP_HOST;
   const port = parseInt(process.env.SMTP_PORT || "587", 10);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
 
-  if (!user || !pass || user.includes("your_") || pass.includes("your_")) {
+  if (
+    !host ||
+    !user ||
+    !pass ||
+    user.includes("your_") ||
+    pass.includes("your_")
+  ) {
     return null; // Development mock mode
   }
 
@@ -56,27 +62,17 @@ const wrapInLuxuryTemplate = (title: string, bodyContent: string): string => {
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #050505; color: #e4e4e7; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
     .wrapper { width: 100%; background-color: #050505; padding: 32px 16px; }
     .container { max-width: 580px; margin: 0 auto; background-color: #0d0d0f; border: 1px solid #222226; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
-    .header { background: linear-gradient(180deg, #131316 0%, #0d0d0f 100%); padding: 32px 28px 24px; text-align: center; border-bottom: 1px solid #1f1f24; }
-    .logo-img { height: 28px; width: auto; max-width: 220px; display: block; margin: 0 auto 10px auto; border: 0; }
-    .logo-badge { display: inline-block; font-size: 17px; font-weight: 700; letter-spacing: 4px; color: #ffffff; text-transform: uppercase; text-decoration: none; }
-    .logo-accent { color: #4db960; }
-    .sub-brand { font-size: 9.5px; letter-spacing: 2.5px; color: #a1a1aa; text-transform: uppercase; margin-top: 6px; }
-    .nav-links { margin-top: 18px; font-size: 11px; letter-spacing: 1.2px; }
-    .nav-links a { color: #71717a; text-decoration: none; margin: 0 10px; font-weight: 500; text-transform: uppercase; font-size: 10px; }
-    .nav-links a:hover { color: #4db960; }
-    .content { padding: 36px 32px; line-height: 1.65; font-size: 14px; color: #d4d4d8; }
+    .header { background: linear-gradient(180deg, #131316 0%, #0d0d0f 100%); padding: 28px 24px; text-align: center; border-bottom: 1px solid #1f1f24; }
+    .logo-img { height: 32px; width: auto; max-width: 220px; display: block; margin: 0 auto; border: 0; }
+    .content { padding: 32px 28px; line-height: 1.65; font-size: 14px; color: #d4d4d8; }
     .gold-box { background: linear-gradient(135deg, rgba(77,185,96,0.06) 0%, rgba(212,175,55,0.04) 100%); border: 1px solid rgba(77,185,96,0.25); border-radius: 10px; padding: 24px; text-align: center; margin: 24px 0; }
-    .otp-code { font-size: 34px; font-weight: 700; letter-spacing: 10px; color: #4db960; font-family: 'Courier New', Courier, monospace; margin: 8px 0; }
+    .otp-code { font-size: 38px; font-weight: 800; letter-spacing: 12px; color: #4db960; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 10px 0; text-align: center; }
     .btn { display: inline-block; background-color: #4db960; color: #000000 !important; font-weight: 700; padding: 13px 30px; border-radius: 6px; text-decoration: none; text-transform: uppercase; font-size: 11px; letter-spacing: 1.5px; margin: 16px 0 8px; }
     .btn-secondary { display: inline-block; background-color: transparent; border: 1px solid #3f3f46; color: #e4e4e7 !important; font-weight: 600; padding: 10px 22px; border-radius: 6px; text-decoration: none; font-size: 11px; margin-top: 10px; }
     .info-table { width: 100%; border-collapse: collapse; margin: 20px 0; background-color: #141417; border-radius: 8px; overflow: hidden; border: 1px solid #27272a; }
     .info-table td { padding: 12px 16px; border-bottom: 1px solid #1f1f23; font-size: 13px; }
     .info-table td:first-child { color: #71717a; width: 35%; font-weight: 500; }
     .info-table td:last-child { color: #f4f4f5; font-weight: 600; }
-    .footer { background-color: #08080a; padding: 28px 24px; text-align: center; font-size: 11px; color: #52525b; border-top: 1px solid #18181b; }
-    .footer a { color: #a1a1aa; text-decoration: none; }
-    .footer-links { margin-bottom: 12px; }
-    .footer-links a { margin: 0 8px; color: #71717a; }
   </style>
 </head>
 <body>
@@ -84,31 +80,11 @@ const wrapInLuxuryTemplate = (title: string, bodyContent: string): string => {
     <div class="container">
       <div class="header">
         <a href="${frontendUrl}" style="text-decoration: none; display: inline-block;">
-          <img src="${frontendUrl}/assets/vilaasa-logo.svg" alt="VILAASA ESTATES" class="logo-img" onerror="this.style.display='none';" />
-          <div class="logo-badge">
-            VILAASA <span class="logo-accent">ESTATES</span>
-          </div>
+          <img src="https://res.cloudinary.com/xlrhxut7/image/upload/f_png,w_500/v1787653922/vilaasa/branding/vilaasa-logo-white.svg" alt="VILAASA ESTATES" class="logo-img" />
         </a>
-        <div class="sub-brand">Private Client Estates &amp; Advisory</div>
-        <div class="nav-links">
-          <a href="${frontendUrl}/properties">Portfolio</a>
-          <a href="${frontendUrl}/international">Dubai</a>
-          <a href="${frontendUrl}/domestic">India</a>
-          <a href="${frontendUrl}/contact">Concierge</a>
-        </div>
       </div>
       <div class="content">
         ${bodyContent}
-      </div>
-      <div class="footer">
-        <div class="footer-links">
-          <a href="${frontendUrl}">Website</a> • 
-          <a href="${frontendUrl}/properties">Properties</a> • 
-          <a href="${frontendUrl}/contact">Concierge</a> • 
-          <a href="${frontendUrl}/privacy">Confidentiality</a>
-        </div>
-        <p style="margin: 6px 0;">© ${new Date().getFullYear()} Vilaasa Estates Private Limited. All rights reserved.</p>
-        <p style="margin: 4px 0 0 0; color: #3f3f46;">Dubai International Financial Centre • Mayfair London • Nariman Point Mumbai</p>
       </div>
     </div>
   </div>
@@ -124,7 +100,11 @@ export const sendEmail = async (
   options: SendEmailOptions,
 ): Promise<{ success: boolean; messageId?: string }> => {
   const fromName = process.env.FROM_NAME || "Vilaasa Estates Concierge";
-  const fromEmail = process.env.SMTP_USER || process.env.FROM_EMAIL || "concierge@vilaasaestates.com";
+  const fromAddress =
+    process.env.SMTP_FROM ||
+    process.env.SMTP_USER ||
+    process.env.FROM_EMAIL ||
+    "concierge@vilaasaestates.com";
   const transporter = createTransporter();
 
   if (!transporter) {
@@ -141,7 +121,9 @@ export const sendEmail = async (
 
   try {
     const info = await transporter.sendMail({
-      from: `"${fromName}" <${fromEmail}>`,
+      from: process.env.SMTP_FROM
+        ? process.env.SMTP_FROM
+        : `"${fromName}" <${fromAddress}>`,
       to: options.to,
       subject: options.subject,
       text: options.text,
@@ -165,28 +147,24 @@ export const sendOtpEmail = async (
   const frontendUrl = getFrontendUrl();
 
   const body = `
-    <h2 style="color: #ffffff; font-size: 19px; font-weight: 400; margin-top: 0;">Private Portfolio Authentication</h2>
-    <p>Please enter the following one-time security code to authenticate your session with The Vault &amp; Private Concierge.</p>
+    <h2 style="color: #ffffff; font-size: 19px; font-weight: 400; margin-top: 0;">Email Verification</h2>
+    <p style="color: #d4d4d8; font-size: 14px; line-height: 1.6;">Here is your one-time password (OTP) to verify your email address for property viewing:</p>
     
     <div class="gold-box">
-      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #71717a; margin-bottom: 4px;">Security Access Code</div>
-      <div class="otp-code">${otp}</div>
-      <p style="font-size: 11px; color: #71717a; margin: 8px 0 0 0;">Valid for 10 minutes. Strictly confidential.</p>
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #71717a; margin-bottom: 4px;">Verification Code</div>
+      <div class="otp-code" style="font-size: 38px; font-weight: 800; letter-spacing: 12px; color: #4db960; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 10px 0; text-align: center;"><strong>${otp}</strong></div>
+      <p style="font-size: 11px; color: #71717a; margin: 8px 0 0 0;">Expires in 10 minutes.</p>
     </div>
 
-    <div style="text-align: center; margin-top: 20px;">
-      <a href="${frontendUrl}" class="btn">Return to Vilaasa Estates</a>
-    </div>
-
-    <p style="font-size: 12px; color: #71717a; margin-top: 24px;">If you did not request this security code, please disregard this email or contact your private wealth manager immediately.</p>
+    <p style="font-size: 12px; color: #71717a; margin-top: 24px; margin-bottom: 0;">If you did not request this code, no action is needed.</p>
   `;
 
-  const html = wrapInLuxuryTemplate("Vilaasa Authentication Code", body);
-  const text = `Your Vilaasa Estates security code is: ${otp}. Valid for 10 minutes. Return to: ${frontendUrl}`;
+  const html = wrapInLuxuryTemplate("Email Verification - Vilaasa Estates", body);
+  const text = `${otp} is your Vilaasa Estates verification code for property viewing. Valid for 10 minutes.`;
 
   return sendEmail({
     to: email,
-    subject: `Your Security Access Code: ${otp} — Vilaasa Estates`,
+    subject: `${otp} is your Vilaasa Estates verification code`,
     html,
     text,
   });

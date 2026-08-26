@@ -5,9 +5,11 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { DiamondIcon } from "@/components/icons/DiamondIcon";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useProperties } from "@/hooks/useNewProperties";
 import { CDN_ASSETS } from "@/config/cdnAssets";
+import { InquiryFormDialog } from "@/components/InquiryFormDialog";
+import { isOtpVerified } from "@/lib/otpAccess";
 
 const benefits = [
   {
@@ -38,10 +40,18 @@ const International = () => {
   const { data: properties = [], isLoading, isError } = useProperties();
   const [activeType, setActiveType] = useState<string | null>(null);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [inquiryOpen, setInquiryOpen] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const internaltional = properties.filter(
-    (p) => p.franchiseCategory === "International",
+    (p) =>
+      p.franchiseCategory === "International" &&
+      p.type?.toLowerCase() !== "franchise" &&
+      p.rawType !== "FRANCHISE",
   );
 
   const filteredProperties = internaltional.filter((p) => {
@@ -51,6 +61,21 @@ const International = () => {
 
   const clearFilters = () => {
     setActiveType(null);
+  };
+
+  const navigate = useNavigate();
+  const openInquiry = (property: { id: string; name: string }) => {
+    if (isOtpVerified()) {
+      navigate(`/property/${property.id}`);
+      return;
+    }
+    setSelectedProperty(property);
+    setInquiryOpen(true);
+  };
+
+  const handleInquiryOpenChange = (open: boolean) => {
+    setInquiryOpen(open);
+    if (!open) setSelectedProperty(null);
   };
 
   const handleVideoEnd = () => {
@@ -241,10 +266,7 @@ const International = () => {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: index * 0.1 }}
                     >
-                      <Link
-                        to={`/property/${property.id}`}
-                        className="group block w-full overflow-hidden rounded-sm border border-border bg-card text-left transition-all hover:border-primary/50"
-                      >
+                      <div className="group block w-full overflow-hidden rounded-sm border border-border bg-card text-left transition-all hover:border-primary/50">
                         <div className="relative aspect-[4/3] overflow-hidden">
                           <div
                             className="h-full w-full bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
@@ -313,12 +335,16 @@ const International = () => {
                           </div>
 
                           <div className="mt-4 w-full">
-                            <span className="inline-flex w-full justify-center bg-primary py-2 text-sm font-bold uppercase tracking-wider text-primary-foreground transition-colors group-hover:bg-primary/90">
+                            <button
+                              type="button"
+                              onClick={() => openInquiry({ id: property.id, name: property.name })}
+                              className="inline-flex w-full justify-center bg-primary py-2 text-sm font-bold uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
+                            >
                               View Details
-                            </span>
+                            </button>
                           </div>
                         </div>
-                      </Link>
+                      </div>
                     </motion.div>
                   ))}
                 </div>
@@ -339,6 +365,15 @@ const International = () => {
           </section>
         </div>
       </section>
+
+      <InquiryFormDialog
+        key={selectedProperty?.id ?? "inquiry"}
+        open={inquiryOpen}
+        onOpenChange={handleInquiryOpenChange}
+        projectType="real-estate"
+        projectId={selectedProperty?.id}
+        projectName={selectedProperty?.name}
+      />
 
       {/* Benefits Section */}
       <section className="border-t border-border/10 bg-background px-4 py-16 md:px-10 md:py-32">

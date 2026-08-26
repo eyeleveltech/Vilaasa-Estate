@@ -20,11 +20,11 @@
    - `CLOUDINARY_CLOUD_NAME`: Your Cloudinary cloud name
    - `CLOUDINARY_API_KEY`: Your Cloudinary API key
    - `CLOUDINARY_API_SECRET`: Your Cloudinary API secret
-   - `SMTP_HOST`: `smtp.gmail.com`
+   - `SMTP_HOST`: `smtp.zoho.com` (confirm your Zoho data-center hostname)
    - `SMTP_PORT`: `587`
-   - `SMTP_USER`: Your Gmail / Google Workspace address
-   - `SMTP_PASS`: 16-character Google App Password
-   - `SMTP_FROM`: `"Vilaasa Estates <noreply@vilaasaestates.com>"`
+   - `SMTP_USER`: Your full Zoho Mailbox address
+   - `SMTP_PASS`: Your Zoho app password (required when MFA is enabled)
+   - `SMTP_FROM`: A sender address configured for the Zoho mailbox
    - `ALLOWED_ORIGINS`: `https://vilaasaestates.com,https://your-app.vercel.app`
 5. Click **Deploy**. Render will automatically run `npm install && npx prisma generate && npm run build` and execute database migrations.
 

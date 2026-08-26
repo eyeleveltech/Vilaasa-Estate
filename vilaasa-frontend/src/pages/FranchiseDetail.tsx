@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -9,14 +9,25 @@ import { useToast } from "@/hooks/use-toast";
 import Gallery from "@/components/Gallery";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useFranchise } from "@/hooks/useNewFranchise";
+import { InquiryFormDialog } from "@/components/InquiryFormDialog";
+import { trackSilentPropertyView, isOtpVerified } from "@/lib/otpAccess";
 
 const FranchiseDetail = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { id } = useParams<{ id: string }>();
   const { data: franchise, isLoading, isError } = useFranchise(id);
   const { formatAmount, formatDynamicValue } = useCurrency();
   const [selectedTier, setSelectedTier] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => isOtpVerified());
+  const [inquiryDialogOpen, setInquiryDialogOpen] = useState<boolean>(() => !isOtpVerified());
+
+  useEffect(() => {
+    if (isUnlocked && franchise?.id) {
+      trackSilentPropertyView(franchise.id, franchise.name);
+    }
+  }, [isUnlocked, franchise?.id, franchise?.name]);
 
   console.log("Franchise Data:", franchise);
 
@@ -355,6 +366,60 @@ const FranchiseDetail = () => {
 
       {/* Gallery  */}
       <Gallery property={franchise} />
+
+      {/* 🔐 Locked Franchise Gate if User lands directly on URL without verifying */}
+      {!isUnlocked && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl p-4">
+          <div className="max-w-md w-full text-center space-y-6 p-8 rounded-2xl border border-primary/30 bg-card/95 shadow-2xl">
+            <div className="h-16 w-16 mx-auto rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
+              <span className="material-symbols-outlined text-3xl text-primary">
+                lock
+              </span>
+            </div>
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary block mb-2">
+                Confidential Franchise Model
+              </span>
+              <h2 className="text-2xl font-light text-foreground">
+                {franchise.name}
+              </h2>
+              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                Access to full operator financial models, quarterly yield payout schedules, and franchise dossiers requires identity verification.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 pt-2">
+              <Button
+                onClick={() => setInquiryDialogOpen(true)}
+                className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-wider py-3"
+              >
+                Unlock Franchise Dossier (OTP)
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => navigate(-1)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Return to Portfolio
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inquiry & Verification Dialog */}
+      <InquiryFormDialog
+        open={inquiryDialogOpen}
+        onOpenChange={(open) => {
+          setInquiryDialogOpen(open);
+        }}
+        projectType="franchise"
+        projectId={franchise.id}
+        projectName={franchise.name}
+        onVerified={() => {
+          setIsUnlocked(true);
+          setInquiryDialogOpen(false);
+        }}
+      />
 
       <Footer />
     </div>

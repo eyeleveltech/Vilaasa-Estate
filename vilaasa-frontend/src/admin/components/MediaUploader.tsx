@@ -7,6 +7,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Star,
+  Edit2,
+  Check,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../api/axios";
@@ -46,6 +48,36 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
   const [uploadedMedia, setUploadedMedia] =
     useState<PropertyMedia[]>(existingMedia);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [editingCaptionId, setEditingCaptionId] = useState<string | null>(null);
+  const [tempCaption, setTempCaption] = useState<string>("");
+  const [savingCaption, setSavingCaption] = useState<boolean>(false);
+
+  const handleStartEdit = (media: PropertyMedia) => {
+    setEditingCaptionId(media.id);
+    setTempCaption(media.altText || "");
+  };
+
+  const handleSaveCaption = async (mediaId: string) => {
+    setSavingCaption(true);
+    try {
+      const res = await api.patch(`/media/${mediaId}`, {
+        altText: tempCaption.trim(),
+      });
+      if (res.data.success) {
+        setUploadedMedia((prev) =>
+          prev.map((m) =>
+            m.id === mediaId ? { ...m, altText: tempCaption.trim() } : m,
+          ),
+        );
+        toast.success("Caption saved");
+      }
+    } catch {
+      toast.error("Failed to update caption");
+    } finally {
+      setSavingCaption(false);
+      setEditingCaptionId(null);
+    }
+  };
 
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -59,7 +91,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
         file,
         previewUrl: isPdf ? "" : URL.createObjectURL(file),
         mediaType: isPdf ? "BROCHURE_PDF" : isHero ? "HERO_IMAGE" : "GALLERY",
-        altText: file.name.replace(/\.[^/.]+$/, ""),
+        altText: file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
         orderIndex: uploadedMedia.length + idx,
         isFeatured: isHero,
         status: "idle",
@@ -255,15 +287,15 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                     <option value="FLOOR_PLAN">Floor Plan</option>
                   </select>
 
-                  {/* Alt Text */}
+                  {/* Caption / Alt Text */}
                   <Input
                     type="text"
-                    placeholder="Alt caption"
+                    placeholder="Caption / Description (e.g. Master Bedroom)"
                     value={item.altText}
                     onChange={(e) =>
                       updateQueueItem(item.id, { altText: e.target.value })
                     }
-                    className="w-32 bg-secondary/50 text-xs h-8"
+                    className="w-44 sm:w-56 bg-secondary/50 text-xs h-8"
                   />
 
                   {/* Featured Toggle */}
@@ -283,31 +315,39 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
                   {/* Action / Status */}
                   <div className="flex items-center space-x-2">
+                    {item.status === "idle" && (
+                      <button
+                        onClick={() => uploadItem(item)}
+                        className="rounded bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
+                      >
+                        Upload
+                      </button>
+                    )}
                     {item.status === "uploading" && (
-                      <div className="flex items-center space-x-2 text-xs text-primary">
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                        <span>Uploading...</span>
+                      <div className="flex items-center space-x-1.5 text-xs text-primary font-medium">
+                        <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        <span>{item.progress}%</span>
                       </div>
                     )}
                     {item.status === "success" && (
-                      <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                      <span className="flex items-center space-x-1 text-xs text-primary font-medium">
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span>Done</span>
+                      </span>
                     )}
                     {item.status === "error" && (
-                      <AlertCircle className="h-5 w-5 text-destructive" />
-                    )}
-                    {item.status === "idle" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => uploadItem(item)}
-                        className="text-[11px] h-7 px-2.5"
+                      <span
+                        className="flex items-center space-x-1 text-xs text-destructive font-medium"
+                        title={item.error}
                       >
-                        Upload
-                      </Button>
+                        <AlertCircle className="h-4 w-4" />
+                        <span>Error</span>
+                      </span>
                     )}
                     <button
                       onClick={() => removeQueueItem(item.id)}
-                      className="text-muted-foreground hover:text-destructive p-1 transition-colors"
+                      disabled={item.status === "uploading"}
+                      className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -319,19 +359,25 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
         </div>
       )}
 
-      {/* Uploaded Media Grid */}
+      {/* Uploaded Media Assets Grid */}
       {uploadedMedia.length > 0 && (
         <div className="space-y-3">
-          <h5 className="text-sm font-semibold text-foreground">
-            Current Media Assets ({uploadedMedia.length})
-          </h5>
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">
+              Current Property Media ({uploadedMedia.length})
+            </h4>
+            <span className="text-[11px] text-muted-foreground">
+              Click caption to edit anytime
+            </span>
+          </div>
+
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {uploadedMedia.map((media) => (
               <div
                 key={media.id}
-                className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-md hover:border-primary/40 transition-colors"
+                className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-md hover:border-primary/40 transition-colors flex flex-col justify-between"
               >
-                <div className="aspect-[4/3] w-full bg-secondary">
+                <div className="aspect-[4/3] w-full bg-secondary relative">
                   {media.mediaType === "BROCHURE_PDF" ? (
                     <div className="flex h-full w-full flex-col items-center justify-center p-3 text-center">
                       <FileText className="h-8 w-8 text-primary" />
@@ -346,28 +392,83 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   )}
+
+                  {media.isFeatured && (
+                    <span className="absolute left-2 top-2 flex items-center space-x-1 rounded bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground shadow-md">
+                      <Star className="h-2.5 w-2.5 fill-current" />
+                      <span>Featured</span>
+                    </span>
+                  )}
                 </div>
 
-                {media.isFeatured && (
-                  <span className="absolute left-2 top-2 flex items-center space-x-1 rounded bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground shadow-md">
-                    <Star className="h-2.5 w-2.5 fill-current" />
-                    <span>Featured</span>
-                  </span>
-                )}
-
-                <div className="p-2 flex items-center justify-between border-t border-border bg-secondary/30">
-                  <span className="text-[10px] font-mono uppercase text-muted-foreground">
-                    {media.mediaType.replace(/_/g, " ")}
-                  </span>
-                  {media.id && (
-                    <button
-                      onClick={() => handleDeleteUploaded(media.id!)}
-                      title="Delete asset"
-                      className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                {/* Editable Caption & Asset Details */}
+                <div className="p-2.5 space-y-1.5 border-t border-border bg-secondary/30">
+                  {editingCaptionId === media.id ? (
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        autoFocus
+                        value={tempCaption}
+                        onChange={(e) => setTempCaption(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveCaption(media.id!);
+                          if (e.key === "Escape") setEditingCaptionId(null);
+                        }}
+                        placeholder="Caption / Alt text..."
+                        className="h-7 text-xs bg-background flex-1"
+                      />
+                      <button
+                        onClick={() => handleSaveCaption(media.id!)}
+                        disabled={savingCaption}
+                        className="h-7 px-2 rounded bg-primary text-primary-foreground text-[10px] font-semibold flex items-center gap-0.5"
+                      >
+                        <Check className="h-3 w-3" />
+                        <span>Save</span>
+                      </button>
+                      <button
+                        onClick={() => setEditingCaptionId(null)}
+                        className="h-7 px-1.5 rounded text-muted-foreground hover:text-foreground text-[10px]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-1">
+                      <div
+                        onClick={() => handleStartEdit(media)}
+                        className="flex-1 cursor-pointer group/cap flex items-center gap-1 text-xs text-foreground hover:text-primary transition-colors"
+                        title="Click to edit caption"
+                      >
+                        <span className="line-clamp-1 font-medium text-[11px]">
+                          {media.altText ? (
+                            media.altText
+                          ) : (
+                            <span className="italic text-muted-foreground text-[10px]">
+                              + Add Caption
+                            </span>
+                          )}
+                        </span>
+                        <Edit2 className="h-3 w-3 opacity-0 group-hover/cap:opacity-100 text-muted-foreground shrink-0" />
+                      </div>
+                      {media.id && (
+                        <button
+                          onClick={() => handleDeleteUploaded(media.id!)}
+                          title="Delete asset"
+                          className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                   )}
+
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">
+                    <span className="font-mono uppercase text-[9px] bg-secondary/80 px-1.5 py-0.5 rounded border border-border/50">
+                      {media.mediaType.replace(/_/g, " ")}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      #{media.orderIndex + 1}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}

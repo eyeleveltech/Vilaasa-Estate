@@ -133,7 +133,7 @@ const Gallery = ({
                         </button>
                       </div>
 
-                      {plan.description && (
+                      {plan.description && plan.description.trim() !== "" && (
                         <p className="text-sm text-foreground/90 md:text-lg">
                           {plan.description.charAt(0).toUpperCase() +
                             plan.description.slice(1)}

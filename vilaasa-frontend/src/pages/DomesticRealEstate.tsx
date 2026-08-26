@@ -1,21 +1,32 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CDN_ASSETS } from "@/config/cdnAssets";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useProperties } from "@/hooks/useNewProperties";
+import { InquiryFormDialog } from "@/components/InquiryFormDialog";
+import { isOtpVerified } from "@/lib/otpAccess";
 
 const DomesticRealEstate = () => {
+  const navigate = useNavigate();
   const [activeType, setActiveType] = useState<string | null>(null);
   const [activeLocation, setActiveLocation] = useState<string | null>(null);
+  const [inquiryOpen, setInquiryOpen] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const { formatAmount } = useCurrency();
   /* Removed hardcoded properties */
   const { data: properties = [], isLoading, isError } = useProperties();
 
   const domesticEstate = properties.filter(
-    (p) => p.franchiseCategory === "Domestic",
+    (p) =>
+      p.franchiseCategory === "Domestic" &&
+      p.type?.toLowerCase() !== "franchise" &&
+      p.rawType !== "FRANCHISE",
   );
 
   const filteredProperties = domesticEstate.filter((p) => {
@@ -28,6 +39,20 @@ const DomesticRealEstate = () => {
   const clearFilters = () => {
     setActiveType(null);
     setActiveLocation(null);
+  };
+
+  const openInquiry = (property: { id: string; name: string }) => {
+    if (isOtpVerified()) {
+      navigate(`/property/${property.id}`);
+      return;
+    }
+    setSelectedProperty(property);
+    setInquiryOpen(true);
+  };
+
+  const handleInquiryOpenChange = (open: boolean) => {
+    setInquiryOpen(open);
+    if (!open) setSelectedProperty(null);
   };
 
   /* propertyTypes memo removed as it's no longer used for filtering */
@@ -191,10 +216,7 @@ const DomesticRealEstate = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
-                  <Link
-                    to={`/property/${property.id}`}
-                    className="group block w-full overflow-hidden rounded-sm border border-border bg-card text-left transition-all hover:border-primary/50"
-                  >
+                  <div className="group block w-full overflow-hidden rounded-sm border border-border bg-card text-left transition-all hover:border-primary/50">
                     <div className="relative aspect-[4/3] overflow-hidden">
                       <div
                         className="h-full w-full bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
@@ -259,12 +281,16 @@ const DomesticRealEstate = () => {
                       </div>
 
                       <div className="mt-4 w-full">
-                        <span className="inline-flex w-full justify-center bg-primary py-2 text-sm font-bold uppercase tracking-wider text-primary-foreground transition-colors group-hover:bg-primary/90">
+                        <button
+                          type="button"
+                          onClick={() => openInquiry({ id: property.id, name: property.name })}
+                          className="inline-flex w-full justify-center bg-primary py-2 text-sm font-bold uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
+                        >
                           View Details
-                        </span>
+                        </button>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -282,6 +308,15 @@ const DomesticRealEstate = () => {
           )}
         </div>
       </section>
+
+      <InquiryFormDialog
+        key={selectedProperty?.id ?? "inquiry"}
+        open={inquiryOpen}
+        onOpenChange={handleInquiryOpenChange}
+        projectType="real-estate"
+        projectId={selectedProperty?.id}
+        projectName={selectedProperty?.name}
+      />
 
       <Footer />
     </div>

@@ -5,6 +5,7 @@ import {
   uploadStandaloneMedia,
   reorderMedia,
   deleteMedia,
+  updateMedia,
   getPropertyMedia,
   upload,
   ReorderMediaSchema,
@@ -43,6 +44,14 @@ router.patch(
   authorizeRoles(Role.SUPER_ADMIN),
   validate(ReorderMediaSchema),
   reorderMedia,
+);
+
+// Super Admin media metadata update (caption/altText, mediaType, isFeatured)
+router.patch(
+  "/:mediaId",
+  verifyJWT,
+  authorizeRoles(Role.SUPER_ADMIN),
+  updateMedia,
 );
 
 // Super Admin media deletion
