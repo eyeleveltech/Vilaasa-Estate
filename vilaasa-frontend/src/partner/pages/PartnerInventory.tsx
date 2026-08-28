@@ -30,6 +30,7 @@ export const PartnerInventory: React.FC = () => {
   }, [fetchProperties]);
 
   const filteredProperties = (properties || []).filter((p) => {
+    if (p.type === "FRANCHISE" || p.customType?.toLowerCase() === "franchise") return false;
     const matchesSearch =
       !search ||
       p.name.toLowerCase().includes(search.toLowerCase()) ||

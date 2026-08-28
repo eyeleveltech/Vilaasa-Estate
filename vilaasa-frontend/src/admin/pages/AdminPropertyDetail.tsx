@@ -488,6 +488,9 @@ export const AdminPropertyDetail: React.FC = () => {
               {property.customType || property.type.replace(/_/g, " ")}
             </span>
           </div>
+          {property.tagline && (
+            <p className="text-xs text-primary font-medium">{property.tagline}</p>
+          )}
           <p className="text-xs text-muted-foreground">
             {property.location?.city}, {property.location?.country} • Views:{" "}
             <span className="font-mono text-foreground">{property.views}</span>

@@ -187,7 +187,6 @@ export const AdminPropertiesList: React.FC = () => {
             <option value="PENTHOUSE">Penthouse</option>
             <option value="HERITAGE_ESTATE">Heritage Estate</option>
             <option value="COMMERCIAL">Commercial</option>
-            <option value="FRANCHISE">Franchise</option>
             <option value="FARMLAND">Farmland</option>
           </select>
 
@@ -268,8 +267,8 @@ export const AdminPropertiesList: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-              ) : properties && properties.length > 0 ? (
-                properties.map((prop) => (
+              ) : properties && properties.filter((p) => p.type !== "FRANCHISE" && p.customType?.toLowerCase() !== "franchise").length > 0 ? (
+                properties.filter((p) => p.type !== "FRANCHISE" && p.customType?.toLowerCase() !== "franchise").map((prop) => (
                   <tr
                     key={prop.id}
                     className="transition-colors hover:bg-secondary/40"

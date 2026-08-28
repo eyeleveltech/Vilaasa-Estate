@@ -1,13 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate, useParams, Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   Building2,
   MapPin,
   Image as ImageIcon,
-  Check,
-  ChevronRight,
-  ChevronLeft,
   Save,
   Plus,
   Trash2,
@@ -16,11 +13,15 @@ import {
   LayoutGrid,
   TrendingUp,
   Tag,
-  ExternalLink,
   Layers,
-  ArrowRight,
   FileText,
-  UploadCloud,
+  Upload,
+  Star,
+  ArrowLeft,
+  CheckCircle2,
+  DollarSign,
+  Compass,
+  BookOpen,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -31,13 +32,25 @@ import {
   Property,
   PropertyType,
   PropertyStatus,
-  FurnishingStatus,
   Currency,
   ApiResponse,
 } from "../types/admin.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { autoFormatCurrencySymbol } from "../lib/franchisePageHelpers";
+
+/* -------------------------------------------------------------------------- */
+/*                                CONSTANTS & HELPERS                         */
+/* -------------------------------------------------------------------------- */
+
+interface GalleryItemState {
+  id: string;
+  url: string;
+  caption: string;
+  orderIndex: number;
+  isHero?: boolean;
+}
 
 const detectAmenityIcon = (name: string): string => {
   const lower = (name || "").toLowerCase();
@@ -138,23 +151,6 @@ const STATUS_CONFIG: Record<
   },
 };
 
-const getSpecPlaceholder = (label: string): string => {
-  const l = (label || "").toLowerCase();
-  if (l.includes("type")) return "Residential Villa";
-  if (l.includes("built") || l.includes("area") || l.includes("sq")) return "4,500 Sq.Ft.";
-  if (l.includes("bed")) return "4 Master Suites";
-  if (l.includes("bath")) return "5 En-Suite Baths";
-  if (l.includes("furnish")) return "Fully Furnished";
-  if (l.includes("owner")) return "Freehold";
-  if (l.includes("rera") || l.includes("permit")) return "Approved";
-  if (l.includes("possess")) return "Ready to Move";
-  if (l.includes("ceiling") || l.includes("height")) return "14 Ft.";
-  if (l.includes("land") || l.includes("plot")) return "1.5 Acres";
-  if (l.includes("park")) return "4 Covered Bays";
-  if (l.includes("price") || l.includes("cost") || l.includes("invest")) return "Price on Application";
-  return "e.g. 140,000 Sq.Ft., 4 BHK, Freehold";
-};
-
 const mapToPropertyTypeEnum = (text: string): PropertyType => {
   const lower = (text || "").toLowerCase();
   if (lower.includes("apartment") || lower.includes("flat")) return "RESIDENTIAL_APARTMENT";
@@ -166,82 +162,87 @@ const mapToPropertyTypeEnum = (text: string): PropertyType => {
   return "RESIDENTIAL_VILLA";
 };
 
-const SECTIONS = [
-  { id: 1, title: "Hero Section", shortTitle: "Hero", icon: Sparkles },
-  { id: 2, title: "Concept & Vision", shortTitle: "Concept", icon: Eye },
-  { id: 3, title: "At a Glance", shortTitle: "At a Glance", icon: LayoutGrid },
-  { id: 4, title: "Financial Intelligence", shortTitle: "Financials", icon: TrendingUp },
-  { id: 5, title: "Pricing & Configurations", shortTitle: "Pricing & Units", icon: Tag },
-  { id: 6, title: "Gallery & Media", shortTitle: "Gallery", icon: ImageIcon },
-  { id: 7, title: "Amenities", shortTitle: "Amenities", icon: Layers },
-  { id: 8, title: "Location & Connectivity", shortTitle: "Location", icon: MapPin },
+const parseAmountNumber = (val: string | undefined): number => {
+  if (!val) return 0;
+  const cleaned = val.replace(/[^0-9.]/g, "");
+  const num = parseFloat(cleaned);
+  if (isNaN(num)) return 0;
+  if (/cr/i.test(val)) return num * 10000000;
+  if (/l|lac|lakh/i.test(val)) return num * 100000;
+  if (/k/i.test(val)) return num * 1000;
+  if (/m/i.test(val)) return num * 1000000;
+  return num;
+};
+
+// Section Definitions for Quick Nav
+const SECTIONS_NAV = [
+  { id: "sec-hero", label: "1. Hero & Basics" },
+  { id: "sec-vision", label: "2. Vision & Story" },
+  { id: "sec-specs", label: "3. At a Glance" },
+  { id: "sec-financials", label: "4. Financials" },
+  { id: "sec-pricing", label: "5. Pricing & Units" },
+  { id: "sec-gallery", label: "6. Visual Showcase" },
+  { id: "sec-amenities", label: "7. Amenities" },
+  { id: "sec-location", label: "8. Location" },
 ];
+
+/* -------------------------------------------------------------------------- */
+/*                               MAIN COMPONENT                               */
+/* -------------------------------------------------------------------------- */
 
 export const AdminPropertyForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [activeSection, setActiveSection] = useState<number>(1);
-  const [createdPropertyId, setCreatedPropertyId] = useState<string | null>(
-    id || null,
-  );
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(isEditMode);
   const [saving, setSaving] = useState<boolean>(false);
-  const [existingMedia, setExistingMedia] = useState<Property["media"]>([]);
+  const [uploadingGallery, setUploadingGallery] = useState<boolean>(false);
 
-  // 1. Hero Section
-  const [marketScope, setMarketScope] = useState<"DOMESTIC" | "INTERNATIONAL">(
-    "DOMESTIC",
-  );
+  // 1. Hero & Core Listing
+  const [marketScope, setMarketScope] = useState<"DOMESTIC" | "INTERNATIONAL">("DOMESTIC");
   const [name, setName] = useState<string>("");
   const [tagline, setTagline] = useState<string>("");
-  const [propertyType, setPropertyType] = useState<string>("Residential Villa");
+  const [propertyType, setPropertyType] = useState<string>("");
   const [status, setStatus] = useState<PropertyStatus>("AVAILABLE");
   const [virtualTour360Url, setVirtualTour360Url] = useState<string>("");
   const [brochureUrl, setBrochureUrl] = useState<string>("");
 
-  // 2. Concept & Vision
+  // 2. Vision & Advisory Verdict
   const [visionHeadline, setVisionHeadline] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [verdictQuote, setVerdictQuote] = useState<string>("");
-  const [verdictAuthor, setVerdictAuthor] = useState<string>("Vilaasa Advisory Board");
-  const [verdictTitle, setVerdictTitle] = useState<string>("Director of Private Client Acquisitions");
+  const [verdictAuthor, setVerdictAuthor] = useState<string>("");
+  const [verdictTitle, setVerdictTitle] = useState<string>("");
 
-  // 3. At a Glance (100% Free-Text Specs)
-  const [customSpecs, setCustomSpecs] = useState<{ label: string; value: string }[]>([
-    { label: "Property Type", value: "" },
-    { label: "Built-up Area", value: "" },
-    { label: "Bedrooms", value: "" },
-    { label: "Furnishing", value: "" },
-    { label: "Ownership", value: "" },
-  ]);
+  // 3. At a Glance (Dynamic Specs)
+  const [customSpecs, setCustomSpecs] = useState<{ label: string; value: string }[]>([]);
 
-  // 4. Financial Intelligence (Admin-filled Labels & Values)
-  const [financialMetrics, setFinancialMetrics] = useState<{ label: string; value: string; note: string; icon: string }[]>([
-    { label: "Projected IRR Returns", value: "", note: "5-Year Capital Horizon", icon: "trending_up" },
-    { label: "Annual Industry Growth", value: "", note: "Luxury Segment CAGR", icon: "show_chart" },
-    { label: "5-Year Appreciation", value: "", note: "Conservative Baseline", icon: "monitoring" },
-    { label: "Breakeven Timeline", value: "", note: "Full Capital Recovery", icon: "timelapse" },
-  ]);
+  // 4. Financial Intelligence
+  const [financialMetrics, setFinancialMetrics] = useState<
+    { label: string; value: string; note: string; icon: string }[]
+  >([]);
 
-  // 5. Pricing & Configurations
+  // 5. Pricing & Unit Configurations
   const [price, setPrice] = useState<string>("");
   const [currency, setCurrency] = useState<Currency>("INR");
   const [priceOnApplication, setPriceOnApplication] = useState<boolean>(false);
   const [rentalYieldPercent, setRentalYieldPercent] = useState<string>("");
   const [expectedIrrPercent, setExpectedIrrPercent] = useState<string>("");
-  const [configurations, setConfigurations] = useState<{
-    unitType: string;
-    areaSqFt: string;
-    viewType: string;
-    price: string;
-    isAvailable: boolean;
-  }[]>([]);
+  const [configurations, setConfigurations] = useState<
+    { unitType: string; areaSqFt: string; viewType: string; price: string; isAvailable: boolean }[]
+  >([]);
 
-  // 7. Amenities
-  const [amenities, setAmenities] = useState<{ name: string; iconKey: string; description: string }[]>([]);
+  // 6. Gallery & Media Assets
+  const [galleryImages, setGalleryImages] = useState<GalleryItemState[]>([]);
+  const [existingMedia, setExistingMedia] = useState<Property["media"]>([]);
+
+  // 7. Curated Amenities
+  const [amenities, setAmenities] = useState<
+    { name: string; iconKey: string; description: string }[]
+  >([]);
 
   // 8. Location & Connectivity
   const [city, setCity] = useState<string>("");
@@ -251,418 +252,441 @@ export const AdminPropertyForm: React.FC = () => {
   const [latitude, setLatitude] = useState<string>("");
   const [longitude, setLongitude] = useState<string>("");
   const [googleMapUrl, setGoogleMapUrl] = useState<string>("");
-  const [nearbyPlaces, setNearbyPlaces] = useState<{ name: string; distance: string; travelTime: string; category: string; description: string }[]>([]);
+  const [nearbyPlaces, setNearbyPlaces] = useState<
+    { name: string; distance: string; travelTime: string; category: string; description: string }[]
+  >([]);
 
+  /* -------------------------- Fetch Existing Data ------------------------- */
+  const fetchPropertyData = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const res = await api.get<ApiResponse<Property>>(`/properties/${id}`);
+      if (res.data.success && res.data.data) {
+        const prop = res.data.data;
+        setName(prop.name || "");
+        setTagline(prop.tagline || "");
+        setVisionHeadline(prop.visionHeadline || "");
+        setVerdictQuote(prop.verdictQuote || "");
+        setVerdictAuthor(prop.verdictAuthor || "");
+        setVerdictTitle(prop.verdictTitle || "");
+        setPropertyType(prop.customType || (prop.type ? prop.type.replace(/_/g, " ") : ""));
+        setStatus(prop.status);
+        setDescription(prop.description || "");
+        setVirtualTour360Url(prop.virtualTour360Url || "");
+        setBrochureUrl(prop.brochureUrl || "");
+        setPrice(prop.price ? prop.price.toString() : "");
+        setCurrency(prop.currency || "INR");
+        setPriceOnApplication(Boolean(prop.priceOnApplication));
+        setRentalYieldPercent(prop.rentalYieldPercent?.toString() || "");
+        setExpectedIrrPercent(prop.expectedIrrPercent?.toString() || "");
+
+        // Specs
+        if (prop.customSpecs && Array.isArray(prop.customSpecs) && prop.customSpecs.length > 0) {
+          setCustomSpecs(prop.customSpecs);
+        }
+
+        // Financials
+        if (prop.financialMetrics && prop.financialMetrics.length > 0) {
+          setFinancialMetrics(
+            prop.financialMetrics.map((f) => ({
+              label: f.label || "",
+              value: f.value || "",
+              note: f.note || "",
+              icon: f.icon || "payments",
+            }))
+          );
+        }
+
+        // Configurations
+        if (prop.configurations && prop.configurations.length > 0) {
+          setConfigurations(
+            prop.configurations.map((c) => ({
+              unitType: c.unitType || "",
+              areaSqFt: c.areaSqFt?.toString() || "",
+              viewType: c.viewType || "",
+              price: c.price?.toString() || "",
+              isAvailable: c.isAvailable ?? true,
+            }))
+          );
+        }
+
+        // Location
+        if (prop.location) {
+          const isDom = prop.location.country?.trim().toLowerCase() === "india";
+          setMarketScope(isDom ? "DOMESTIC" : "INTERNATIONAL");
+          setCity(prop.location.city || "");
+          setCountry(prop.location.country || (isDom ? "India" : "United Arab Emirates"));
+          setCommunity(prop.location.community || "");
+          setAddressLine(prop.location.addressLine || "");
+          setLatitude(prop.location.latitude?.toString() || "");
+          setLongitude(prop.location.longitude?.toString() || "");
+          setGoogleMapUrl(prop.location.mapEmbedUrl || prop.location.googleMapUrl || "");
+        }
+
+        // Amenities
+        if (prop.amenities && prop.amenities.length > 0) {
+          setAmenities(
+            prop.amenities.map((a) => ({
+              name: a.amenity?.name || "",
+              iconKey: a.amenity?.iconKey || detectAmenityIcon(a.amenity?.name || "") || "star",
+              description: a.description || "",
+            }))
+          );
+        }
+
+        // Nearby Places
+        if (prop.nearbyPlaces && prop.nearbyPlaces.length > 0) {
+          setNearbyPlaces(
+            prop.nearbyPlaces.map((p) => ({
+              name: p.name || "",
+              distance: p.distance || "Nearby",
+              travelTime: p.travelTime || "",
+              category: p.category || "Transit",
+              description: p.description || "",
+            }))
+          );
+        }
+
+        // Media Gallery
+        if (prop.media && Array.isArray(prop.media)) {
+          setExistingMedia(prop.media);
+          const gal = prop.media.map((m, idx) => ({
+            id: m.id || `gal-${idx}`,
+            url: m.url,
+            caption: m.caption || "",
+            orderIndex: m.orderIndex ?? idx,
+            isHero: Boolean(m.isFeatured || idx === 0),
+          }));
+          setGalleryImages(gal);
+        }
+      }
+    } catch {
+      toast.error("Failed to load property details");
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void fetchPropertyData();
+  }, [fetchPropertyData]);
+
+  /* ---------------------------- Scope Change ------------------------------ */
   const handleMarketScopeChange = (scope: "DOMESTIC" | "INTERNATIONAL") => {
     setMarketScope(scope);
     if (scope === "DOMESTIC") {
-      if (currency === "AED" || currency === "USD") {
-        setCurrency("INR");
-      }
+      setCurrency("INR");
+      setCountry("India");
     } else {
-      if (currency === "INR") {
-        setCurrency("AED");
-      }
+      setCurrency("AED");
+      setCountry("United Arab Emirates");
     }
   };
 
-  useEffect(() => {
-    if (isEditMode && id) {
-      const fetchPropertyForEdit = async () => {
-        try {
-          setLoading(true);
-          const res = await api.get<ApiResponse<Property>>(`/properties/${id}`);
-          if (res.data.success && res.data.data) {
-            const prop = res.data.data;
-            setName(prop.name || "");
-            setTagline(prop.tagline || "");
-            setVisionHeadline(prop.visionHeadline || "");
-            setVerdictQuote(prop.verdictQuote || "");
-            setVerdictAuthor(prop.verdictAuthor || "Vilaasa Advisory Board");
-            setVerdictTitle(prop.verdictTitle || "Director of Private Client Acquisitions");
-            setPropertyType(prop.customType || (prop.type ? prop.type.replace(/_/g, " ") : "Residential Villa"));
-            setStatus(prop.status);
-            setDescription(prop.description || "");
-            setVirtualTour360Url(prop.virtualTour360Url || "");
-            setBrochureUrl(prop.brochureUrl || "");
-            setPrice(prop.price?.toString() || "");
-            setCurrency(prop.currency);
-            setPriceOnApplication(prop.priceOnApplication);
-            setRentalYieldPercent(prop.rentalYieldPercent?.toString() || "");
-            setExpectedIrrPercent(prop.expectedIrrPercent?.toString() || "");
+  /* ------------------------ Array Mutator Handlers ------------------------ */
+  // Specs
+  const handleAddSpec = () => {
+    setCustomSpecs((prev) => [...prev, { label: "", value: "" }]);
+  };
+  const handleRemoveSpec = (index: number) => {
+    setCustomSpecs((prev) => prev.filter((_, idx) => idx !== index));
+  };
+  const handleUpdateSpec = (index: number, field: "label" | "value", val: string) => {
+    setCustomSpecs((prev) => {
+      const updated = [...prev];
+      if (updated[index]) {
+        updated[index] = { ...updated[index], [field]: val };
+      }
+      return updated;
+    });
+  };
 
-            // 3. At a Glance custom specs
-            if (prop.customSpecs && Array.isArray(prop.customSpecs) && prop.customSpecs.length > 0) {
-              setCustomSpecs(prop.customSpecs);
-            } else {
-              // Backward-compatibility fallback
-              const initialSpecs: { label: string; value: string }[] = [];
-              if (prop.type) initialSpecs.push({ label: "Property Type", value: prop.type.replace(/_/g, " ") });
-              if (prop.location?.city) initialSpecs.push({ label: "Location", value: prop.location.city });
-              if (prop.price && Number(prop.price) > 0) initialSpecs.push({ label: "Minimum Investment", value: `${prop.currency} ${Number(prop.price).toLocaleString()}` });
-              if (prop.totalAreaSqFt) initialSpecs.push({ label: "Built-up Area", value: `${prop.totalAreaSqFt.toLocaleString()} Sq.Ft.` });
-              if (prop.bedrooms) initialSpecs.push({ label: "Bedrooms", value: `${prop.bedrooms} BHK` });
-              if (prop.bathrooms) initialSpecs.push({ label: "Bathrooms", value: `${prop.bathrooms}` });
-              if (prop.furnishingStatus) initialSpecs.push({ label: "Furnishing", value: prop.furnishingStatus.replace(/_/g, " ") });
-              if (prop.ownershipType) initialSpecs.push({ label: "Ownership", value: prop.ownershipType });
-              if (prop.reraNumber) initialSpecs.push({ label: "RERA / Permit", value: prop.reraNumber });
-              setCustomSpecs(initialSpecs.length > 0 ? initialSpecs : [
-                { label: "Property Type", value: prop.type.replace(/_/g, " ") },
-                { label: "Built-up Area", value: "" },
-                { label: "Bedrooms", value: "" },
-                { label: "Furnishing", value: "Fully Furnished" },
-              ]);
-            }
+  // Financials
+  const handleAddFinancialMetric = () => {
+    setFinancialMetrics((prev) => [
+      ...prev,
+      { label: "", value: "", note: "", icon: "trending_up" },
+    ]);
+  };
+  const handleRemoveFinancialMetric = (index: number) => {
+    setFinancialMetrics((prev) => prev.filter((_, idx) => idx !== index));
+  };
+  const handleUpdateFinancialMetric = (
+    index: number,
+    field: "label" | "value" | "note" | "icon",
+    val: string
+  ) => {
+    const formattedVal = field === "value" ? autoFormatCurrencySymbol(val) : val;
+    setFinancialMetrics((prev) => {
+      const updated = [...prev];
+      if (updated[index]) {
+        updated[index] = { ...updated[index], [field]: formattedVal };
+      }
+      return updated;
+    });
+  };
 
-            // 4. Financial Intelligence metrics
-            if (prop.financialMetrics && prop.financialMetrics.length > 0) {
-              setFinancialMetrics(prop.financialMetrics.map((f) => ({
-                label: f.label || "",
-                value: f.value || "",
-                note: f.note || "",
-                icon: f.icon || "payments",
-              })));
-            }
+  // Configurations
+  const handleAddConfiguration = () => {
+    setConfigurations((prev) => [
+      ...prev,
+      { unitType: "", areaSqFt: "", viewType: "", price: "", isAvailable: true },
+    ]);
+  };
+  const handleRemoveConfiguration = (index: number) => {
+    setConfigurations((prev) => prev.filter((_, idx) => idx !== index));
+  };
+  const handleUpdateConfiguration = (
+    index: number,
+    field: "unitType" | "areaSqFt" | "viewType" | "price" | "isAvailable",
+    val: string | boolean
+  ) => {
+    const formattedVal = field === "price" && typeof val === "string" ? autoFormatCurrencySymbol(val) : val;
+    setConfigurations((prev) => {
+      const updated = [...prev];
+      if (updated[index]) {
+        updated[index] = { ...updated[index], [field]: formattedVal };
+      }
+      return updated;
+    });
+  };
 
-            // 5. Unit Configurations
-            if (prop.configurations && prop.configurations.length > 0) {
-              setConfigurations(prop.configurations.map((c) => ({
-                unitType: c.unitType || "",
-                areaSqFt: c.areaSqFt?.toString() || "",
-                viewType: c.viewType || "",
-                price: c.price?.toString() || "",
-                isAvailable: c.isAvailable ?? true,
-              })));
-            }
-
-            // Location
-            if (prop.location) {
-              const isDom = prop.location.country?.trim().toLowerCase() === "india";
-              setMarketScope(isDom ? "DOMESTIC" : "INTERNATIONAL");
-              setCity(prop.location.city || "");
-              setCountry(
-                prop.location.country || (isDom ? "India" : "United Arab Emirates"),
-              );
-              setCommunity(prop.location.community || "");
-              setAddressLine(prop.location.addressLine || "");
-              setLatitude(prop.location.latitude?.toString() || "");
-              setLongitude(prop.location.longitude?.toString() || "");
-              setGoogleMapUrl(prop.location.mapEmbedUrl || prop.location.googleMapUrl || "");
-            }
-
-            // 7. Amenities
-            if (prop.amenities && prop.amenities.length > 0) {
-              setAmenities(prop.amenities.map((a) => ({
-                name: a.amenity?.name || "",
-                iconKey: a.amenity?.iconKey || detectAmenityIcon(a.amenity?.name || "") || "star",
-                description: a.description || "",
-              })));
-            }
-
-            // 8. Nearby Places
-            if (prop.nearbyPlaces && prop.nearbyPlaces.length > 0) {
-              setNearbyPlaces(prop.nearbyPlaces.map((p) => ({
-                name: p.name || "",
-                distance: p.distance || "Nearby",
-                travelTime: p.travelTime || "",
-                category: p.category || "Transit",
-                description: p.description || "",
-              })));
-            }
-
-            // 6. Media
-            if (prop.media) {
-              setExistingMedia(prop.media);
-            }
-          }
-        } catch {
-          toast.error("Failed to load property details for editing");
-        } finally {
-          setLoading(false);
+  // Amenities
+  const handleAddAmenity = () => {
+    setAmenities((prev) => [...prev, { name: "", iconKey: "star", description: "" }]);
+  };
+  const handleRemoveAmenity = (index: number) => {
+    setAmenities((prev) => prev.filter((_, idx) => idx !== index));
+  };
+  const handleUpdateAmenity = (
+    index: number,
+    field: "name" | "iconKey" | "description",
+    val: string
+  ) => {
+    setAmenities((prev) => {
+      const updated = [...prev];
+      if (updated[index]) {
+        let newIcon = updated[index].iconKey;
+        if (field === "name") {
+          const detected = detectAmenityIcon(val);
+          if (detected) newIcon = detected;
         }
-      };
+        updated[index] = {
+          ...updated[index],
+          [field]: val,
+          ...(field === "name" ? { iconKey: newIcon } : {}),
+        };
+      }
+      return updated;
+    });
+  };
 
-      fetchPropertyForEdit();
+  // Nearby Places
+  const handleAddNearbyPlace = () => {
+    setNearbyPlaces((prev) => [
+      ...prev,
+      { name: "", distance: "", travelTime: "", category: "Transit", description: "" },
+    ]);
+  };
+  const handleRemoveNearbyPlace = (index: number) => {
+    setNearbyPlaces((prev) => prev.filter((_, idx) => idx !== index));
+  };
+  const handleUpdateNearbyPlace = (
+    index: number,
+    field: "name" | "distance" | "travelTime" | "category" | "description",
+    val: string
+  ) => {
+    setNearbyPlaces((prev) => {
+      const updated = [...prev];
+      if (updated[index]) {
+        updated[index] = { ...updated[index], [field]: val };
+      }
+      return updated;
+    });
+  };
+
+  // Gallery
+  const handleUploadGalleryImage = async (file: File) => {
+    if (!file) return;
+    setUploadingGallery(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "properties/gallery");
+      const res = await api.post<ApiResponse<{ url: string }>>("/media/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      if (res.data.success && res.data.data?.url) {
+        const newImg: GalleryItemState = {
+          id: `gal-${Date.now()}`,
+          url: res.data.data.url,
+          caption: file.name.replace(/\.[^/.]+$/, ""),
+          orderIndex: galleryImages.length,
+          isHero: galleryImages.length === 0,
+        };
+        setGalleryImages((prev) => [...prev, newImg]);
+        toast.success("Image uploaded!");
+      }
+    } catch {
+      toast.error("Failed to upload image");
+    } finally {
+      setUploadingGallery(false);
     }
-  }, [isEditMode, id]);
+  };
 
+  const handleToggleHeroImage = (index: number) => {
+    setGalleryImages((prev) =>
+      prev.map((img, i) => ({
+        ...img,
+        isHero: i === index ? !img.isHero : false,
+      }))
+    );
+  };
+
+  const handleRemoveGalleryImage = (index: number) => {
+    setGalleryImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateGalleryCaption = (index: number, caption: string) => {
+    setGalleryImages((prev) => {
+      const updated = [...prev];
+      if (updated[index]) {
+        updated[index] = { ...updated[index], caption };
+      }
+      return updated;
+    });
+  };
+
+  /* ---------------------------- Save Handler ------------------------------ */
   const validateForm = (): boolean => {
     if (!name.trim()) {
-      toast.error("Property name is required (Hero Section)");
-      setActiveSection(1);
+      toast.error("Property name is required");
       return false;
     }
     if (!propertyType.trim()) {
-      toast.error("Property type is required (Hero Section)");
-      setActiveSection(1);
+      toast.error("Property type is required");
       return false;
     }
-    if (description.trim().length < 20) {
-      toast.error("Concept & Vision description must be at least 20 characters");
-      setActiveSection(2);
-      return false;
-    }
-    if (!priceOnApplication && (!price || Number(price) <= 0)) {
-      toast.error("Valid property price is required unless Price On Application is selected");
-      setActiveSection(5);
+    if (description.trim().length > 0 && description.trim().length < 10) {
+      toast.error("Description should be descriptive (at least 10 characters)");
       return false;
     }
     return true;
   };
 
-  const handleSaveProperty = async (): Promise<boolean> => {
-    if (!validateForm()) return false;
+  const handleSaveProperty = async () => {
+    if (!validateForm()) return;
 
     setSaving(true);
-    const cleanedCustomSpecs = customSpecs
-      .filter((s) => s.label.trim() && s.value.trim())
-      .map((s) => ({ label: s.label.trim(), value: s.value.trim() }));
-
-    const cleanedFinancialMetrics = financialMetrics
-      .filter((f) => f.label.trim() && f.value.trim())
-      .map((f) => ({
-        label: f.label.trim(),
-        value: f.value.trim(),
-        note: f.note.trim() || undefined,
-        icon: f.icon.trim() || undefined,
-      }));
-
-    const cleanedConfigurations = configurations
-      .filter((c) => c.unitType.trim())
-      .map((c) => ({
-        unitType: c.unitType.trim(),
-        areaSqFt: parseFloat(c.areaSqFt) || 0,
-        viewType: c.viewType.trim() || undefined,
-        price: parseFloat(c.price) || 0,
-        isAvailable: c.isAvailable ?? true,
-      }));
-
-    const mappedType = mapToPropertyTypeEnum(propertyType);
-
-    const payload = {
-      name: name.trim(),
-      tagline: tagline.trim() || undefined,
-      visionHeadline: visionHeadline.trim() || undefined,
-      verdictQuote: verdictQuote.trim() || undefined,
-      verdictAuthor: verdictAuthor.trim() || undefined,
-      verdictTitle: verdictTitle.trim() || undefined,
-      type: mappedType,
-      customType: propertyType.trim(),
-      status,
-      description: description.trim(),
-      virtualTour360Url: virtualTour360Url.trim() || undefined,
-      brochureUrl: brochureUrl.trim() || undefined,
-      customSpecs: cleanedCustomSpecs,
-      price: priceOnApplication ? 0 : parseFloat(price) || 0,
-      currency,
-      priceOnApplication,
-      rentalYieldPercent: rentalYieldPercent ? parseFloat(rentalYieldPercent) : undefined,
-      expectedIrrPercent: expectedIrrPercent ? parseFloat(expectedIrrPercent) : undefined,
-      financialMetrics: cleanedFinancialMetrics,
-      configurations: cleanedConfigurations,
-      amenities: amenities
-        .filter((a) => a.name.trim())
-        .map((a) => ({
-          name: a.name.trim(),
-          iconKey: a.iconKey.trim() || detectAmenityIcon(a.name.trim()) || "star",
-          description: a.description.trim() || undefined,
-        })),
-      nearbyPlaces: nearbyPlaces
-        .filter((p) => p.name.trim())
-        .map((p) => ({
-          name: p.name.trim(),
-          distance: p.distance.trim() || (p.travelTime.trim() ? `${p.travelTime.trim()} drive` : "Nearby"),
-          travelTime: p.travelTime.trim() || undefined,
-          category: p.category.trim() || undefined,
-          description: p.description.trim() || undefined,
-        })),
-      location: {
-        city: city.trim() || (marketScope === "INTERNATIONAL" ? "Dubai" : "Goa"),
-        country: country.trim() || (marketScope === "INTERNATIONAL" ? "United Arab Emirates" : "India"),
-        community: community.trim() || undefined,
-        addressLine: addressLine.trim() || undefined,
-        latitude: latitude ? parseFloat(latitude) : undefined,
-        longitude: longitude ? parseFloat(longitude) : undefined,
-        googleMapUrl: googleMapUrl.trim() || undefined,
-        mapEmbedUrl: googleMapUrl.trim() || undefined,
-      },
-    };
-
-    const effectiveId = createdPropertyId || id;
-
     try {
-      if (effectiveId) {
-        const res = await api.put<ApiResponse<Property>>(
-          `/properties/${effectiveId}`,
-          payload,
-        );
+      const cleanedCustomSpecs = customSpecs
+        .filter((s) => s.label.trim() && s.value.trim())
+        .map((s) => ({ label: s.label.trim(), value: s.value.trim() }));
+
+      const cleanedFinancialMetrics = financialMetrics
+        .filter((f) => f.label.trim() && f.value.trim())
+        .map((f) => ({
+          label: f.label.trim(),
+          value: f.value.trim(),
+          note: f.note.trim() || undefined,
+          icon: f.icon.trim() || undefined,
+        }));
+
+      const cleanedConfigurations = configurations
+        .filter((c) => c.unitType.trim())
+        .map((c) => ({
+          unitType: c.unitType.trim(),
+          areaSqFt: parseFloat(c.areaSqFt) || 0,
+          viewType: c.viewType.trim() || undefined,
+          price: parseAmountNumber(c.price),
+          isAvailable: c.isAvailable ?? true,
+        }));
+
+      const mappedType = mapToPropertyTypeEnum(propertyType);
+
+      const mediaPayload = galleryImages.map((img, idx) => ({
+        url: img.url,
+        caption: img.caption || undefined,
+        mediaType: "IMAGE",
+        isFeatured: Boolean(img.isHero || idx === 0),
+        orderIndex: idx,
+      }));
+
+      const payload = {
+        name: name.trim(),
+        tagline: tagline.trim() || undefined,
+        visionHeadline: visionHeadline.trim() || undefined,
+        verdictQuote: verdictQuote.trim() || undefined,
+        verdictAuthor: verdictAuthor.trim() || undefined,
+        verdictTitle: verdictTitle.trim() || undefined,
+        type: mappedType,
+        customType: propertyType.trim(),
+        status,
+        description: description.trim(),
+        virtualTour360Url: virtualTour360Url.trim() || undefined,
+        brochureUrl: brochureUrl.trim() || undefined,
+        customSpecs: cleanedCustomSpecs,
+        price: priceOnApplication ? 0 : parseAmountNumber(price),
+        currency,
+        priceOnApplication,
+        rentalYieldPercent: rentalYieldPercent ? parseFloat(rentalYieldPercent) : undefined,
+        expectedIrrPercent: expectedIrrPercent ? parseFloat(expectedIrrPercent) : undefined,
+        financialMetrics: cleanedFinancialMetrics,
+        configurations: cleanedConfigurations,
+        media: mediaPayload.length > 0 ? mediaPayload : undefined,
+        amenities: amenities
+          .filter((a) => a.name.trim())
+          .map((a) => ({
+            name: a.name.trim(),
+            iconKey: a.iconKey.trim() || detectAmenityIcon(a.name.trim()) || "star",
+            description: a.description.trim() || undefined,
+          })),
+        nearbyPlaces: nearbyPlaces
+          .filter((p) => p.name.trim())
+          .map((p) => ({
+            name: p.name.trim(),
+            distance: p.distance.trim() || (p.travelTime.trim() ? `${p.travelTime.trim()} drive` : "Nearby"),
+            travelTime: p.travelTime.trim() || undefined,
+            category: p.category.trim() || undefined,
+            description: p.description.trim() || undefined,
+          })),
+        location: {
+          city: city.trim() || (marketScope === "INTERNATIONAL" ? "Dubai" : "Goa"),
+          country: country.trim() || (marketScope === "INTERNATIONAL" ? "United Arab Emirates" : "India"),
+          community: community.trim() || undefined,
+          addressLine: addressLine.trim() || undefined,
+          latitude: latitude ? parseFloat(latitude) : undefined,
+          longitude: longitude ? parseFloat(longitude) : undefined,
+          mapEmbedUrl: googleMapUrl.trim() || undefined,
+          googleMapUrl: googleMapUrl.trim() || undefined,
+        },
+      };
+
+      if (isEditMode && id) {
+        const res = await api.put<ApiResponse<Property>>(`/properties/${id}`, payload);
         if (res.data.success) {
           queryClient.invalidateQueries({ queryKey: ["properties"] });
-          queryClient.invalidateQueries({ queryKey: ["property"] });
-          queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
-          toast.success("Property specifications updated successfully!");
+          queryClient.invalidateQueries({ queryKey: ["property", id] });
+          toast.success("Property updated successfully!");
           navigate("/admin/properties");
-          return true;
         }
-      } else {
-        const res = await api.post<ApiResponse<Property>>(
-          "/properties",
-          payload,
-        );
-        if (res.data.success && res.data.data) {
-          queryClient.invalidateQueries({ queryKey: ["properties"] });
-          queryClient.invalidateQueries({ queryKey: ["property"] });
-          queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
-          toast.success("Property created successfully!");
-          navigate("/admin/properties");
-          return true;
-        }
-      }
-      return false;
-    } catch (err: unknown) {
-      const errMsg =
-        (err as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Failed to save property";
-      toast.error(errMsg);
-      return false;
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveDraftForMedia = async (): Promise<boolean> => {
-    if (!validateForm()) return false;
-
-    setSaving(true);
-    const cleanedCustomSpecs = customSpecs
-      .filter((s) => s.label.trim() && s.value.trim())
-      .map((s) => ({ label: s.label.trim(), value: s.value.trim() }));
-
-    const cleanedFinancialMetrics = financialMetrics
-      .filter((f) => f.label.trim() && f.value.trim())
-      .map((f) => ({
-        label: f.label.trim(),
-        value: f.value.trim(),
-        note: f.note.trim() || undefined,
-        icon: f.icon.trim() || undefined,
-      }));
-
-    const cleanedConfigurations = configurations
-      .filter((c) => c.unitType.trim())
-      .map((c) => ({
-        unitType: c.unitType.trim(),
-        areaSqFt: parseFloat(c.areaSqFt) || 0,
-        viewType: c.viewType.trim() || undefined,
-        price: parseFloat(c.price) || 0,
-        isAvailable: c.isAvailable ?? true,
-      }));
-
-    const mappedType = mapToPropertyTypeEnum(propertyType);
-
-    const payload = {
-      name: name.trim(),
-      tagline: tagline.trim() || undefined,
-      visionHeadline: visionHeadline.trim() || undefined,
-      verdictQuote: verdictQuote.trim() || undefined,
-      verdictAuthor: verdictAuthor.trim() || undefined,
-      verdictTitle: verdictTitle.trim() || undefined,
-      type: mappedType,
-      customType: propertyType.trim(),
-      status,
-      description: description.trim(),
-      virtualTour360Url: virtualTour360Url.trim() || undefined,
-      brochureUrl: brochureUrl.trim() || undefined,
-      customSpecs: cleanedCustomSpecs,
-      price: priceOnApplication ? 0 : parseFloat(price) || 0,
-      currency,
-      priceOnApplication,
-      rentalYieldPercent: rentalYieldPercent ? parseFloat(rentalYieldPercent) : undefined,
-      expectedIrrPercent: expectedIrrPercent ? parseFloat(expectedIrrPercent) : undefined,
-      financialMetrics: cleanedFinancialMetrics,
-      configurations: cleanedConfigurations,
-      amenities: amenities
-        .filter((a) => a.name.trim())
-        .map((a) => ({
-          name: a.name.trim(),
-          iconKey: a.iconKey.trim() || detectAmenityIcon(a.name.trim()) || "star",
-          description: a.description.trim() || undefined,
-        })),
-      nearbyPlaces: nearbyPlaces
-        .filter((p) => p.name.trim())
-        .map((p) => ({
-          name: p.name.trim(),
-          distance: p.distance.trim() || (p.travelTime.trim() ? `${p.travelTime.trim()} drive` : "Nearby"),
-          travelTime: p.travelTime.trim() || undefined,
-          category: p.category.trim() || undefined,
-          description: p.description.trim() || undefined,
-        })),
-      location: {
-        city: city.trim() || (marketScope === "INTERNATIONAL" ? "Dubai" : "Goa"),
-        country: country.trim() || (marketScope === "INTERNATIONAL" ? "United Arab Emirates" : "India"),
-        community: community.trim() || undefined,
-        addressLine: addressLine.trim() || undefined,
-        latitude: latitude ? parseFloat(latitude) : undefined,
-        longitude: longitude ? parseFloat(longitude) : undefined,
-        googleMapUrl: googleMapUrl.trim() || undefined,
-        mapEmbedUrl: googleMapUrl.trim() || undefined,
-      },
-    };
-
-    const effectiveId = createdPropertyId || id;
-
-    try {
-      if (effectiveId) {
-        await api.put(`/properties/${effectiveId}`, payload);
-        queryClient.invalidateQueries({ queryKey: ["properties"] });
-        queryClient.invalidateQueries({ queryKey: ["property"] });
-        queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
-        toast.success("Draft saved! Media uploads are active.");
-        return true;
       } else {
         const res = await api.post<ApiResponse<Property>>("/properties", payload);
-        if (res.data.success && res.data.data) {
-          setCreatedPropertyId(res.data.data.id);
+        if (res.data.success) {
           queryClient.invalidateQueries({ queryKey: ["properties"] });
-          queryClient.invalidateQueries({ queryKey: ["property"] });
-          queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
-          toast.success("Draft created! You can now upload gallery assets.");
-          return true;
+          toast.success("Property created successfully!");
+          navigate("/admin/properties");
         }
       }
-      return false;
     } catch (err: unknown) {
       const errMsg =
-        (err as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Failed to save draft";
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Failed to save property";
       toast.error(errMsg);
-      return false;
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleAddSpec = (defaultLabel: string = "", defaultValue: string = "") => {
-    setCustomSpecs([...customSpecs, { label: defaultLabel, value: defaultValue }]);
-  };
-
-  const handleAddFinancialMetric = () => {
-    setFinancialMetrics([
-      ...financialMetrics,
-      { label: "", value: "", note: "", icon: "payments" },
-    ]);
-  };
-
-  const handleAddConfiguration = () => {
-    setConfigurations([
-      ...configurations,
-      {
-        unitType: "",
-        areaSqFt: "",
-        viewType: "",
-        price: "",
-        isAvailable: true,
-      },
-    ]);
   };
 
   if (loading) {
@@ -675,26 +699,32 @@ export const AdminPropertyForm: React.FC = () => {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-6 max-w-6xl mx-auto pb-24"
-    >
-      {/* Top Action & Navigation Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card/60 backdrop-blur-md p-4 rounded-xl border border-border sticky top-4 z-40 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold tracking-wider text-primary uppercase bg-primary/10 px-2 py-0.5 rounded">
-              {isEditMode ? "Edit Property" : "Add New Property"}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              Section {activeSection} of {SECTIONS.length}
-            </span>
+    <div className="space-y-6 max-w-6xl mx-auto pb-16">
+      {/* ----------------- TOP HEADER BAR ----------------- */}
+      <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card shadow-sm">
+        <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/admin/properties")}
+            className="h-8 w-8 p-0"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-primary px-2 py-0.5 rounded bg-primary/10 border border-primary/20">
+                {isEditMode ? "Edit Property" : "Add New Property"}
+              </span>
+              <span className="text-xs text-muted-foreground font-medium">
+                {marketScope === "DOMESTIC" ? "🇮🇳 Domestic" : "🇦🇪 International"}
+              </span>
+            </div>
+            <h1 className="text-base font-bold text-foreground truncate max-w-md mt-0.5">
+              {name || "Untitled Luxury Estate"}
+            </h1>
           </div>
-          <h1 className="text-lg font-bold text-foreground truncate max-w-md mt-0.5">
-            {name || "Untitled Luxury Estate"}
-          </h1>
         </div>
 
         <div className="flex items-center gap-2">
@@ -703,7 +733,7 @@ export const AdminPropertyForm: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={() => navigate("/admin/properties")}
-            className="text-xs"
+            className="text-xs h-8"
           >
             Cancel
           </Button>
@@ -712,7 +742,7 @@ export const AdminPropertyForm: React.FC = () => {
             onClick={handleSaveProperty}
             disabled={saving}
             size="sm"
-            className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 text-xs font-semibold px-4"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 text-xs font-semibold h-8 px-4"
           >
             {saving ? (
               <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
@@ -724,1367 +754,937 @@ export const AdminPropertyForm: React.FC = () => {
         </div>
       </div>
 
-      {/* 8-Section Pill Navigator */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 bg-card p-2 rounded-xl border border-border">
-        {SECTIONS.map((sec) => {
-          const Icon = sec.icon;
-          const isActive = activeSection === sec.id;
-          return (
-            <button
-              key={sec.id}
-              type="button"
-              onClick={() => setActiveSection(sec.id)}
-              className={`flex flex-col items-center text-center p-2.5 rounded-lg transition-all text-xs font-medium ${
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-sm font-semibold"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-              }`}
-            >
-              <div className="flex items-center gap-1 mb-1">
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-                  {sec.id}
-                </span>
-                <Icon className="h-3.5 w-3.5" />
-              </div>
-              <span className="truncate w-full text-[11px] leading-tight">
-                {sec.shortTitle}
-              </span>
-            </button>
-          );
-        })}
+      {/* ----------------- QUICK SECTION JUMP NAV ----------------- */}
+      <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 rounded-lg border border-border bg-card shadow-sm text-xs">
+        {SECTIONS_NAV.map((s) => (
+          <a
+            key={s.id}
+            href={`#${s.id}`}
+            className="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/60 whitespace-nowrap transition-colors font-medium text-[11px]"
+          >
+            {s.label}
+          </a>
+        ))}
       </div>
 
-      {/* Section Content Container */}
-      <div className="bg-card rounded-xl border border-border p-6 shadow-sm min-h-[480px]">
-        <AnimatePresence mode="wait">
-          {/* SECTION 1: HERO SECTION */}
-          {activeSection === 1 && (
-            <motion.div
-              key="sec-1"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              className="space-y-6"
-            >
-              <div className="border-b border-border pb-3">
-                <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  1. Hero Section & Core Attributes
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Top-level brand identification, market scope, and essential listing parameters.
-                </p>
-              </div>
+      {/* ----------------- FORM SECTIONS CONTAINER ----------------- */}
+      <div className="space-y-8">
+        {/* SECTION 1: HERO & CORE LISTING */}
+        <section id="sec-hero" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
+          <div className="border-b border-border/70 pb-3 mb-5 flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5" />
+              1. Hero Header &amp; Core Listing
+            </span>
+          </div>
 
-              {/* Market Scope Toggle */}
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Market Scope & Region
-                </Label>
-                <div className="grid grid-cols-2 gap-3 max-w-md">
-                  <button
-                    type="button"
-                    onClick={() => handleMarketScopeChange("DOMESTIC")}
-                    className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg border text-xs font-semibold transition-all ${
-                      marketScope === "DOMESTIC"
-                        ? "border-primary bg-primary/10 text-primary shadow-sm"
-                        : "border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60"
-                    }`}
-                  >
-                    <span>🇮🇳 Domestic (India)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleMarketScopeChange("INTERNATIONAL")}
-                    className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg border text-xs font-semibold transition-all ${
-                      marketScope === "INTERNATIONAL"
-                        ? "border-primary bg-primary/10 text-primary shadow-sm"
-                        : "border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60"
-                    }`}
-                  >
-                    <span>🇦🇪 International (UAE / Global)</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                {/* Property Name */}
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label htmlFor="propertyName" className="text-xs font-semibold">
-                    Property Name <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="propertyName"
-                    placeholder="e.g. Carlton Krillam Wellness Residences"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="bg-secondary/40 h-10 text-sm font-medium"
-                  />
-                </div>
-
-                {/* Subtitle / Tagline */}
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label htmlFor="tagline" className="text-xs font-semibold">
-                    Subtitle / Hero Tagline
-                  </Label>
-                  <Input
-                    id="tagline"
-                    placeholder="e.g. Branded 4-Bedroom Sanctuary & Private Vineyard"
-                    value={tagline}
-                    onChange={(e) => setTagline(e.target.value)}
-                    className="bg-secondary/40 h-10 text-sm"
-                  />
-                </div>
-
-                {/* Property Type (Free Text Field) */}
-                <div className="space-y-1.5 md:col-span-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="propertyType" className="text-xs font-semibold">
-                      Property Type <span className="text-destructive">*</span>
-                    </Label>
-                    <span className="text-[10px] text-muted-foreground">
-                      Free-text field (e.g. Residential Villa, Beachfront Sanctuary)
-                    </span>
-                  </div>
-                  <Input
-                    id="propertyType"
-                    placeholder="e.g. Residential Villa, Luxury Penthouse, Beachfront Sanctuary"
-                    value={propertyType}
-                    onChange={(e) => setPropertyType(e.target.value)}
-                    className="bg-secondary/40 h-10 text-xs font-medium"
-                  />
-                  {/* Quick-select suggestion chips */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    <span className="text-[10px] text-muted-foreground self-center mr-1">Quick Select:</span>
-                    {[
-                      "Residential Villa",
-                      "Luxury Apartment",
-                      "Penthouse",
-                      "Heritage Estate",
-                      "Commercial Development",
-                      "Plot / Land",
-                      "Franchise Asset",
-                    ].map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => setPropertyType(preset)}
-                        className={`text-[11px] py-0.5 px-2.5 rounded-full border transition-all ${
-                          propertyType.toLowerCase() === preset.toLowerCase()
-                            ? "bg-primary/20 text-primary border-primary/50 font-semibold shadow-sm"
-                            : "bg-secondary/40 text-muted-foreground border-border hover:text-foreground hover:bg-secondary/70"
-                        }`}
-                      >
-                        {preset}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Listing Status with Color Indication */}
-                <div className="space-y-2 md:col-span-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="propertyStatus" className="text-xs font-semibold">
-                      Listing Status <span className="text-destructive">*</span>
-                    </Label>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
-                        STATUS_CONFIG[status]?.badgeClass || "border-border text-foreground"
-                      }`}
-                    >
-                      {STATUS_CONFIG[status]?.label || status}
-                    </span>
-                  </div>
-
-                  {/* Interactive Status Color Buttons */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-                    {(Object.keys(STATUS_CONFIG) as PropertyStatus[]).map((key) => {
-                      const cfg = STATUS_CONFIG[key];
-                      const isCurrent = status === key;
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => setStatus(key)}
-                          className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg border text-xs font-semibold transition-all ${
-                            isCurrent
-                              ? cfg.activeBorder
-                              : "border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
-                          }`}
-                        >
-                          <span className={`h-2 w-2 rounded-full ${cfg.dotColor} shrink-0`} />
-                          <span className="truncate">{cfg.label.split(" ")[0]}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-
-                {/* Virtual Tour 360 URL */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="virtualTour" className="text-xs font-semibold">
-                    360° Virtual Tour URL
-                  </Label>
-                  <Input
-                    id="virtualTour"
-                    placeholder="https://my.matterport.com/show/?m=..."
-                    value={virtualTour360Url}
-                    onChange={(e) => setVirtualTour360Url(e.target.value)}
-                    className="bg-secondary/40 h-10 text-xs font-mono"
-                  />
-                  <p className="text-[10px] text-muted-foreground">
-                    Matterport, Kuula, or Metareal 360-degree immersive tour embed.
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* SECTION 2: CONCEPT & VISION */}
-          {activeSection === 2 && (
-            <motion.div
-              key="sec-2"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              className="space-y-6"
-            >
-              <div className="border-b border-border pb-3">
-                <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                  <Eye className="h-4 w-4 text-primary" />
-                  2. Concept & Vision (Architectural Story & The Verdict)
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Craft the architectural narrative, design philosophy, and the official Vilaasa Verdict.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                {/* Vision Headline */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="visionHeadline" className="text-xs font-semibold">
-                    Concept & Vision Headline
-                  </Label>
-                  <Input
-                    id="visionHeadline"
-                    placeholder="e.g. Timeless Spaces, Lifelong Wellness"
-                    value={visionHeadline}
-                    onChange={(e) => setVisionHeadline(e.target.value)}
-                    className="bg-secondary/40 h-10 text-sm font-medium"
-                  />
-                  <p className="text-[10px] text-muted-foreground">
-                    Displays prominently as the heading above the architectural narrative.
-                  </p>
-                </div>
-
-                {/* Narrative Description (Multi-paragraph) */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between items-center">
-                    <Label htmlFor="description" className="text-xs font-semibold">
-                      Architectural Story & Vision Narrative <span className="text-destructive">*</span>
-                    </Label>
-                    <span className="text-[10px] text-primary/80 font-mono">
-                      Tip: Press Enter twice to create multiple paragraphs
-                    </span>
-                  </div>
-                  <textarea
-                    id="description"
-                    rows={8}
-                    placeholder="First paragraph detailing the architectural philosophy and setting...&#10;&#10;Second paragraph elaborating on materials, wellness sanctuaries, and generational legacy..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full rounded-md border border-input bg-secondary/40 px-3 py-2 text-xs leading-relaxed focus:outline-none focus:ring-1 focus:ring-primary font-sans resize-y"
-                  />
-                  <p className="text-[10px] text-muted-foreground">
-                    Minimum 20 characters. Blank lines automatically split into separate paragraphs on the public page.
-                  </p>
-                </div>
-
-                {/* The Vilaasa Verdict Card */}
-                <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3 mt-4">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary text-base">verified</span>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
-                      The Vilaasa Verdict Card
-                    </h4>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    An editorial sign-off providing trusted curation, investment perspective, and leadership endorsement.
-                  </p>
-
-                  <div className="space-y-3 pt-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="verdictQuote" className="text-xs font-medium">
-                        Editorial Quote / Verdict Statement
-                      </Label>
-                      <textarea
-                        id="verdictQuote"
-                        rows={3}
-                        placeholder='e.g. "Carlton Krillam is a rare convergence of Ayurvedic mastery and sovereign capital preservation. It achieves what few luxury retreats can: uncompromising discretion alongside institutional-grade yields."'
-                        value={verdictQuote}
-                        onChange={(e) => setVerdictQuote(e.target.value)}
-                        className="w-full rounded-md border border-input bg-card px-3 py-2 text-xs italic focus:outline-none focus:ring-1 focus:ring-primary"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label htmlFor="verdictAuthor" className="text-xs font-medium">
-                          Reviewer / Author Name
-                        </Label>
-                        <Input
-                          id="verdictAuthor"
-                          placeholder="e.g. Vilaasa Advisory Board"
-                          value={verdictAuthor}
-                          onChange={(e) => setVerdictAuthor(e.target.value)}
-                          className="bg-card h-9 text-xs"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="verdictTitle" className="text-xs font-medium">
-                          Reviewer Title / Role
-                        </Label>
-                        <Input
-                          id="verdictTitle"
-                          placeholder="e.g. Director of Private Client Acquisitions"
-                          value={verdictTitle}
-                          onChange={(e) => setVerdictTitle(e.target.value)}
-                          className="bg-card h-9 text-xs"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* SECTION 3: AT A GLANCE (100% Free-Text Specs) */}
-          {activeSection === 3 && (
-            <motion.div
-              key="sec-3"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              className="space-y-6"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
-                <div>
-                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                    <LayoutGrid className="h-4 w-4 text-primary" />
-                    3. At a Glance (User-Defined Specifications)
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    All labels and values are 100% free text. Add any property dimension, permit, or feature you wish.
-                  </p>
-                </div>
-                <Button
+          <div className="space-y-5">
+            {/* Market Scope */}
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                Market Scope &amp; Region
+              </Label>
+              <div className="grid grid-cols-2 gap-3 max-w-md mt-1.5">
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleAddSpec()}
-                  className="gap-1.5 text-xs self-start sm:self-auto"
+                  onClick={() => handleMarketScopeChange("DOMESTIC")}
+                  className={`flex items-center justify-center gap-2 py-2 px-4 rounded-lg border text-xs font-semibold transition-all ${
+                    marketScope === "DOMESTIC"
+                      ? "border-primary bg-primary/10 text-primary shadow-sm"
+                      : "border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60"
+                  }`}
                 >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>Add Specification</span>
-                </Button>
+                  <span>🇮🇳 Domestic (India)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleMarketScopeChange("INTERNATIONAL")}
+                  className={`flex items-center justify-center gap-2 py-2 px-4 rounded-lg border text-xs font-semibold transition-all ${
+                    marketScope === "INTERNATIONAL"
+                      ? "border-primary bg-primary/10 text-primary shadow-sm"
+                      : "border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60"
+                  }`}
+                >
+                  <span>🇦🇪 International (UAE / Global)</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Property Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. The Glasshouse Sanctuary"
+                  className="bg-secondary/40 h-10 text-sm font-semibold mt-1"
+                />
               </div>
 
-              {/* Quick Preset Chips */}
-              <div className="space-y-1.5">
-                <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                  Quick Add Common Specs (Click to add editable row)
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Hero Subtitle / Description (Top Banner Hook)
                 </Label>
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const formattedPrice = priceOnApplication
-                        ? "Price on Application"
-                        : price && Number(price) > 0
-                        ? `${currency} ${Number(price).toLocaleString()}`
-                        : "";
-                      handleAddSpec("Price", formattedPrice);
-                    }}
-                    className="inline-flex items-center gap-1 text-[11px] py-1 px-2.5 rounded-full border border-primary/50 bg-primary/10 text-primary font-medium hover:bg-primary/20 transition-colors shadow-sm"
-                  >
-                    <Plus className="h-3 w-3 text-primary" />
-                    <span>Price ({currency})</span>
-                  </button>
-                  {[
-                    { label: "Built-up Area" },
-                    { label: "Bedrooms" },
-                    { label: "Bathrooms" },
-                    { label: "Furnishing" },
-                    { label: "Ownership" },
-                    { label: "RERA / Permit" },
-                    { label: "Possession" },
-                    { label: "Ceiling Height" },
-                    { label: "Private Land" },
-                    { label: "Parking" },
-                  ].map((preset, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleAddSpec(preset.label, "")}
-                      className="inline-flex items-center gap-1 text-[11px] py-1 px-2.5 rounded-full border border-border bg-secondary/40 text-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors"
-                    >
-                      <Plus className="h-3 w-3 text-primary" />
-                      <span>{preset.label}</span>
-                    </button>
+                <textarea
+                  rows={2}
+                  value={tagline}
+                  onChange={(e) => setTagline(e.target.value)}
+                  placeholder="e.g. Live or Lease - Your Villa, Your Choice. Ultra-luxury waterfront villa in North Goa..."
+                  className="w-full bg-secondary/40 border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary mt-1 resize-y"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Property Type <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  value={propertyType}
+                  onChange={(e) => setPropertyType(e.target.value)}
+                  placeholder="e.g. Residential Villa, Penthouse, Farmland Estate"
+                  className="bg-secondary/40 h-10 text-sm mt-1"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Listing Status
+                </Label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as PropertyStatus)}
+                  className="w-full bg-secondary/40 border border-border rounded-md px-3 h-10 text-sm text-foreground focus:outline-none focus:border-primary mt-1"
+                >
+                  {Object.entries(STATUS_CONFIG).map(([key, conf]) => (
+                    <option key={key} value={key}>
+                      {conf.emoji} {conf.label}
+                    </option>
                   ))}
-                </div>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  360° Virtual Tour URL
+                </Label>
+                <Input
+                  value={virtualTour360Url}
+                  onChange={(e) => setVirtualTour360Url(e.target.value)}
+                  placeholder="e.g. https://my.matterport.com/show/?m=..."
+                  className="bg-secondary/40 h-10 text-sm mt-1 font-mono"
+                />
               </div>
 
-              {/* Custom Specs Table / Grid */}
-              <div className="space-y-2.5 pt-2">
-                {customSpecs.length === 0 ? (
-                  <div className="p-8 text-center border border-dashed border-border rounded-xl bg-secondary/10 space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      No specifications added yet. Click &quot;Add Specification&quot; or use one of the quick chips above.
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAddSpec("Built-up Area", "")}
-                      className="text-xs"
-                    >
-                      Add First Specification
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {customSpecs.map((spec, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-2 p-3 rounded-lg border border-border bg-card shadow-sm hover:border-primary/30 transition-colors"
-                      >
-                        <div className="flex-1 space-y-1">
-                          <Label className="text-[10px] text-muted-foreground font-mono uppercase">
-                            Specification Label
-                          </Label>
-                          <Input
-                            placeholder="e.g. Built-up Area, Bedrooms, Ceiling Height"
-                            value={spec.label}
-                            onChange={(e) => {
-                              const updated = [...customSpecs];
-                              updated[idx].label = e.target.value;
-                              setCustomSpecs(updated);
-                            }}
-                            className="bg-secondary/40 h-8 text-xs font-semibold"
-                          />
-                        </div>
-
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-[10px] text-muted-foreground font-mono uppercase">
-                              Value
-                            </Label>
-                            {(spec.label.toLowerCase().includes("price") ||
-                              spec.label.toLowerCase().includes("investment") ||
-                              spec.label.toLowerCase().includes("cost")) && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = [...customSpecs];
-                                  updated[idx].value = priceOnApplication
-                                    ? "Price on Application"
-                                    : price && Number(price) > 0
-                                    ? `${currency} ${Number(price).toLocaleString()}`
-                                    : "";
-                                  setCustomSpecs(updated);
-                                  toast.success("Synced with Price from Pricing section");
-                                }}
-                                className="text-[10px] text-primary hover:underline font-medium"
-                                title="Get price directly from Section 5"
-                              >
-                                Pull from Pricing
-                              </button>
-                            )}
-                          </div>
-                          <Input
-                            placeholder={getSpecPlaceholder(spec.label)}
-                            value={spec.value}
-                            onChange={(e) => {
-                              const updated = [...customSpecs];
-                              updated[idx].value = e.target.value;
-                              setCustomSpecs(updated);
-                            }}
-                            className="bg-secondary/40 h-8 text-xs"
-                          />
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updated = customSpecs.filter((_, i) => i !== idx);
-                            setCustomSpecs(updated);
-                          }}
-                          className="text-muted-foreground hover:text-destructive p-1 rounded transition-colors self-end mb-1"
-                          title="Remove specification"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {/* SECTION 4: FINANCIAL INTELLIGENCE */}
-          {activeSection === 4 && (
-            <motion.div
-              key="sec-4"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              className="space-y-6"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
-                <div>
-                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-primary" />
-                    4. Financial Intelligence (Admin-Defined Metrics)
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Customize the metrics shown in the Financial Intelligence card. All labels, values, and notes are editable.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddFinancialMetric}
-                  className="gap-1.5 text-xs self-start sm:self-auto"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>Add Metric</span>
-                </Button>
-              </div>
-
-              {/* Financial Metrics Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {financialMetrics.map((metric, idx) => (
-                  <div
-                    key={idx}
-                    className="p-4 rounded-xl border border-border bg-card shadow-sm space-y-3 hover:border-primary/30 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
-                          <span className="material-symbols-outlined text-lg">
-                            {metric.icon || "payments"}
-                          </span>
-                        </div>
-                        <span className="text-[11px] font-semibold text-muted-foreground uppercase">
-                          Metric #{idx + 1}
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const updated = financialMetrics.filter((_, i) => i !== idx);
-                          setFinancialMetrics(updated);
-                        }}
-                        className="text-muted-foreground hover:text-destructive p-1 rounded transition-colors"
-                        title="Remove metric"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground font-mono uppercase">
-                          Metric Label
-                        </Label>
-                        <Input
-                          placeholder="e.g. Projected IRR, Breakeven Timeline, Annual Growth"
-                          value={metric.label}
-                          onChange={(e) => {
-                            const updated = [...financialMetrics];
-                            updated[idx].label = e.target.value;
-                            setFinancialMetrics(updated);
-                          }}
-                          className="bg-secondary/40 h-8 text-xs font-semibold mt-0.5"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-[10px] text-muted-foreground font-mono uppercase">
-                            Metric Value
-                          </Label>
-                          <Input
-                            placeholder="e.g. 18-22%, 4-5 Years"
-                            value={metric.value}
-                            onChange={(e) => {
-                              const updated = [...financialMetrics];
-                              updated[idx].value = e.target.value;
-                              setFinancialMetrics(updated);
-                            }}
-                            className="bg-secondary/40 h-8 text-xs font-bold text-primary mt-0.5"
-                          />
-                        </div>
-
-                        <div>
-                          <Label className="text-[10px] text-muted-foreground font-mono uppercase">
-                            Icon Key
-                          </Label>
-                          <select
-                            value={metric.icon || "payments"}
-                            onChange={(e) => {
-                              const updated = [...financialMetrics];
-                              updated[idx].icon = e.target.value;
-                              setFinancialMetrics(updated);
-                            }}
-                            className="w-full h-8 rounded-md border border-input bg-secondary/40 px-2 text-xs mt-0.5"
-                          >
-                            <option value="trending_up">Trending Up (IRR)</option>
-                            <option value="timelapse">Timelapse (Breakeven)</option>
-                            <option value="monitoring">Monitoring (5-Yr Gain)</option>
-                            <option value="show_chart">Show Chart (Growth)</option>
-                            <option value="savings">Savings (Net Yield)</option>
-                            <option value="payments">Payments (Returns)</option>
-                            <option value="account_balance">Account Balance</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground font-mono uppercase">
-                          Context / Subtitle Note (Optional)
-                        </Label>
-                        <Input
-                          placeholder="e.g. Tax-free in INR, Conservative baseline"
-                          value={metric.note}
-                          onChange={(e) => {
-                            const updated = [...financialMetrics];
-                            updated[idx].note = e.target.value;
-                            setFinancialMetrics(updated);
-                          }}
-                          className="bg-secondary/40 h-8 text-xs mt-0.5"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* SECTION 5: PRICING & CONFIGURATIONS */}
-          {activeSection === 5 && (
-            <motion.div
-              key="sec-5"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              className="space-y-6"
-            >
-              <div className="border-b border-border pb-3">
-                <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                  <Tag className="h-4 w-4 text-primary" />
-                  5. Pricing & Unit Configurations
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Set minimum investment ticket, currency, and multi-unit layout breakdowns.
-                </p>
-              </div>
-
-              {/* Base Pricing */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label htmlFor="price" className="text-xs font-semibold">
-                    Minimum Investment / Base Price
-                  </Label>
-                  <div className="flex gap-2">
-                    <select
-                      value={currency}
-                      onChange={(e) => setCurrency(e.target.value as Currency)}
-                      disabled={priceOnApplication}
-                      className="w-28 h-10 rounded-md border border-input bg-secondary/40 px-3 text-xs font-bold text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    >
-                      <option value="INR">INR (₹)</option>
-                      <option value="AED">AED (د.إ)</option>
-                      <option value="USD">USD ($)</option>
-                      <option value="EUR">EUR (€)</option>
-                      <option value="GBP">GBP (£)</option>
-                    </select>
-
-                    <Input
-                      id="price"
-                      type="number"
-                      placeholder="e.g. 25000000"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      disabled={priceOnApplication}
-                      className="bg-secondary/40 h-10 font-mono text-sm font-semibold flex-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2 pt-6">
-                  <input
-                    type="checkbox"
-                    id="poa"
-                    checked={priceOnApplication}
-                    onChange={(e) => setPriceOnApplication(e.target.checked)}
-                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-                  />
-                  <Label htmlFor="poa" className="text-xs font-medium cursor-pointer">
-                    Price On Application (POA)
-                  </Label>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="rentalYield" className="text-xs font-semibold">
-                    Expected Rental Yield (% p.a.)
-                  </Label>
-                  <Input
-                    id="rentalYield"
-                    type="number"
-                    step="0.1"
-                    placeholder="e.g. 14.5"
-                    value={rentalYieldPercent}
-                    onChange={(e) => setRentalYieldPercent(e.target.value)}
-                    className="bg-secondary/40 h-10 text-xs font-mono"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="expectedIrr" className="text-xs font-semibold">
-                    Expected Target IRR (%)
-                  </Label>
-                  <Input
-                    id="expectedIrr"
-                    type="number"
-                    step="0.1"
-                    placeholder="e.g. 21.0"
-                    value={expectedIrrPercent}
-                    onChange={(e) => setExpectedIrrPercent(e.target.value)}
-                    className="bg-secondary/40 h-10 text-xs font-mono"
-                  />
-                </div>
-              </div>
-
-              {/* Unit Configurations */}
-              <div className="space-y-3 pt-4 border-t border-border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">
-                      Unit Configurations & Layouts
-                    </h4>
-                    <p className="text-[11px] text-muted-foreground">
-                      Floor plans and unit specifications displayed in the Configurations table.
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddConfiguration}
-                    className="gap-1.5 text-xs"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    <span>Add Unit Layout</span>
-                  </Button>
-                </div>
-
-                {configurations.length === 0 ? (
-                  <div className="p-6 text-center border border-dashed border-border rounded-xl bg-secondary/10">
-                    <p className="text-xs text-muted-foreground">
-                      No unit layouts defined yet. Click &quot;Add Unit Layout&quot; to specify 3 BHK, 4 BHK, or custom suites.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {configurations.map((config, idx) => (
-                      <div
-                        key={idx}
-                        className="grid grid-cols-1 sm:grid-cols-5 gap-2.5 p-3 rounded-lg border border-border bg-card shadow-sm items-end"
-                      >
-                        <div className="sm:col-span-1 space-y-1">
-                          <Label className="text-[10px] text-muted-foreground uppercase">Unit Type</Label>
-                          <Input
-                            placeholder="Villa Suite"
-                            value={config.unitType}
-                            onChange={(e) => {
-                              const updated = [...configurations];
-                              updated[idx].unitType = e.target.value;
-                              setConfigurations(updated);
-                            }}
-                            className="bg-secondary/40 h-8 text-xs font-semibold"
-                          />
-                        </div>
-
-                        <div className="sm:col-span-1 space-y-1">
-                          <Label className="text-[10px] text-muted-foreground uppercase">Area (Sq.Ft.)</Label>
-                          <Input
-                            type="number"
-                            placeholder="3500"
-                            value={config.areaSqFt}
-                            onChange={(e) => {
-                              const updated = [...configurations];
-                              updated[idx].areaSqFt = e.target.value;
-                              setConfigurations(updated);
-                            }}
-                            className="bg-secondary/40 h-8 text-xs font-mono"
-                          />
-                        </div>
-
-                        <div className="sm:col-span-1 space-y-1">
-                          <Label className="text-[10px] text-muted-foreground uppercase">View Type</Label>
-                          <Input
-                            placeholder="Private Garden View"
-                            value={config.viewType}
-                            onChange={(e) => {
-                              const updated = [...configurations];
-                              updated[idx].viewType = e.target.value;
-                              setConfigurations(updated);
-                            }}
-                            className="bg-secondary/40 h-8 text-xs"
-                          />
-                        </div>
-
-                        <div className="sm:col-span-1 space-y-1">
-                          <Label className="text-[10px] text-muted-foreground uppercase">Price ({currency})</Label>
-                          <Input
-                            type="number"
-                            placeholder="0"
-                            value={config.price}
-                            onChange={(e) => {
-                              const updated = [...configurations];
-                              updated[idx].price = e.target.value;
-                              setConfigurations(updated);
-                            }}
-                            className="bg-secondary/40 h-8 text-xs font-mono"
-                          />
-                        </div>
-
-                        <div className="sm:col-span-1 flex items-center justify-between gap-2 h-8">
-                          <label className="flex items-center gap-1.5 text-[11px] cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={config.isAvailable}
-                              onChange={(e) => {
-                                const updated = [...configurations];
-                                updated[idx].isAvailable = e.target.checked;
-                                setConfigurations(updated);
-                              }}
-                              className="h-3.5 w-3.5 rounded border-border text-primary"
-                            />
-                            <span>Available</span>
-                          </label>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updated = configurations.filter((_, i) => i !== idx);
-                              setConfigurations(updated);
-                            }}
-                            className="text-muted-foreground hover:text-destructive p-1 rounded transition-colors"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {/* SECTION 6: GALLERY & MEDIA */}
-          {activeSection === 6 && (
-            <motion.div
-              key="sec-6"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              className="space-y-6"
-            >
-              <div className="border-b border-border pb-3">
-                <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                  <ImageIcon className="h-4 w-4 text-primary" />
-                  6. Gallery & Media Assets
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Upload architectural photography, hero shots, and PDF brochures. Edit image captions inline.
-                </p>
-              </div>
-
-              <div className="space-y-8">
-                {createdPropertyId ? (
-                  <MediaUploader
-                    propertyId={createdPropertyId}
-                    existingMedia={existingMedia}
-                    onMediaUploaded={() => {
-                      api.get<ApiResponse<Property>>(`/properties/${createdPropertyId}`).then((res) => {
-                        if (res.data.success && res.data.data?.media) {
-                          setExistingMedia(res.data.data.media);
-                        }
-                      });
-                    }}
-                  />
-                ) : (
-                  <div className="p-8 text-center border border-dashed border-border rounded-xl bg-secondary/10 space-y-4 max-w-lg mx-auto my-4">
-                    <div className="flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <ImageIcon className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-foreground">
-                        Save Draft First to Enable Image Gallery Uploads
-                      </h4>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Direct Cloudinary gallery media streaming requires a property record. Click below to save your core details and unlock photo uploads.
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={handleSaveDraftForMedia}
-                      disabled={saving}
-                      className="bg-primary text-primary-foreground text-xs gap-1.5"
-                    >
-                      <Save className="h-3.5 w-3.5" />
-                      <span>Save Draft & Enable Gallery Uploads</span>
-                    </Button>
-                  </div>
-                )}
-
-                <div className="pt-6 border-t border-border space-y-2">
-                  <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground flex items-center gap-2">
-                      <FileText className="h-3.5 w-3.5 text-primary" />
-                      <span>Official Property Brochure (PDF)</span>
-                    </h4>
-                    <p className="text-[11px] text-muted-foreground">
-                      Upload a PDF investment brochure or marketing deck for clients to download.
-                    </p>
-                  </div>
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Official Property Brochure (PDF)
+                </Label>
+                <div className="mt-1">
                   <BrochureUploader
                     value={brochureUrl}
                     onChange={(url) => {
                       setBrochureUrl(url);
-                      toast.success("Brochure attached to property!");
+                      toast.success("Brochure attached!");
                     }}
                   />
                 </div>
               </div>
-            </motion.div>
-          )}
+            </div>
+          </div>
+        </section>
 
-          {/* SECTION 7: AMENITIES */}
-          {activeSection === 7 && (
-            <motion.div
-              key="sec-7"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              className="space-y-6"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
+        {/* SECTION 2: THE VISION & STORY */}
+        <section id="sec-vision" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
+          <div className="border-b border-border/70 pb-3 mb-5">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
+              <BookOpen className="h-3.5 w-3.5" />
+              2. The Vision Story &amp; Advisory Verdict
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                Vision Headline
+              </Label>
+              <Input
+                value={visionHeadline}
+                onChange={(e) => setVisionHeadline(e.target.value)}
+                placeholder="e.g. Where architectural mastery merges with pristine nature."
+                className="bg-secondary/40 h-10 text-sm mt-1"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                Vision Story Narrative (Section 2 Body) <span className="text-destructive">*</span>
+              </Label>
+              <textarea
+                rows={4}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Elaborate on the architectural philosophy, craftsmanship, landscape integration, and lifestyle story..."
+                className="w-full bg-secondary/40 border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary mt-1 resize-y"
+              />
+            </div>
+
+            <div className="pt-3 border-t border-border/60 space-y-4">
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Advisory Verdict Quote
+                </Label>
+                <textarea
+                  rows={2}
+                  value={verdictQuote}
+                  onChange={(e) => setVerdictQuote(e.target.value)}
+                  placeholder='e.g. "An unprecedented trophy asset offering rare riparian rights and unmatched capital longevity."'
+                  className="w-full bg-secondary/40 border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary mt-1 resize-y"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                    <Layers className="h-4 w-4 text-primary" />
-                    7. Curated Amenities
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Icons automatically match keywords in real-time. Add descriptions to enrich the luxury amenity cards.
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                    Verdict Author
+                  </Label>
+                  <Input
+                    value={verdictAuthor}
+                    onChange={(e) => setVerdictAuthor(e.target.value)}
+                    placeholder="e.g. Vilaasa Advisory Board"
+                    className="bg-secondary/40 h-9 text-xs mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                    Verdict Title / Role
+                  </Label>
+                  <Input
+                    value={verdictTitle}
+                    onChange={(e) => setVerdictTitle(e.target.value)}
+                    placeholder="e.g. Director of Private Client Acquisitions"
+                    className="bg-secondary/40 h-9 text-xs mt-1"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION 3: AT A GLANCE (SPECS) */}
+        <section id="sec-specs" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
+          <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-5">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
+              <LayoutGrid className="h-3.5 w-3.5" />
+              3. At a Glance (Key Specifications)
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddSpec}
+              className="gap-1.5 h-7 text-xs border-primary/40 text-primary hover:bg-primary/10"
+            >
+              <Plus className="h-3 w-3" />
+              <span>Add Spec</span>
+            </Button>
+          </div>
+
+          {customSpecs.length === 0 ? (
+            <div className="p-4 rounded-lg border border-dashed border-border text-center">
+              <p className="text-xs text-muted-foreground">
+                No custom specifications added. Click &quot;Add Spec&quot; to configure key specs.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {customSpecs.map((spec, idx) => {
+                const specPlaceholders = [
+                  { label: "e.g. BUILT-UP AREA", value: "e.g. 6,500 Sq.Ft." },
+                  { label: "e.g. BEDROOMS", value: "e.g. 5 Master Suites" },
+                  { label: "e.g. FURNISHING", value: "e.g. Fully Furnished" },
+                  { label: "e.g. OWNERSHIP", value: "e.g. Freehold" },
+                ];
+                const ph = specPlaceholders[idx] || { label: "e.g. SPEC LABEL", value: "e.g. Value" };
+
+                return (
+                  <div key={idx} className="relative p-3.5 rounded-lg border border-border/60 bg-secondary/20 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                        Spec #{idx + 1}
+                      </Label>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSpec(idx)}
+                        className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                        title="Remove Spec"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Label</Label>
+                      <Input
+                        value={spec.label}
+                        onChange={(e) => handleUpdateSpec(idx, "label", e.target.value)}
+                        placeholder={ph.label}
+                        className="bg-secondary/40 h-8 text-xs font-semibold mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Value</Label>
+                      <Input
+                        value={spec.value}
+                        onChange={(e) => handleUpdateSpec(idx, "value", e.target.value)}
+                        placeholder={ph.value}
+                        className="bg-secondary/40 h-8 text-xs text-foreground font-bold mt-1"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* SECTION 4: FINANCIAL INTELLIGENCE */}
+        <section id="sec-financials" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
+          <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-5">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
+              <TrendingUp className="h-3.5 w-3.5" />
+              4. Financial Intelligence
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddFinancialMetric}
+              className="gap-1.5 h-7 text-xs border-primary/40 text-primary hover:bg-primary/10"
+            >
+              <Plus className="h-3 w-3" />
+              <span>Add Metric</span>
+            </Button>
+          </div>
+
+          {financialMetrics.length === 0 ? (
+            <div className="p-4 rounded-lg border border-dashed border-border text-center">
+              <p className="text-xs text-muted-foreground">
+                No financial metrics added. Click &quot;Add Metric&quot; to configure ROI metrics.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {financialMetrics.map((metric, idx) => {
+                const finPlaceholders = [
+                  { label: "e.g. PROJECTED IRR", value: "e.g. 18% - 22%", note: "e.g. 5-Year Capital Horizon" },
+                  { label: "e.g. ANNUAL APPRECIATION", value: "e.g. 14% CAGR", note: "e.g. Luxury Segment Benchmark" },
+                  { label: "e.g. BREAKEVEN TIMELINE", value: "e.g. 4.5 Years", note: "e.g. Full Capital Recovery" },
+                  { label: "e.g. NET RENTAL YIELD", value: "e.g. 8.5% p.a.", note: "e.g. Managed Villa Rental" },
+                ];
+                const ph = finPlaceholders[idx] || { label: "e.g. METRIC NAME", value: "e.g. Value", note: "e.g. Context Note" };
+
+                return (
+                  <div key={idx} className="relative p-3.5 rounded-lg border border-border/60 bg-secondary/20 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                        Metric #{idx + 1}
+                      </Label>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFinancialMetric(idx)}
+                        className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                        title="Remove Metric"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Label</Label>
+                      <Input
+                        value={metric.label}
+                        onChange={(e) => handleUpdateFinancialMetric(idx, "label", e.target.value)}
+                        placeholder={ph.label}
+                        className="bg-secondary/40 h-8 text-xs font-semibold mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Value</Label>
+                      <Input
+                        value={metric.value}
+                        onChange={(e) => handleUpdateFinancialMetric(idx, "value", e.target.value)}
+                        placeholder={ph.value}
+                        className="bg-secondary/40 h-8 text-xs text-primary font-bold mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Context Note</Label>
+                      <Input
+                        value={metric.note}
+                        onChange={(e) => handleUpdateFinancialMetric(idx, "note", e.target.value)}
+                        placeholder={ph.note}
+                        className="bg-secondary/40 h-7 text-[11px] text-muted-foreground mt-1"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* SECTION 5: PRICING & CONFIGURATIONS */}
+        <section id="sec-pricing" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
+          <div className="border-b border-border/70 pb-3 mb-5 flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
+              <Tag className="h-3.5 w-3.5" />
+              5. Pricing &amp; Unit Configurations
+            </span>
+          </div>
+
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="md:col-span-2 space-y-1.5">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Base Price (Auto-Currency: inr 12 cr ➔ ₹12 Cr)
+                </Label>
+                <div className="flex gap-2 mt-1">
+                  <select
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value as Currency)}
+                    disabled={priceOnApplication}
+                    className="w-24 bg-secondary/40 border border-border rounded-md px-2.5 h-10 text-xs font-bold text-primary focus:outline-none focus:border-primary"
+                  >
+                    <option value="INR">INR (₹)</option>
+                    <option value="AED">AED (د.إ)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="GBP">GBP (£)</option>
+                  </select>
+                  <Input
+                    value={price}
+                    onChange={(e) => setPrice(autoFormatCurrencySymbol(e.target.value))}
+                    disabled={priceOnApplication}
+                    placeholder="e.g. ₹15 Cr or 150000000"
+                    className="bg-secondary/40 h-10 text-sm font-semibold flex-1"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 pt-6">
+                <input
+                  type="checkbox"
+                  id="poa"
+                  checked={priceOnApplication}
+                  onChange={(e) => setPriceOnApplication(e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                />
+                <Label htmlFor="poa" className="text-xs font-medium cursor-pointer">
+                  Price On Application (POA)
+                </Label>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Expected Rental Yield (%)
+                </Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  placeholder="e.g. 12.5"
+                  value={rentalYieldPercent}
+                  onChange={(e) => setRentalYieldPercent(e.target.value)}
+                  className="bg-secondary/40 h-10 text-xs mt-1 font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Configurations Table */}
+            <div className="pt-4 border-t border-border/60 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    Unit Configurations &amp; Layout Breakdowns
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground">
+                    Specify 3 BHK, 4 BHK, or custom penthouse floor plans and pricing.
                   </p>
                 </div>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() =>
-                    setAmenities([
-                      ...amenities,
-                      { name: "", iconKey: "star", description: "" },
-                    ])
-                  }
-                  className="gap-1.5 text-xs self-start sm:self-auto"
+                  onClick={handleAddConfiguration}
+                  className="gap-1.5 h-7 text-xs border-primary/40 text-primary hover:bg-primary/10"
                 >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>Add Amenity</span>
+                  <Plus className="h-3 w-3" />
+                  <span>Add Unit Layout</span>
                 </Button>
               </div>
 
-              <div className="space-y-3">
-                {amenities.length === 0 ? (
-                  <div className="p-8 text-center border border-dashed border-border rounded-xl bg-secondary/10 space-y-3">
-                    <p className="text-xs text-muted-foreground">
-                      No amenities added yet. Click &quot;Add Amenity&quot; to begin.
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setAmenities([
-                          { name: "Ayurvedic Wellness Sanctuary", iconKey: "spa", description: "Bespoke therapies by resident Ayurvedic masters." },
-                          { name: "Private Marina & Yacht Berth", iconKey: "directions_boat", description: "Direct deep-water access with dedicated concierge." },
-                          { name: "Executive Helipad", iconKey: "helicopter", description: "Seamless point-to-point transfers from international hubs." },
-                        ])
-                      }
-                      className="text-xs"
-                    >
-                      Pre-fill Signature Amenities
-                    </Button>
-                  </div>
-                ) : (
-                  amenities.map((amenity, idx) => (
-                    <div
-                      key={idx}
-                      className="flex flex-col gap-2.5 p-3.5 rounded-xl border border-border bg-card shadow-sm hover:border-primary/30 transition-colors"
-                    >
-                      <div className="flex gap-2 items-center">
-                        <div
-                          className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 border border-primary/30 text-primary shrink-0"
-                          title={`Icon: ${amenity.iconKey || "star"}`}
-                        >
-                          <span className="material-symbols-outlined text-xl">
-                            {amenity.iconKey || "star"}
-                          </span>
-                        </div>
-
-                        <Input
-                          placeholder="Amenity Name (e.g. Sri Sri Panchakarma Wellness Centre)"
-                          value={amenity.name}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            const newAm = [...amenities];
-                            newAm[idx].name = val;
-                            if (!newAm[idx].iconKey || newAm[idx].iconKey === "star") {
-                              newAm[idx].iconKey = detectAmenityIcon(val);
-                            }
-                            setAmenities(newAm);
-                          }}
-                          className="bg-secondary/40 h-9 text-xs font-semibold flex-1"
-                        />
-
-                        <select
-                          value={amenity.iconKey || "star"}
-                          onChange={(e) => {
-                            const newAm = [...amenities];
-                            newAm[idx].iconKey = e.target.value;
-                            setAmenities(newAm);
-                          }}
-                          className="h-9 rounded-md border border-input bg-secondary/40 px-2 text-xs max-w-[140px]"
-                        >
-                          {COMMON_AMENITY_ICONS.map((p) => (
-                            <option key={p.icon} value={p.icon}>
-                              {p.label}
-                            </option>
-                          ))}
-                        </select>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newAm = amenities.filter((_, i) => i !== idx);
-                            setAmenities(newAm);
-                          }}
-                          className="text-muted-foreground hover:text-destructive p-1 rounded transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-
-                      <Input
-                        placeholder="Amenity Description / Context (e.g. 5,000 sq.ft. holistic spa with certified healers)"
-                        value={amenity.description}
-                        onChange={(e) => {
-                          const newAm = [...amenities];
-                          newAm[idx].description = e.target.value;
-                          setAmenities(newAm);
-                        }}
-                        className="bg-secondary/40 h-8 text-[11px] text-muted-foreground"
-                      />
-                    </div>
-                  ))
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {/* SECTION 8: LOCATION & CONNECTIVITY */}
-          {activeSection === 8 && (
-            <motion.div
-              key="sec-8"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              className="space-y-6"
-            >
-              <div className="border-b border-border pb-3">
-                <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-primary" />
-                  8. Location & Connectivity
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Geographic location, geo-coordinates, embed map link, and nearby landmark commute times.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="city" className="text-xs font-semibold">
-                    City <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="city"
-                    placeholder={marketScope === "INTERNATIONAL" ? "Dubai" : "Goa"}
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="bg-secondary/40 h-10"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="country" className="text-xs font-semibold">
-                    Country <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="country"
-                    placeholder={marketScope === "INTERNATIONAL" ? "United Arab Emirates" : "India"}
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    className="bg-secondary/40 h-10"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="community" className="text-xs font-semibold">
-                    Community / District / Area
-                  </Label>
-                  <Input
-                    id="community"
-                    placeholder={marketScope === "INTERNATIONAL" ? "Palm Jumeirah" : "Candolim Beachfront"}
-                    value={community}
-                    onChange={(e) => setCommunity(e.target.value)}
-                    className="bg-secondary/40 h-10"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="addressLine" className="text-xs font-semibold">
-                    Address Line
-                  </Label>
-                  <Input
-                    id="addressLine"
-                    placeholder="Plot 42, Coastal Highway"
-                    value={addressLine}
-                    onChange={(e) => setAddressLine(e.target.value)}
-                    className="bg-secondary/40 h-10"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="latitude" className="text-xs font-semibold">
-                    Latitude
-                  </Label>
-                  <Input
-                    id="latitude"
-                    type="number"
-                    step="any"
-                    placeholder={marketScope === "INTERNATIONAL" ? "25.1124" : "15.5186"}
-                    value={latitude}
-                    onChange={(e) => setLatitude(e.target.value)}
-                    className="bg-secondary/40 h-10 font-mono"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="longitude" className="text-xs font-semibold">
-                    Longitude
-                  </Label>
-                  <Input
-                    id="longitude"
-                    type="number"
-                    step="any"
-                    placeholder={marketScope === "INTERNATIONAL" ? "55.1390" : "73.7634"}
-                    value={longitude}
-                    onChange={(e) => setLongitude(e.target.value)}
-                    className="bg-secondary/40 h-10 font-mono"
-                  />
-                </div>
-
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label htmlFor="mapUrl" className="text-xs font-semibold">
-                    Google Maps Embed URL
-                  </Label>
-                  <Input
-                    id="mapUrl"
-                    type="text"
-                    placeholder='<iframe src="https://www.google.com/maps/embed?pb=..."></iframe>'
-                    value={googleMapUrl}
-                    onChange={(e) => setGoogleMapUrl(e.target.value)}
-                    className="bg-secondary/40 h-10"
-                  />
-                  <p className="text-[10px] text-muted-foreground">
-                    For an exact pin on the public page, paste the embed iframe snippet from Google Maps here.
+              {configurations.length === 0 ? (
+                <div className="p-6 text-center border border-dashed border-border rounded-xl bg-secondary/10">
+                  <p className="text-xs text-muted-foreground">
+                    No unit layouts defined. Click &quot;Add Unit Layout&quot; to specify BHK suites.
                   </p>
                 </div>
-              </div>
-
-              {/* Nearby Places */}
-              <div className="space-y-3 pt-4 border-t border-border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">
-                      Nearby Places & Connectivity
-                    </h4>
-                    <p className="text-[11px] text-muted-foreground">
-                      Airports, helipads, beaches, hospitals, and transit hubs with travel times.
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setNearbyPlaces([
-                        ...nearbyPlaces,
-                        { name: "", distance: "", travelTime: "", category: "Transit", description: "" },
-                      ])
-                    }
-                    className="gap-1.5 text-xs"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    <span>Add Nearby Place</span>
-                  </Button>
-                </div>
-
+              ) : (
                 <div className="space-y-2.5">
-                  {nearbyPlaces.length === 0 ? (
-                    <div className="p-6 text-center border border-dashed border-border rounded-xl bg-secondary/10">
-                      <p className="text-xs text-muted-foreground">
-                        No nearby places added yet. Click &quot;Add Nearby Place&quot; to list airports, beaches, or private helipads.
-                      </p>
-                    </div>
-                  ) : (
-                    nearbyPlaces.map((place, idx) => (
-                      <div
-                        key={idx}
-                        className="flex flex-col gap-2 p-3 rounded-lg border border-border bg-card shadow-sm"
-                      >
-                        <div className="flex gap-2 items-center">
-                          <Input
-                            placeholder="Landmark Name (e.g. MOPA International Airport)"
-                            value={place.name}
-                            onChange={(e) => {
-                              const newP = [...nearbyPlaces];
-                              newP[idx].name = e.target.value;
-                              setNearbyPlaces(newP);
-                            }}
-                            className="bg-secondary/40 h-8 text-xs font-semibold flex-1"
-                          />
-
-                          <Input
-                            placeholder="Distance (e.g. 24 km)"
-                            value={place.distance}
-                            onChange={(e) => {
-                              const newP = [...nearbyPlaces];
-                              newP[idx].distance = e.target.value;
-                              setNearbyPlaces(newP);
-                            }}
-                            className="bg-secondary/40 h-8 text-xs w-28"
-                          />
-
-                          <Input
-                            placeholder="Travel Time (e.g. 35 Mins Drive)"
-                            value={place.travelTime}
-                            onChange={(e) => {
-                              const newP = [...nearbyPlaces];
-                              newP[idx].travelTime = e.target.value;
-                              setNearbyPlaces(newP);
-                            }}
-                            className="bg-secondary/40 h-8 text-xs w-36"
-                          />
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newP = nearbyPlaces.filter((_, i) => i !== idx);
-                              setNearbyPlaces(newP);
-                            }}
-                            className="text-muted-foreground hover:text-destructive p-1 rounded transition-colors"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-
+                  {configurations.map((config, idx) => (
+                    <div
+                      key={idx}
+                      className="grid grid-cols-1 sm:grid-cols-5 gap-2.5 p-3 rounded-lg border border-border bg-secondary/20 items-end"
+                    >
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground uppercase">Unit Type</Label>
                         <Input
-                          placeholder="Context (e.g. Direct expressway access from property entrance)"
-                          value={place.description}
-                          onChange={(e) => {
-                            const newP = [...nearbyPlaces];
-                            newP[idx].description = e.target.value;
-                            setNearbyPlaces(newP);
-                          }}
-                          className="bg-secondary/40 h-7 text-[11px] text-muted-foreground"
+                          placeholder="e.g. 4 BHK Royal Villa"
+                          value={config.unitType}
+                          onChange={(e) => handleUpdateConfiguration(idx, "unitType", e.target.value)}
+                          className="bg-secondary/40 h-8 text-xs font-semibold mt-1"
                         />
                       </div>
-                    ))
-                  )}
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground uppercase">Area (Sq.Ft.)</Label>
+                        <Input
+                          type="number"
+                          placeholder="e.g. 4500"
+                          value={config.areaSqFt}
+                          onChange={(e) => handleUpdateConfiguration(idx, "areaSqFt", e.target.value)}
+                          className="bg-secondary/40 h-8 text-xs font-mono mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground uppercase">View Type</Label>
+                        <Input
+                          placeholder="e.g. Sea View / Private Garden"
+                          value={config.viewType}
+                          onChange={(e) => handleUpdateConfiguration(idx, "viewType", e.target.value)}
+                          className="bg-secondary/40 h-8 text-xs mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground uppercase">Price ({currency})</Label>
+                        <Input
+                          placeholder="e.g. ₹5.5 Cr"
+                          value={config.price}
+                          onChange={(e) => handleUpdateConfiguration(idx, "price", e.target.value)}
+                          className="bg-secondary/40 h-8 text-xs font-semibold text-primary mt-1"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-2 h-8">
+                        <label className="flex items-center gap-1.5 text-[11px] cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={config.isAvailable}
+                            onChange={(e) => handleUpdateConfiguration(idx, "isAvailable", e.target.checked)}
+                            className="h-3.5 w-3.5 rounded border-border text-primary"
+                          />
+                          <span>Available</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveConfiguration(idx)}
+                          className="text-muted-foreground hover:text-red-400 hover:bg-red-500/10 p-1.5 rounded transition-colors"
+                          title="Remove Layout"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION 6: VISUAL SHOWCASE & GALLERY */}
+        <section id="sec-gallery" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
+          <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-5">
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
+                <ImageIcon className="h-3.5 w-3.5" />
+                6. Visual Showcase &amp; Architectural Gallery
+              </span>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Upload luxury architectural photography, layouts, and mark your primary Hero Image.
+              </p>
+            </div>
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleUploadGalleryImage(file);
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploadingGallery}
+                onClick={() => fileInputRef.current?.click()}
+                className="gap-1.5 h-8 text-xs border-primary/40 text-primary hover:bg-primary/10"
+              >
+                {uploadingGallery ? (
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                ) : (
+                  <Upload className="h-3.5 w-3.5" />
+                )}
+                <span>Upload Image</span>
+              </Button>
+            </div>
+          </div>
+
+          {galleryImages.length === 0 ? (
+            <div className="p-8 text-center border border-dashed border-border rounded-xl bg-secondary/10 space-y-3">
+              <div className="flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-primary/10 text-primary">
+                <ImageIcon className="h-6 w-6" />
               </div>
-            </motion.div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">No gallery images uploaded</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Click &quot;Upload Image&quot; to add photos, floor plans, and select your Hero Showcase image.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {galleryImages.map((img, idx) => (
+                <div
+                  key={img.id || idx}
+                  className={`relative rounded-xl border p-3 bg-secondary/20 space-y-2.5 transition-all ${
+                    img.isHero ? "border-amber-400/80 shadow-md ring-1 ring-amber-400/30" : "border-border"
+                  }`}
+                >
+                  <div className="aspect-[4/3] rounded-lg overflow-hidden bg-black/40 relative">
+                    <img src={img.url} alt={img.caption || "Gallery"} className="w-full h-full object-cover" />
+                    {img.isHero && (
+                      <div className="absolute top-2 left-2 flex items-center gap-1 bg-amber-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
+                        <Star className="h-3 w-3 fill-black" />
+                        <span>★ Hero Image</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-1.5 text-xs text-foreground cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(img.isHero)}
+                          onChange={() => handleToggleHeroImage(idx)}
+                          className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
+                        />
+                        <span className="text-[11px] font-semibold">Show as Hero Image</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveGalleryImage(idx)}
+                        className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                        title="Remove Image"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground uppercase">Caption / Title</Label>
+                      <Input
+                        value={img.caption}
+                        onChange={(e) => handleUpdateGalleryCaption(idx, e.target.value)}
+                        placeholder="e.g. Master Bedroom View"
+                        className="bg-secondary/40 h-8 text-xs mt-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
-        </AnimatePresence>
-      </div>
+        </section>
 
-      {/* Bottom Section Pager Footer */}
-      <div className="flex items-center justify-between pt-4 border-t border-border">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={activeSection === 1}
-          onClick={() => setActiveSection((prev) => Math.max(1, prev - 1))}
-          className="gap-1.5 text-xs"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          <span>Previous: {SECTIONS[activeSection - 2]?.shortTitle || ""}</span>
-        </Button>
-
-        <div className="flex items-center gap-2">
-          {activeSection < SECTIONS.length ? (
+        {/* SECTION 7: AMENITIES */}
+        <section id="sec-amenities" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
+          <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-5">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
+              <Layers className="h-3.5 w-3.5" />
+              7. Signature Amenities
+            </span>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setActiveSection((prev) => Math.min(SECTIONS.length, prev + 1))}
-              className="gap-1.5 text-xs"
+              onClick={handleAddAmenity}
+              className="gap-1.5 h-7 text-xs border-primary/40 text-primary hover:bg-primary/10"
             >
-              <span>Next: {SECTIONS[activeSection]?.shortTitle || ""}</span>
-              <ChevronRight className="h-4 w-4" />
+              <Plus className="h-3 w-3" />
+              <span>Add Amenity</span>
             </Button>
+          </div>
+
+          {amenities.length === 0 ? (
+            <div className="p-6 text-center border border-dashed border-border rounded-xl bg-secondary/10">
+              <p className="text-xs text-muted-foreground">
+                No amenities added yet. Click &quot;Add Amenity&quot; to configure luxury features.
+              </p>
+            </div>
           ) : (
-            <Button
-              type="button"
-              onClick={handleSaveProperty}
-              disabled={saving}
-              size="sm"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 text-xs font-semibold px-4"
-            >
-              {saving ? (
-                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-              ) : (
-                <Save className="h-3.5 w-3.5" />
-              )}
-              <span>{isEditMode ? "Save All Changes" : "Complete & Save"}</span>
-            </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {amenities.map((amenity, idx) => (
+                <div key={idx} className="p-3.5 rounded-lg border border-border bg-secondary/20 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-1">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/30 shrink-0">
+                        <span className="material-symbols-outlined text-lg">{amenity.iconKey || "star"}</span>
+                      </div>
+                      <Input
+                        placeholder="Amenity Name (e.g. Private Marina & Yacht Berth)"
+                        value={amenity.name}
+                        onChange={(e) => handleUpdateAmenity(idx, "name", e.target.value)}
+                        className="bg-secondary/40 h-8 text-xs font-semibold flex-1"
+                      />
+                    </div>
+                    <select
+                      value={amenity.iconKey || "star"}
+                      onChange={(e) => handleUpdateAmenity(idx, "iconKey", e.target.value)}
+                      className="bg-secondary/70 border border-border text-[11px] rounded px-2 h-8 text-muted-foreground max-w-[130px]"
+                    >
+                      {COMMON_AMENITY_ICONS.map((p) => (
+                        <option key={p.icon} value={p.icon}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAmenity(idx)}
+                      className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      title="Remove Amenity"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <Input
+                    placeholder="Context / Details (e.g. 24/7 dedicated concierge and yacht mooring privileges)"
+                    value={amenity.description}
+                    onChange={(e) => handleUpdateAmenity(idx, "description", e.target.value)}
+                    className="bg-secondary/40 h-7 text-[11px] text-muted-foreground"
+                  />
+                </div>
+              ))}
+            </div>
           )}
-        </div>
+        </section>
+
+        {/* SECTION 8: LOCATION & CONNECTIVITY */}
+        <section id="sec-location" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
+          <div className="border-b border-border/70 pb-3 mb-5 flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5" />
+              8. Location &amp; Connectivity
+            </span>
+          </div>
+
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">City</Label>
+                <Input
+                  placeholder={marketScope === "INTERNATIONAL" ? "Dubai" : "Goa"}
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="bg-secondary/40 h-10 text-sm mt-1"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Country</Label>
+                <Input
+                  placeholder={marketScope === "INTERNATIONAL" ? "United Arab Emirates" : "India"}
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="bg-secondary/40 h-10 text-sm mt-1"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Community / Area
+                </Label>
+                <Input
+                  placeholder={marketScope === "INTERNATIONAL" ? "Palm Jumeirah" : "Candolim Beachfront"}
+                  value={community}
+                  onChange={(e) => setCommunity(e.target.value)}
+                  className="bg-secondary/40 h-10 text-sm mt-1"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Address Line
+                </Label>
+                <Input
+                  placeholder="e.g. Coastal Highway, Plot 42"
+                  value={addressLine}
+                  onChange={(e) => setAddressLine(e.target.value)}
+                  className="bg-secondary/40 h-10 text-sm mt-1"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Latitude</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  placeholder={marketScope === "INTERNATIONAL" ? "25.1124" : "15.5186"}
+                  value={latitude}
+                  onChange={(e) => setLatitude(e.target.value)}
+                  className="bg-secondary/40 h-9 text-xs font-mono mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Longitude</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  placeholder={marketScope === "INTERNATIONAL" ? "55.1390" : "73.7634"}
+                  value={longitude}
+                  onChange={(e) => setLongitude(e.target.value)}
+                  className="bg-secondary/40 h-9 text-xs font-mono mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Google Maps Link</Label>
+                <Input
+                  placeholder="e.g. https://maps.google.com/?q=..."
+                  value={googleMapUrl}
+                  onChange={(e) => setGoogleMapUrl(e.target.value)}
+                  className="bg-secondary/40 h-9 text-xs mt-1 font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Nearby Places */}
+            <div className="pt-4 border-t border-border/60 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    Nearby Landmarks &amp; Commute Times
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground">
+                    Airports, helipads, beaches, hospitals, and transit hubs.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddNearbyPlace}
+                  className="gap-1.5 h-7 text-xs border-primary/40 text-primary hover:bg-primary/10"
+                >
+                  <Plus className="h-3 w-3" />
+                  <span>Add Place</span>
+                </Button>
+              </div>
+
+              {nearbyPlaces.length === 0 ? (
+                <div className="p-6 text-center border border-dashed border-border rounded-xl bg-secondary/10">
+                  <p className="text-xs text-muted-foreground">
+                    No nearby places added. Click &quot;Add Place&quot; to list airports or beaches.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {nearbyPlaces.map((place, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-lg border border-border bg-secondary/20 space-y-2"
+                    >
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          placeholder="Landmark (e.g. MOPA International Airport)"
+                          value={place.name}
+                          onChange={(e) => handleUpdateNearbyPlace(idx, "name", e.target.value)}
+                          className="bg-secondary/40 h-8 text-xs font-semibold flex-1"
+                        />
+                        <Input
+                          placeholder="Distance (e.g. 24 km)"
+                          value={place.distance}
+                          onChange={(e) => handleUpdateNearbyPlace(idx, "distance", e.target.value)}
+                          className="bg-secondary/40 h-8 text-xs w-28"
+                        />
+                        <Input
+                          placeholder="Travel (e.g. 35 Mins)"
+                          value={place.travelTime}
+                          onChange={(e) => handleUpdateNearbyPlace(idx, "travelTime", e.target.value)}
+                          className="bg-secondary/40 h-8 text-xs w-32"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveNearbyPlace(idx)}
+                          className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                          title="Remove Place"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <Input
+                        placeholder="Context (e.g. Direct expressway access from main gates)"
+                        value={place.description}
+                        onChange={(e) => handleUpdateNearbyPlace(idx, "description", e.target.value)}
+                        className="bg-secondary/40 h-7 text-[11px] text-muted-foreground"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
       </div>
-    </motion.div>
+
+      {/* ----------------- BOTTOM INLINE ACTIONS ----------------- */}
+      <div className="flex items-center justify-end gap-3 pt-6 border-t border-border">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => navigate("/admin/properties")}
+          className="text-xs"
+        >
+          Cancel
+        </Button>
+
+        <Button
+          type="button"
+          onClick={handleSaveProperty}
+          disabled={saving}
+          size="lg"
+          className="gap-2 text-xs bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase tracking-wider px-8"
+        >
+          {saving ? (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          <span>{isEditMode ? "Save Changes" : "Create Property"}</span>
+        </Button>
+      </div>
+    </div>
   );
 };
+
+export default AdminPropertyForm;

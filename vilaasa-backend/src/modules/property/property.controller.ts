@@ -59,7 +59,11 @@ export const getProperties = asyncHandler(
     };
 
     if (status) where.status = status;
-    if (type) where.type = type;
+    if (type) {
+      where.type = type;
+    } else {
+      where.type = { not: PropertyType.FRANCHISE };
+    }
     if (franchiseModel) where.franchiseModel = franchiseModel;
     if (bedrooms !== undefined) where.bedrooms = { gte: Number(bedrooms) };
     if (furnishingStatus) where.furnishingStatus = furnishingStatus;

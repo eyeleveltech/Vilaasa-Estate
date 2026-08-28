@@ -419,12 +419,12 @@ export const AdminFranchisePage: React.FC = () => {
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Hero Subheading</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Hero Subheading (Banner Subtitle)</Label>
                 <textarea
                   rows={2}
                   value={data.subheading}
                   onChange={(e) => setField("subheading", e.target.value)}
-                  placeholder="e.g. Experience authentic Ayurvedic treatments..."
+                  placeholder="e.g. Ultra-luxury Ayurvedic wellness retreat overlooking lush valleys..."
                   className="w-full bg-secondary/40 border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary mt-1 resize-y"
                 />
               </div>
@@ -511,7 +511,7 @@ export const AdminFranchisePage: React.FC = () => {
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Vision Description</Label>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Vision Story Narrative (Section 3 Body)</Label>
               <textarea
                 rows={4}
                 value={data.visionDescription}

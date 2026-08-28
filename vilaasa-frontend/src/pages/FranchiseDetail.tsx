@@ -261,12 +261,11 @@ const FranchiseDetail = () => {
               </h1>
 
               <div className="flex flex-col space-y-4 md:flex-row w-full justify-between">
-                <p className="text-muted-foreground text-lg max-w-2xl line-clamp-2">
-                  {pageContent?.subheading ||
-                    (Array.isArray(franchise.description)
-                      ? franchise.description.join(" ")
-                      : franchise.description)}
-                </p>
+                {(pageContent?.subheading || franchise.tagline) && (
+                  <p className="text-muted-foreground text-lg max-w-2xl line-clamp-2">
+                    {pageContent?.subheading || franchise.tagline}
+                  </p>
+                )}
                 <ShareButtons title={`${franchise.name} - ${franchise.type}`} />
               </div>
             </motion.div>
@@ -350,7 +349,7 @@ const FranchiseDetail = () => {
               <p className="text-muted-foreground leading-relaxed mb-4 text-base whitespace-pre-line">
                 {pageContent.visionDescription}
               </p>
-            ) : (
+            ) : Array.isArray(franchise.description) ? (
               franchise.description.map((para, idx) => (
                 <p
                   key={idx}
@@ -359,7 +358,11 @@ const FranchiseDetail = () => {
                   {para}
                 </p>
               ))
-            )}
+            ) : franchise.description ? (
+              <p className="text-muted-foreground leading-relaxed mb-4 text-base whitespace-pre-line">
+                {franchise.description}
+              </p>
+            ) : null}
           </motion.div>
         </div>
       </section>

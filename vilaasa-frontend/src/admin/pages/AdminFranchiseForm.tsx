@@ -269,10 +269,8 @@ export const AdminFranchiseForm: React.FC = () => {
     const lockIn = parseValueToNumber(pageData.blueprintMetrics[2]?.value, 2);
 
     const cleanDescription =
-      pageData.visionDescription.trim().length >= 10
+      pageData.visionDescription.trim().length >= 5
         ? pageData.visionDescription.trim()
-        : pageData.subheading.trim().length >= 10
-        ? pageData.subheading.trim()
         : `${resolvedName} - Luxury franchise asset opportunity with institutional management.`;
 
     const finalPagePayload = prepareFranchisePagePayload(pageData);
@@ -480,12 +478,12 @@ export const AdminFranchiseForm: React.FC = () => {
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Hero Subheading</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Hero Subheading (Banner Subtitle)</Label>
                 <textarea
                   rows={2}
                   value={pageData.subheading}
                   onChange={(e) => setPageData((p) => ({ ...p, subheading: e.target.value }))}
-                  placeholder="e.g. Experience authentic Ayurvedic treatments..."
+                  placeholder="e.g. Ultra-luxury Ayurvedic wellness retreat overlooking lush valleys..."
                   className="w-full bg-secondary/40 border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary mt-1 resize-y"
                 />
               </div>
@@ -572,7 +570,7 @@ export const AdminFranchiseForm: React.FC = () => {
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Vision Description</Label>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Vision Story Narrative (Section 3 Body)</Label>
               <textarea
                 rows={4}
                 value={pageData.visionDescription}

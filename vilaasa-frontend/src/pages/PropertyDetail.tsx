@@ -187,9 +187,15 @@ const PropertyDetail = () => {
                 {property.name}
               </h1>
 
-              <p className="max-w-2xl text-base text-muted-foreground md:text-lg">
-                {property.description[0]?.substring(0, 120)}...
-              </p>
+              {property.tagline ? (
+                <p className="max-w-2xl text-base text-muted-foreground md:text-lg">
+                  {property.tagline}
+                </p>
+              ) : property.description && property.description[0] ? (
+                <p className="max-w-2xl text-base text-muted-foreground md:text-lg line-clamp-2">
+                  {property.description[0]}
+                </p>
+              ) : null}
 
               <div className="mt-6 flex flex-wrap items-start gap-6 sm:gap-10">
                 <div className="flex flex-col gap-1.5">
@@ -238,16 +244,24 @@ const PropertyDetail = () => {
         </div>
       </header>
 
-      {/* Concept Section */}
+      {/* Concept & Vision / Verdict Section */}
       {(property.visionHeadline || (property.description && property.description.length > 0) || property.verdict?.quote) && (
         <section className="border-y border-border bg-card px-4 py-14 md:px-10 md:py-20">
-          <div className="mx-auto grid max-w-[1280px] grid-cols-1 items-center gap-10 md:gap-16 lg:grid-cols-2">
+          <div
+            className={`mx-auto max-w-[1280px] ${
+              Boolean(property.verdict?.quote) && Boolean(property.visionHeadline || (property.description && property.description.length > 0))
+                ? "grid grid-cols-1 items-center gap-10 md:gap-16 lg:grid-cols-2"
+                : Boolean(property.verdict?.quote)
+                ? "max-w-2xl mx-auto"
+                : "max-w-4xl mx-auto"
+            }`}
+          >
             {(property.visionHeadline || (property.description && property.description.length > 0)) && (
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                className="flex flex-col gap-6 lg:col-span-1"
+                className="flex flex-col gap-6"
               >
                 <span className="text-primary/60 uppercase tracking-[0.2em] text-xs font-bold">
                   Concept & Vision
@@ -261,7 +275,7 @@ const PropertyDetail = () => {
                   <p
                     key={idx}
                     dangerouslySetInnerHTML={{ __html: para }}
-                    className="text-sm leading-relaxed text-muted-foreground md:text-base"
+                    className="text-sm leading-relaxed text-muted-foreground md:text-base whitespace-pre-line"
                   />
                 ))}
               </motion.div>
@@ -272,7 +286,7 @@ const PropertyDetail = () => {
                 initial={{ opacity: 0, x: 20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                className={`rounded-lg border border-primary/20 bg-background p-5 md:p-8 ${!(property.visionHeadline || (property.description && property.description.length > 0)) ? "lg:col-span-2 lg:max-w-2xl lg:mx-auto" : ""}`}
+                className="rounded-lg border border-primary/20 bg-background p-5 md:p-8"
               >
                 <div className="flex items-center gap-2 mb-4">
                   <span className="material-symbols-outlined text-primary">
@@ -285,20 +299,16 @@ const PropertyDetail = () => {
                 <p className="mb-4 text-base italic leading-relaxed text-foreground/90 md:text-lg">
                   &quot;{property.verdict.quote}&quot;
                 </p>
-                {(property.verdict.author || property.verdict.title) && (
-                  <div className="border-t border-border/50 pt-3 text-xs text-muted-foreground">
-                    {property.verdict.author && (
-                      <p className="font-semibold text-foreground/90">
-                        {property.verdict.author}
-                      </p>
-                    )}
-                    {property.verdict.title && (
-                      <p className="text-[11px] text-muted-foreground">
-                        {property.verdict.title}
-                      </p>
-                    )}
-                  </div>
-                )}
+                <div className="border-t border-border/50 pt-3 text-xs text-muted-foreground">
+                  <p className="font-semibold text-foreground/90">
+                    {property.verdict.author || "Vilaasa Advisory Board"}
+                  </p>
+                  {property.verdict.title && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {property.verdict.title}
+                    </p>
+                  )}
+                </div>
               </motion.div>
             )}
           </div>
@@ -315,7 +325,7 @@ const PropertyDetail = () => {
                   At a Glance
                 </h2>
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-5">
-                  {property.specs.map((spec, idx) => (
+                  {property.specs.filter(s => s.label?.trim() && s.value?.trim()).map((spec, idx) => (
                     <motion.div
                       key={spec.label}
                       initial={{ opacity: 0, y: 20 }}
@@ -553,75 +563,80 @@ const PropertyDetail = () => {
         </section>
       )}
 
-      {/* Location */}
-      {(property.googleMapLink || (property.nearbyLocations && property.nearbyLocations.length > 0)) && (
-        <section className="border-y border-border bg-card px-4 py-14 md:px-10 md:py-20">
+      {/* Location & Connectivity */}
+      {(property.mapEmbedUrl || property.googleMapLink || (property.nearbyLocations && property.nearbyLocations.length > 0)) && (
+        <section className="border-t border-border bg-card px-4 py-14 md:px-10 md:py-20">
           <div className="max-w-[1280px] mx-auto">
-            <div className="mb-6 flex items-center gap-2 md:mb-8">
-              <span className="material-symbols-outlined text-primary">map</span>
-              <h2 className="text-xl font-light text-foreground sm:text-2xl">
-                Location & Connectivity
-              </h2>
-            </div>
+            <h2 className="mb-2 text-2xl font-light text-foreground md:mb-3">
+              Location &amp; Connectivity
+            </h2>
+            <p className="mb-8 text-xs text-muted-foreground uppercase tracking-wider">
+              {property.location}
+            </p>
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
-              {property.googleMapLink && (
-                <div className="aspect-video rounded-lg border border-border bg-background lg:col-span-2 overflow-hidden relative">
+            <div
+              className={`grid grid-cols-1 gap-8 ${
+                (property.mapEmbedUrl || property.googleMapLink) &&
+                property.nearbyLocations &&
+                property.nearbyLocations.length > 0
+                  ? "lg:grid-cols-2"
+                  : "lg:grid-cols-1 max-w-2xl"
+              }`}
+            >
+              {/* Map Embed — only render if mapEmbedUrl / googleMapLink exists */}
+              {(property.mapEmbedUrl || property.googleMapLink) && (
+                <div className="overflow-hidden rounded-lg border border-border bg-secondary/20 aspect-[16/10] min-h-[300px]">
                   <iframe
-                    title="Google Map"
                     src={(() => {
-                      const url = property.googleMapLink;
-                      if (!url) return "";
-                      // If they pasted an iframe snippet
+                      const url = property.mapEmbedUrl || property.googleMapLink || "";
                       if (url.includes("<iframe") && url.includes("src=")) {
                         const match = url.match(/src="([^"]+)"/);
                         if (match && match[1]) return match[1];
                       }
-                      // If it's already an embed URL
-                      if (url.includes("/embed")) {
-                        return url;
+                      if (url.includes("/embed")) return url;
+                      if (url.startsWith("http")) {
+                        const query = encodeURIComponent(`${property.name}, ${property.location}`);
+                        return `https://maps.google.com/maps?q=${query}&t=k&z=14&output=embed`;
                       }
-                      // If it's a standard link, Google blocks it in iframes due to SAMEORIGIN.
-                      // Generate a generic embed map using the property name and location.
-                      // We append &t=k to default to Satellite view to match the requested aesthetic.
-                      const query = encodeURIComponent(`${property.name}, ${property.location}`);
-                      return `https://maps.google.com/maps?q=${query}&t=k&z=14&output=embed`;
+                      return url;
                     })()}
-                    className="absolute inset-0 w-full h-full border-0 object-cover"
+                    title={`${property.name} Location`}
+                    className="h-full w-full border-0"
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
-                    allowFullScreen
                   />
                 </div>
               )}
-                <div className="flex flex-col gap-4">
-                  {property.nearbyLocations && property.nearbyLocations.map((loc) => (
+
+              {/* Nearby Places — only render if array has items */}
+              {property.nearbyLocations && property.nearbyLocations.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                    Proximity &amp; Commute
+                  </h3>
+                  {property.nearbyLocations.map((pl, idx) => (
                     <div
-                      key={loc.name}
-                      className="flex flex-col p-4 bg-background rounded-lg border border-border shadow-sm"
+                      key={idx}
+                      className="flex items-center justify-between rounded-lg border border-border/80 bg-background p-3.5"
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-foreground font-medium">{loc.name}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-muted-foreground text-sm font-medium">
-                            {loc.distance}
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{pl.name}</p>
+                        {pl.description && (
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                            {pl.description}
                           </span>
-                        </div>
+                        )}
                       </div>
-                      {loc.travelTime && (
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground/80 mb-2">
-                          <span className="material-symbols-outlined text-[14px]">directions_car</span>
-                          <span>{loc.travelTime}</span>
-                        </div>
-                      )}
-                      {loc.description && (
-                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                          {loc.description}
-                        </p>
-                      )}
+                      <div className="text-right">
+                        <p className="text-xs font-semibold text-primary">{pl.distance}</p>
+                        {pl.travelTime && (
+                          <p className="text-[11px] text-muted-foreground">{pl.travelTime}</p>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
+              )}
             </div>
           </div>
         </section>

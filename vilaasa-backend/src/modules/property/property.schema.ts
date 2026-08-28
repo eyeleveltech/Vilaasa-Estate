@@ -193,7 +193,7 @@ export const PropertyFilterSchema = z.object({
   furnishingStatus: z.nativeEnum(FurnishingStatus).optional(),
   search: z.string().optional(),
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(50).default(12),
+  limit: z.coerce.number().int().positive().max(500).default(12),
   sortBy: z
     .enum(["price_asc", "price_desc", "newest", "oldest", "area_asc", "area_desc"])
     .default("newest"),
