@@ -1294,9 +1294,11 @@ export const AdminPropertyDetail: React.FC = () => {
               </form>
             </div>
           )}
+        </div>
+      )}
 
-          {/* Vault Assets Tab Panel (SUPER_ADMIN only) */}
-          {activeTab === "vault" && authUser?.role === "SUPER_ADMIN" && (
+      {/* Vault Assets Tab Panel (SUPER_ADMIN only) */}
+      {activeTab === "vault" && authUser?.role === "SUPER_ADMIN" && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-4">
                 <div>
@@ -1688,8 +1690,6 @@ export const AdminPropertyDetail: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
-      )}
     </motion.div>
   );
 };

@@ -56,10 +56,10 @@ export const CalanderDialog = ({
       <DialogContent className="w-[calc(100vw-1.5rem)] max-w-lg max-h-[90vh] overflow-y-auto bg-background border-border p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl font-light leading-tight">
-            Schedule Your Visit to {propertyName}
+            Schedule Private Inspection — {propertyName}
           </DialogTitle>
-          <DialogDescription className="text-sm sm:text-base text-muted-foreground">
-            Select a preferred date and time for your visit
+          <DialogDescription className="text-sm text-muted-foreground">
+            Select your preferred date and time for an exclusive private inspection accompanied by our Senior Partner.
           </DialogDescription>
         </DialogHeader>
 
@@ -110,7 +110,7 @@ export const CalanderDialog = ({
                 disabled={!selectedDate || !selectedTime}
                 onClick={handleConfirm}
               >
-                Confirm
+                Confirm Private Inspection
               </Button>
             </div>
           </motion.div>

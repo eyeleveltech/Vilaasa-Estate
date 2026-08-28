@@ -39,6 +39,50 @@ export interface FranchiseItem {
   support_training?: PropertyAmenity[];
   advantages?: PropertyAmenity[];
   visionHeadline?: string;
+  visionEyebrow?: string;
+
+  // Rich 7-Section Franchise Extensions
+  categoryEyebrow?: string;
+  brandOperatorName?: string;
+  targetLocations?: string;
+  projectCostRange?: string;
+  highlightQuote?: string;
+  returnHeadline?: string;
+  returnTerms?: string;
+  financialDisclaimer?: string;
+  ecosystemEyebrow?: string;
+  ecosystemHeading?: string;
+  ecosystemIntro?: string;
+  benefitsEyebrow?: string;
+  benefitsHeading?: string;
+  benefitsIntro?: string;
+  claimDisclaimer?: string;
+  investorDocuments?: {
+    id: string;
+    title: string;
+    type: string;
+    url: string;
+    access: "PUBLIC" | "LEAD_GATED" | "PARTNER_ONLY";
+    fileSize?: string;
+    uploadedAt?: string;
+  }[];
+  primaryCta?: {
+    text: string;
+    link: string;
+  };
+  secondaryCta?: {
+    text: string;
+    link: string;
+  };
+  seoAndLegal?: {
+    publishStatus?: string;
+    seoTitle?: string;
+    metaDescription?: string;
+    ogImage?: string;
+    canonicalUrl?: string;
+    masterDisclaimer?: string;
+    termsUrl?: string;
+  };
 }
 
 export interface FranchiseListItem {
@@ -54,6 +98,8 @@ export interface FranchiseListItem {
   expectedAnnualRoi?: number;
   investment?: string | null;
   expectedROI?: string | null;
+  minInvestment?: string | null;
+  roi?: string | null;
   features: string[];
 }
 
@@ -80,6 +126,77 @@ interface BackendAmenityRel {
   };
 }
 
+export interface FranchiseMetric {
+  label: string;
+  value: string;
+  valuePrefix?: string;
+  valueSuffix?: string;
+  showInHeroHighlights?: boolean;
+  isVisible?: boolean;
+}
+
+export interface FranchiseSupportModule {
+  name?: string;
+  icon?: string;
+  description?: string;
+  isVisible?: boolean;
+}
+
+export interface FranchiseAdvantage {
+  name?: string;
+  icon?: string;
+  description?: string;
+  isVisible?: boolean;
+}
+
+export interface FranchiseRichSpecs {
+  categoryEyebrow?: string;
+  brandOperatorName?: string;
+  location?: string;
+  targetLocations?: string;
+  operatingModel?: string;
+  totalProjectCostText?: string;
+  projectCostFrom?: string | number;
+  projectCostTo?: string | number;
+  minInvestmentText?: string;
+  annualRoiText?: string;
+  yieldPayoutText?: string;
+  supportOverview?: string;
+  locationScouting?: string;
+  biophilicDesign?: string;
+  ayurvedaTraining?: string;
+  globalMarketing?: string;
+  features?: string[];
+  vision?: {
+    headline?: string;
+    highlightQuote?: string;
+  };
+  financialBlueprint?: {
+    returnHeadline?: string;
+    returnTerms?: string;
+    financialDisclaimer?: string;
+    metrics?: FranchiseMetric[];
+  };
+  supportEcosystem?: {
+    eyebrow?: string;
+    heading?: string;
+    intro?: string;
+    modules?: FranchiseSupportModule[];
+  };
+  investorBenefits?: {
+    eyebrow?: string;
+    heading?: string;
+    intro?: string;
+    claimDisclaimer?: string;
+    advantages?: FranchiseAdvantage[];
+  };
+  investorDocuments?: FranchiseItem["investorDocuments"];
+  primaryCta?: FranchiseItem["primaryCta"];
+  secondaryCta?: FranchiseItem["secondaryCta"];
+  seoAndLegal?: FranchiseItem["seoAndLegal"];
+  [key: string]: unknown;
+}
+
 interface BackendProperty {
   id: string;
   slug: string;
@@ -87,6 +204,7 @@ interface BackendProperty {
   tagline?: string | null;
   description: string;
   type: string;
+  customType?: string | null;
   status: string;
   price: string | number;
   currency: string;
@@ -100,11 +218,15 @@ interface BackendProperty {
   lockInPeriodYears?: number | null;
   expectedAnnualRoi?: number | null;
   yieldPayoutFrequency?: string | null;
-  supportModules?: any;
-  advantages?: any;
-  customSpecs?: { label: string; value: string }[] | null;
+  supportModules?: unknown;
+  advantages?: unknown;
+  customSpecs?: unknown;
   financialMetrics?: { label: string; value: string; note?: string; icon?: string }[] | null;
   visionHeadline?: string | null;
+  verdictQuote?: string | null;
+  verdictAuthor?: string | null;
+  verdictTitle?: string | null;
+  brochureUrl?: string | null;
   location?: BackendLocation | null;
   media?: BackendMedia[];
   amenities?: BackendAmenityRel[];
@@ -299,6 +421,12 @@ export function transformPropertyToFranchise(prop: BackendProperty): FranchiseIt
     DEFAULT_PROPERTY_IMAGES[prop.slug] ||
     DEFAULT_PROPERTY_IMAGE;
 
+  // Extract rich structured franchise configuration from customSpecs if available
+  const richSpecs =
+    prop.customSpecs && typeof prop.customSpecs === "object" && !Array.isArray(prop.customSpecs)
+      ? (prop.customSpecs as FranchiseRichSpecs)
+      : null;
+
   const minTicket = Number(prop.minTicketSize || prop.price) || 0;
   const projectCost = Number(prop.totalProjectCost || Number(prop.price) * 3.5) || 0;
   const annualRoi = Number(prop.expectedAnnualRoi || prop.rentalYieldPercent || 24);
@@ -307,63 +435,49 @@ export function transformPropertyToFranchise(prop: BackendProperty): FranchiseIt
   const payout = prop.yieldPayoutFrequency || "Quarterly Distribution";
   const model = prop.franchiseModel || "FOCO";
 
-  const supportModules = Array.isArray(prop.supportModules) ? prop.supportModules : [];
-  const advantagesList = Array.isArray(prop.advantages) ? prop.advantages : [];
+  // Financial Blueprint: Single Source of Truth for Hero Highlights & Table
+  const blueprintMetrics: FranchiseMetric[] = richSpecs?.financialBlueprint?.metrics || [];
+  const heroHighlights = blueprintMetrics.filter((m) => m.showInHeroHighlights && m.isVisible !== false);
 
-  return {
-    id: prop.slug || prop.id,
-    name: prop.name,
-    category: "Franchises",
-    type: prop.tagline || prop.type.replace(/_/g, " "),
-    location: prop.location
-      ? `${prop.location.city}, ${prop.location.country}`
-      : "Prime Location",
-    price: minTicket,
-    heroImage: heroUrl,
-    visionHeadline: prop.visionHeadline || undefined,
-    description: prop.description
-      ? prop.description.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)
-      : [prop.description || ""],
-    franchiseModel: model,
-    minTicketSize: minTicket,
-    totalProjectCost: projectCost,
-    expectedAnnualRoi: annualRoi,
-    paybackPeriodYears: prop.paybackPeriodYears || 3.5,
-    lockInPeriodYears: prop.lockInPeriodYears || 3.0,
-    yieldPayoutFrequency: payout,
-    supportModules,
-    advantagesList,
-    spec: [
-      {
-        label: "Min Investment",
-        value: `${prop.currency} ${minTicket.toLocaleString()}`,
-      },
-      {
-        label: "Annual ROI",
-        value: `${annualRoi}% Annually`,
-      },
-      {
-        label: "Payback Period",
-        value: payback,
-      },
-      {
-        label: "Model",
-        value: `${model} (Franchise Owned Company Operated)`,
-      },
-    ],
-    galleryImages: (prop.media || [])
-      .filter((m) => m.mediaType === "GALLERY" || m.mediaType === "HERO_IMAGE")
-      .map((m, idx) => ({
-        name: m.altText || `${prop.name} View ${idx + 1}`,
-        description: m.altText || "",
-        image: m.url,
-      })),
-    financial: (prop.customSpecs && Array.isArray(prop.customSpecs) && prop.customSpecs.length > 0)
+  const heroSpec: PropertySpec[] =
+    heroHighlights.length > 0
+      ? heroHighlights.slice(0, 4).map((m) => ({
+          label: m.label,
+          value: `${m.valuePrefix || ""}${m.value}${m.valueSuffix ? " " + m.valueSuffix : ""}`,
+        }))
+      : [
+          {
+            label: "Min Investment",
+            value: `${prop.currency} ${minTicket.toLocaleString()}`,
+          },
+          {
+            label: "Annual ROI",
+            value: `${annualRoi}% Annually`,
+          },
+          {
+            label: "Payback Period",
+            value: payback,
+          },
+          {
+            label: "Model",
+            value: `${model} (Franchise Owned Company Operated)`,
+          },
+        ];
+
+  const financialData =
+    blueprintMetrics.length > 0
+      ? blueprintMetrics
+          .filter((m) => m.isVisible !== false)
+          .map((m) => ({
+            label: m.label,
+            value: `${m.valuePrefix || ""}${m.value}${m.valueSuffix ? " " + m.valueSuffix : ""}`,
+          }))
+      : prop.customSpecs && Array.isArray(prop.customSpecs) && prop.customSpecs.length > 0
       ? prop.customSpecs.map((s) => ({
           label: s.label,
           value: s.value,
         }))
-      : (prop.financialMetrics && Array.isArray(prop.financialMetrics) && prop.financialMetrics.length > 0)
+      : prop.financialMetrics && Array.isArray(prop.financialMetrics) && prop.financialMetrics.length > 0
       ? prop.financialMetrics.map((f) => ({
           label: f.label,
           value: f.value,
@@ -385,57 +499,176 @@ export function transformPropertyToFranchise(prop: BackendProperty): FranchiseIt
             label: "Yield Payout",
             value: payout,
           },
-        ],
+        ];
+
+  // Support Ecosystem
+  const rawSupport: FranchiseSupportModule[] =
+    richSpecs?.supportEcosystem?.modules ||
+    (typeof prop.supportModules === "object" && prop.supportModules !== null && !Array.isArray(prop.supportModules)
+      ? ((prop.supportModules as { modules?: FranchiseSupportModule[] })?.modules)
+      : null) ||
+    (Array.isArray(prop.supportModules) ? (prop.supportModules as FranchiseSupportModule[]) : []);
+
+  const supportModules = rawSupport.filter((m) => m && m.isVisible !== false);
+
+  // Fallback / direct support modules from Section 6
+  const userSupportModules: PropertyAmenity[] = [];
+  if (richSpecs?.locationScouting) {
+    userSupportModules.push({
+      name: "Location Scouting",
+      description: richSpecs.locationScouting,
+      icon: "storefront",
+    });
+  }
+  if (richSpecs?.biophilicDesign) {
+    userSupportModules.push({
+      name: "Architecture & Design",
+      description: richSpecs.biophilicDesign,
+      icon: "design_services",
+    });
+  }
+  if (richSpecs?.ayurvedaTraining) {
+    userSupportModules.push({
+      name: "Staff & Management Training",
+      description: richSpecs.ayurvedaTraining,
+      icon: "school",
+    });
+  }
+  if (richSpecs?.globalMarketing) {
+    userSupportModules.push({
+      name: "Global Marketing & PR",
+      description: richSpecs.globalMarketing,
+      icon: "campaign",
+    });
+  }
+
+  // Investor Benefits
+  const rawAdvantages: FranchiseAdvantage[] =
+    richSpecs?.investorBenefits?.advantages ||
+    (typeof prop.advantages === "object" && prop.advantages !== null && !Array.isArray(prop.advantages)
+      ? ((prop.advantages as { items?: FranchiseAdvantage[] })?.items)
+      : null) ||
+    (Array.isArray(prop.advantages) ? (prop.advantages as FranchiseAdvantage[]) : []);
+
+  const advantages = rawAdvantages.filter((a) => a && a.isVisible !== false);
+
+  // Investor Documents & Memorandums
+  const investorDocuments =
+    richSpecs?.investorDocuments && Array.isArray(richSpecs.investorDocuments) && richSpecs.investorDocuments.length > 0
+      ? richSpecs.investorDocuments
+      : prop.brochureUrl
+      ? [
+          {
+            id: "brochure-default",
+            title: `${prop.name} Official Investment Memorandum & Dossier`,
+            type: "INVESTMENT_MEMORANDUM",
+            url: prop.brochureUrl,
+            access: "LEAD_GATED" as const,
+            fileSize: "PDF Document",
+            uploadedAt: "Latest Edition",
+          },
+        ]
+      : [];
+
+  const projectCostRange =
+    richSpecs?.totalProjectCostText ||
+    (richSpecs?.projectCostFrom && richSpecs?.projectCostTo
+      ? `${prop.currency} ${richSpecs.projectCostFrom} – ${prop.currency} ${richSpecs.projectCostTo}`
+      : undefined);
+
+  return {
+    id: prop.slug || prop.id,
+    name: prop.name,
+    category: prop.customType || "Franchises",
+    type: prop.tagline || prop.type.replace(/_/g, " "),
+    location:
+      richSpecs?.location ||
+      richSpecs?.targetLocations ||
+      (prop.location ? `${prop.location.city}, ${prop.location.country}` : "Prime Locations"),
+    price: minTicket,
+    heroImage: heroUrl,
+    visionHeadline: richSpecs?.vision?.headline || prop.visionHeadline || undefined,
+    description: prop.description
+      ? prop.description.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)
+      : [prop.description || ""],
+    franchiseModel: richSpecs?.operatingModel || model,
+    minTicketSize: minTicket,
+    totalProjectCost: projectCost,
+    expectedAnnualRoi: annualRoi,
+    paybackPeriodYears: prop.paybackPeriodYears || 3.5,
+    lockInPeriodYears: prop.lockInPeriodYears || 3.0,
+    yieldPayoutFrequency: richSpecs?.yieldPayoutText || payout,
+    supportModules: supportModules.map((m) => (typeof m === "object" ? m.name || "" : String(m))),
+    advantagesList: advantages.map((a) => (typeof a === "object" ? a.name || "" : String(a))),
+    spec: heroSpec,
+    galleryImages: (prop.media || [])
+      .filter((m) => m.mediaType === "GALLERY" || m.mediaType === "HERO_IMAGE")
+      .map((m, idx) => ({
+        name: m.altText || `${prop.name} View ${idx + 1}`,
+        description: m.altText || "",
+        image: m.url,
+      })),
+    financial: financialData,
     support_training_para: [
-      "Turnkey institutional development covering location scouting, biophilic architectural styling, therapist certification, and international marketing.",
+      richSpecs?.supportOverview ||
+        richSpecs?.supportEcosystem?.intro ||
+        (typeof prop.supportModules === "object" && prop.supportModules !== null && (prop.supportModules as { intro?: string })?.intro) ||
+        "Turnkey institutional development covering location scouting, biophilic architectural styling, therapist certification, and international marketing.",
     ],
-    support_training: Array.isArray(prop.supportModules) && prop.supportModules.length > 0
-      ? prop.supportModules.map((mod: any, idx: number) => {
-          if (typeof mod === "object" && mod !== null && mod.name) {
-            return {
-              name: mod.name,
-              icon: mod.icon || "storefront",
-              description: mod.description || "",
-            };
-          }
-          return {
-            icon: idx === 0 ? "storefront" : idx === 1 ? "design_services" : idx === 2 ? "school" : "campaign",
-            name: String(mod).split(" ")[0] + " " + (String(mod).split(" ")[1] || "Module"),
-            description: String(mod),
-          };
-        })
-      : [
-          {
-            icon: "storefront",
-            name: "Site Selection",
-            description: "Demographic intelligence and prime commercial leasing.",
-          },
-          {
-            icon: "design_services",
-            name: "Architectural Design",
-            description: "Bespoke interior fitout matching luxury brand guidelines.",
-          },
-        ],
-    advantages: Array.isArray(prop.advantages) && prop.advantages.length > 0
-      ? prop.advantages.map((adv: any, idx: number) => {
-          if (typeof adv === "object" && adv !== null && adv.name) {
-            return {
-              name: adv.name,
-              icon: adv.icon || "verified_user",
-              description: adv.description || "",
-            };
-          }
-          return {
-            icon: idx === 0 ? "verified_user" : idx === 1 ? "payments" : "trending_up",
-            name: String(adv).split(" ")[0] + " " + (String(adv).split(" ")[1] || "Advantage"),
-            description: String(adv),
-          };
-        })
-      : (prop.amenities || []).map((a) => ({
-          icon: a.amenity.iconKey || "spa",
-          name: a.amenity.name,
-          description: a.amenity.category || "Luxury Ecosystem Feature",
-        })),
+    support_training:
+      userSupportModules.length > 0
+        ? userSupportModules
+        : supportModules.length > 0
+        ? supportModules.map((mod, idx) => ({
+            name: (typeof mod === "object" ? mod.name : String(mod)) || `Module ${idx + 1}`,
+            icon: (typeof mod === "object" ? mod.icon : "storefront") || "storefront",
+            description: (typeof mod === "object" ? mod.description : "") || "",
+          }))
+        : [
+            {
+              icon: "storefront",
+              name: "Site Selection",
+              description: "Demographic intelligence and prime commercial leasing.",
+            },
+            {
+              icon: "design_services",
+              name: "Architectural Design",
+              description: "Bespoke interior fitout matching luxury brand guidelines.",
+            },
+          ],
+    advantages:
+      advantages.length > 0
+        ? advantages.map((adv, idx) => ({
+            name: (typeof adv === "object" ? adv.name : String(adv)) || `Advantage ${idx + 1}`,
+            icon: (typeof adv === "object" ? adv.icon : "verified_user") || "verified_user",
+            description: (typeof adv === "object" ? adv.description : "") || "",
+          }))
+        : (prop.amenities || []).map((a) => ({
+            icon: a.amenity.iconKey || "spa",
+            name: a.amenity.name,
+            description: a.amenity.category || "Luxury Ecosystem Feature",
+          })),
+
+    // Rich 7-Section Extensions
+    categoryEyebrow: richSpecs?.categoryEyebrow || prop.customType || "Premium Franchise",
+    brandOperatorName: richSpecs?.brandOperatorName || prop.name,
+    targetLocations: richSpecs?.location || richSpecs?.targetLocations || (prop.location ? `${prop.location.city}, ${prop.location.country}` : undefined),
+    projectCostRange,
+    highlightQuote: richSpecs?.vision?.highlightQuote || prop.verdictQuote || undefined,
+    returnHeadline: richSpecs?.financialBlueprint?.returnHeadline || undefined,
+    returnTerms: richSpecs?.financialBlueprint?.returnTerms || undefined,
+    financialDisclaimer: richSpecs?.financialBlueprint?.financialDisclaimer || undefined,
+    ecosystemEyebrow: richSpecs?.supportEcosystem?.eyebrow || "Comprehensive Ecosystem",
+    ecosystemHeading: richSpecs?.supportEcosystem?.heading || "Support & Training",
+    ecosystemIntro: richSpecs?.supportOverview || richSpecs?.supportEcosystem?.intro || undefined,
+    benefitsEyebrow: richSpecs?.investorBenefits?.eyebrow || "Key Benefits",
+    benefitsHeading: richSpecs?.investorBenefits?.heading || "The FOCO Advantage",
+    benefitsIntro: richSpecs?.investorBenefits?.intro || undefined,
+    claimDisclaimer: richSpecs?.investorBenefits?.claimDisclaimer || undefined,
+    investorDocuments,
+    primaryCta: richSpecs?.primaryCta || { text: "Book a call today", link: "/calendar" },
+    secondaryCta: richSpecs?.secondaryCta || { text: "Open Wealth Projector", link: "/wealth-projector" },
+    seoAndLegal: richSpecs?.seoAndLegal || undefined,
   };
 }
 
@@ -451,26 +684,44 @@ export function transformPropertyToFranchiseListItem(
   const minTicket = Number(prop.minTicketSize || prop.price) || 0;
   const annualRoi = Number(prop.expectedAnnualRoi || prop.rentalYieldPercent || 24);
 
+  const richSpecs =
+    prop.customSpecs && typeof prop.customSpecs === "object" && !Array.isArray(prop.customSpecs)
+      ? (prop.customSpecs as FranchiseRichSpecs)
+      : null;
+
+  const minInvestmentStr =
+    richSpecs?.minInvestmentText ||
+    `${prop.currency} ${minTicket >= 10000000 ? (minTicket / 10000000).toFixed(1) + " Cr" : minTicket.toLocaleString()}`;
+
+  const roiStr = richSpecs?.annualRoiText || `${annualRoi}% Annually`;
+
+  const featuresList =
+    Array.isArray(richSpecs?.features) && richSpecs.features.length > 0
+      ? richSpecs.features
+      : [
+          `${prop.franchiseModel || "FOCO"} Business Model`,
+          `${prop.yieldPayoutFrequency || "Quarterly"} Dividend Payouts`,
+          "Turnkey Operational Support",
+        ];
+
   return {
     id: prop.slug || prop.id,
     name: prop.name,
-    type: prop.tagline || prop.type.replace(/_/g, " "),
-    location: prop.location
-      ? `${prop.location.city}, ${prop.location.country}`
-      : "Prime Location",
+    type: prop.customType || prop.tagline || prop.type.replace(/_/g, " "),
+    location:
+      richSpecs?.location ||
+      (prop.location ? `${prop.location.city}, ${prop.location.country}` : "Prime Location"),
     price: minTicket,
     category: "Franchises",
     image: imageUrl,
-    franchiseModel: prop.franchiseModel || "FOCO",
+    franchiseModel: richSpecs?.operatingModel || prop.franchiseModel || "FOCO",
     minTicketSize: minTicket,
     expectedAnnualRoi: annualRoi,
-    investment: `${prop.currency} ${minTicket.toLocaleString()}`,
-    expectedROI: `${annualRoi}% Annually`,
-    features: [
-      `${prop.franchiseModel || "FOCO"} Business Model`,
-      `${prop.yieldPayoutFrequency || "Quarterly"} Dividend Payouts`,
-      "Turnkey Operational Support",
-    ],
+    investment: minInvestmentStr,
+    expectedROI: roiStr,
+    minInvestment: minInvestmentStr,
+    roi: roiStr,
+    features: featuresList,
   };
 }
 

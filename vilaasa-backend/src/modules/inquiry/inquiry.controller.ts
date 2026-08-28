@@ -39,6 +39,11 @@ export const createInquiry = asyncHandler(
       }
     }
 
+    const isViewUnlock = data.sendEmail === false || data.intent === "UNLOCK_VIEW";
+    const timelineNote = isViewUnlock
+      ? "Confidential Dossier Unlocked (View Only — No Email Sent)"
+      : `Inquiry submitted via ${data.source.replace(/_/g, " ")}`;
+
     const inquiry = await prisma.inquiry.create({
       data: {
         name: data.name,
@@ -52,12 +57,12 @@ export const createInquiry = asyncHandler(
         utmSource: data.utmSource,
         utmMedium: data.utmMedium,
         utmCampaign: data.utmCampaign,
-        notes: data.notes,
+        notes: data.notes || (isViewUnlock ? "Confidential Dossier Unlocked" : undefined),
         timeline: {
           create: {
             fromStatus: null,
             toStatus: "NEW",
-            note: `Inquiry submitted via ${data.source.replace(/_/g, " ")}`,
+            note: timelineNote,
             changedById: req.user?.id || null,
           },
         },
@@ -74,19 +79,26 @@ export const createInquiry = asyncHandler(
       },
     });
 
-    // Send confirmation email asynchronously (non-blocking)
-    sendInquiryConfirmationEmail({
-      name: inquiry.name,
-      email: inquiry.email,
-      investmentType: inquiry.investmentType,
-      investmentRange: inquiry.investmentRange,
-      propertyName,
-    }).catch((err) => console.error("Email dispatch failed:", err));
+    // Send confirmation email ONLY for deliberate inquiries, NEVER for view unlocks
+    if (!isViewUnlock) {
+      sendInquiryConfirmationEmail({
+        name: inquiry.name,
+        email: inquiry.email,
+        investmentType: inquiry.investmentType,
+        investmentRange: inquiry.investmentRange,
+        propertyName,
+        propertySlug: inquiry.property?.slug,
+      }).catch((err) => console.error("Email dispatch failed:", err));
+    }
+
+    const responseMessage = isViewUnlock
+      ? "Dossier unlocked successfully. Enjoy exploring the portfolio asset."
+      : "Inquiry submitted successfully. Our luxury advisory team will contact you shortly.";
 
     return res.status(201).json(
       ApiResponse.created(
         inquiry,
-        "Inquiry submitted successfully. Our luxury advisory team will contact you shortly.",
+        responseMessage,
       ),
     );
   },

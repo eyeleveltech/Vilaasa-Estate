@@ -274,13 +274,28 @@ export const createProperty = asyncHandler(
   async (req: Request, res: Response) => {
     const data = req.body as CreatePropertyInput;
 
+    // Check for duplicate property name (case-insensitive, non-deleted)
+    const existingProperty = await prisma.property.findFirst({
+      where: {
+        name: { equals: data.name.trim(), mode: "insensitive" },
+        isDeleted: false,
+      },
+    });
+
+    if (existingProperty) {
+      throw new ApiError(
+        409,
+        `A property with the name "${data.name.trim()}" already exists. Please choose a unique property name.`,
+      );
+    }
+
     const slug = await generateUniqueSlug(data.name, data.slug);
 
     // 1. Create Unique Location for this Property
     let location = await prisma.location.create({
       data: {
-        city: data.location.city,
-        country: data.location.country,
+        city: data.location.city || "Multiple Locations",
+        country: data.location.country || "India",
         community: data.location.community,
         addressLine: data.location.addressLine,
         postalCode: data.location.postalCode,
@@ -356,12 +371,12 @@ export const createProperty = asyncHandler(
           ? {
               createMany: {
                 data: data.configurations.map((c) => ({
-                  unitType: c.unitType,
-                  areaSqFt: c.areaSqFt,
-                  viewType: c.viewType,
-                  price: c.price,
+                  unitType: c.unitType.trim(),
+                  areaSqFt: c.areaSqFt ?? 0,
+                  viewType: c.viewType || null,
+                  price: c.price ?? 0,
                   isAvailable: c.isAvailable ?? true,
-                  floorPlanUrl: c.floorPlanUrl,
+                  floorPlanUrl: c.floorPlanUrl || null,
                 })),
               },
             }
@@ -472,29 +487,127 @@ export const updateProperty = asyncHandler(
       throw ApiError.notFound(`Property '${id}' was not found`);
     }
 
+    // Check for duplicate property name if name is being changed
+    if (data.name && data.name.trim().toLowerCase() !== property.name.toLowerCase()) {
+      const existingName = await prisma.property.findFirst({
+        where: {
+          name: { equals: data.name.trim(), mode: "insensitive" },
+          id: { not: property.id },
+          isDeleted: false,
+        },
+      });
+      if (existingName) {
+        throw new ApiError(
+          409,
+          `A property with the name "${data.name.trim()}" already exists. Please choose a unique property name.`,
+        );
+      }
+    }
+
     let locationId = property.locationId;
 
     if (data.location) {
-      await prisma.location.update({
-        where: { id: locationId },
-        data: {
-          city: data.location.city,
-          country: data.location.country,
-          community: data.location.community,
-          addressLine: data.location.addressLine,
-          postalCode: data.location.postalCode,
-          latitude: data.location.latitude,
-          longitude: data.location.longitude,
-          googleMapUrl: data.location.googleMapUrl,
-          mapEmbedUrl: data.location.mapEmbedUrl,
-        },
-      });
+      if (locationId) {
+        const updatedLoc = await prisma.location.upsert({
+          where: { id: locationId },
+          update: {
+            city: data.location.city || "Multiple Locations",
+            country: data.location.country || "India",
+            community: data.location.community,
+            addressLine: data.location.addressLine,
+            postalCode: data.location.postalCode,
+            latitude: data.location.latitude,
+            longitude: data.location.longitude,
+            googleMapUrl: data.location.googleMapUrl,
+            mapEmbedUrl: data.location.mapEmbedUrl || data.location.googleMapUrl,
+          },
+          create: {
+            city: data.location.city || "Multiple Locations",
+            country: data.location.country || "India",
+            community: data.location.community,
+            addressLine: data.location.addressLine,
+            postalCode: data.location.postalCode,
+            latitude: data.location.latitude,
+            longitude: data.location.longitude,
+            googleMapUrl: data.location.googleMapUrl,
+            mapEmbedUrl: data.location.mapEmbedUrl || data.location.googleMapUrl,
+          },
+        });
+        locationId = updatedLoc.id;
+      } else {
+        const newLoc = await prisma.location.create({
+          data: {
+            city: data.location.city || "Multiple Locations",
+            country: data.location.country || "India",
+            community: data.location.community,
+            addressLine: data.location.addressLine,
+            postalCode: data.location.postalCode,
+            latitude: data.location.latitude,
+            longitude: data.location.longitude,
+            googleMapUrl: data.location.googleMapUrl,
+            mapEmbedUrl: data.location.mapEmbedUrl || data.location.googleMapUrl,
+          },
+        });
+        locationId = newLoc.id;
+      }
     }
 
-    if (data.amenities?.length) {
+    // Safely update Configurations
+    if (data.configurations !== undefined) {
+      await prisma.propertyConfiguration.deleteMany({
+        where: { propertyId: property.id },
+      });
+      if (data.configurations.length > 0) {
+        await prisma.propertyConfiguration.createMany({
+          data: data.configurations.map((c) => ({
+            propertyId: property.id,
+            unitType: c.unitType.trim(),
+            areaSqFt: c.areaSqFt ?? 0,
+            viewType: c.viewType || null,
+            price: c.price ?? 0,
+            isAvailable: c.isAvailable ?? true,
+            floorPlanUrl: c.floorPlanUrl || null,
+          })),
+        });
+      }
+    }
+
+    // Safely update Media
+    if (data.media !== undefined) {
+      await prisma.propertyMedia.deleteMany({
+        where: { propertyId: property.id },
+      });
+      if (data.media.length > 0) {
+        await prisma.propertyMedia.createMany({
+          data: data.media.map((m, idx) => ({
+            propertyId: property.id,
+            mediaType: m.mediaType || "GALLERY",
+            url: m.url,
+            thumbnailUrl: m.thumbnailUrl,
+            altText: m.altText,
+            orderIndex: m.orderIndex ?? idx,
+            isFeatured: m.isFeatured ?? idx === 0,
+          })),
+        });
+      }
+    }
+
+    // Safely update Amenities
+    if (data.amenities !== undefined) {
+      await prisma.propertyOnAmenity.deleteMany({
+        where: { propertyId: property.id },
+      });
       for (const a of data.amenities) {
-        if (a.name) {
-          await prisma.amenity.upsert({
+        if (a.amenityId) {
+          await prisma.propertyOnAmenity.create({
+            data: {
+              propertyId: property.id,
+              amenityId: a.amenityId,
+              description: a.description,
+            },
+          });
+        } else if (a.name) {
+          const amenity = await prisma.amenity.upsert({
             where: { name: a.name.trim() },
             update: a.iconKey ? { iconKey: a.iconKey } : {},
             create: {
@@ -502,7 +615,51 @@ export const updateProperty = asyncHandler(
               iconKey: a.iconKey || "star",
             },
           });
+          await prisma.propertyOnAmenity.create({
+            data: {
+              propertyId: property.id,
+              amenityId: amenity.id,
+              description: a.description,
+            },
+          });
         }
+      }
+    }
+
+    // Safely update Nearby Places
+    if (data.nearbyPlaces !== undefined) {
+      await prisma.nearbyPlace.deleteMany({
+        where: { propertyId: property.id },
+      });
+      if (data.nearbyPlaces.length > 0) {
+        await prisma.nearbyPlace.createMany({
+          data: data.nearbyPlaces.map((p) => ({
+            propertyId: property.id,
+            name: p.name,
+            distance: p.distance || "Nearby",
+            category: p.category ?? null,
+            travelTime: p.travelTime ?? null,
+            description: p.description ?? null,
+          })),
+        });
+      }
+    }
+
+    // Safely update Financial Metrics
+    if (data.financialMetrics !== undefined) {
+      await prisma.propertyFinancialMetric.deleteMany({
+        where: { propertyId: property.id },
+      });
+      if (data.financialMetrics.length > 0) {
+        await prisma.propertyFinancialMetric.createMany({
+          data: data.financialMetrics.map((f) => ({
+            propertyId: property.id,
+            label: f.label,
+            value: f.value,
+            note: f.note ?? null,
+            icon: f.icon ?? null,
+          })),
+        });
       }
     }
 
@@ -551,89 +708,6 @@ export const updateProperty = asyncHandler(
         supportModules: data.supportModules !== undefined ? (data.supportModules as Prisma.InputJsonValue) : undefined,
         advantages: data.advantages !== undefined ? (data.advantages as Prisma.InputJsonValue) : undefined,
         locationId,
-        configurations: data.configurations
-          ? {
-              deleteMany: {},
-              createMany: {
-                data: data.configurations.map((c) => ({
-                  unitType: c.unitType,
-                  areaSqFt: c.areaSqFt,
-                  viewType: c.viewType,
-                  price: c.price,
-                  isAvailable: c.isAvailable ?? true,
-                  floorPlanUrl: c.floorPlanUrl,
-                })),
-              },
-            }
-          : undefined,
-        media: data.media
-          ? {
-              deleteMany: {},
-              createMany: {
-                data: data.media.map((m, idx) => ({
-                  mediaType: m.mediaType || "GALLERY",
-                  url: m.url,
-                  thumbnailUrl: m.thumbnailUrl,
-                  altText: m.altText,
-                  orderIndex: m.orderIndex ?? idx,
-                  isFeatured: m.isFeatured ?? idx === 0,
-                })),
-              },
-            }
-          : undefined,
-        amenities: data.amenities
-          ? {
-              deleteMany: {},
-              create: data.amenities.map((a) => {
-                if (a.amenityId) {
-                  return {
-                    description: a.description,
-                    amenity: { connect: { id: a.amenityId } },
-                  };
-                }
-
-                return {
-                  description: a.description,
-                  amenity: {
-                    connectOrCreate: {
-                      where: { name: a.name! },
-                      create: {
-                        name: a.name!,
-                        iconKey: a.iconKey || "star",
-                      },
-                    },
-                  },
-                };
-              }),
-            }
-          : undefined,
-        nearbyPlaces: data.nearbyPlaces
-          ? {
-              deleteMany: {},
-              createMany: {
-                data: data.nearbyPlaces.map((p) => ({
-                  name: p.name,
-                  distance: p.distance || "Nearby",
-                  category: p.category ?? null,
-                  travelTime: p.travelTime ?? null,
-                  description: p.description ?? null,
-                })),
-              },
-            }
-          : undefined,
-        financialMetrics: data.financialMetrics
-          ? {
-              deleteMany: {},
-              createMany: {
-                data: data.financialMetrics.map((f) => ({
-                  label: f.label,
-                  value: f.value,
-                  note: f.note ?? null,
-                  icon: f.icon ?? null,
-                })),
-              },
-            }
-          : undefined,
       },
       include: {
         location: true,

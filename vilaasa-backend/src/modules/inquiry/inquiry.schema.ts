@@ -14,6 +14,8 @@ export const CreateInquirySchema = z.object({
   utmMedium: z.string().optional(),
   utmCampaign: z.string().optional(),
   notes: z.string().optional(),
+  sendEmail: z.boolean().default(true).optional(),
+  intent: z.enum(["UNLOCK_VIEW", "INQUIRY"]).default("INQUIRY").optional(),
 });
 
 export const UpdateInquiryStatusSchema = z.object({

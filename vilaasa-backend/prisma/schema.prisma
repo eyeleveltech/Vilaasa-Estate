@@ -195,6 +195,7 @@ model Property {
   siteVisits          SiteVisit[]
   vaultAssets         VaultAsset[]
   conciergeRequests   ConciergeRequest[]
+  franchisePage       FranchisePage?
 
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
@@ -667,5 +668,109 @@ model HeroHighlight {
   updatedAt DateTime @updatedAt
 
   @@index([isActive, order])
+}
+
+// ----------------------------------------------------
+// FRANCHISE PAGE CONTENT (Bespoke Editorial & Layouts)
+// ----------------------------------------------------
+
+model FranchisePage {
+  id                   String   @id @default(cuid())
+  propertyId           String   @unique
+  property             Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  // 1. Hero Section
+  pageTitle            String?
+  mainHeadline         String?
+  subheading           String?  @db.Text
+  heroImage            String?
+
+  // Dynamic Badges & Cards (Json arrays)
+  heroMetrics          Json?
+  blueprintMetrics     Json?
+  ecosystemCards       Json?
+  benefitCards         Json?
+
+  // 2. Hero Financial Metrics (Free Text Pairs)
+  metric1Label         String?
+  metric1Value         String?
+  metric2Label         String?
+  metric2Value         String?
+  metric3Label         String?
+  metric3Value         String?
+  metric4Label         String?
+  metric4Value         String?
+
+  // 3. The Vision Section
+  visionHeadline       String?
+  visionDescription    String?  @db.Text
+
+  // 4. Stats Row
+  stat1Label           String?
+  stat1Value           String?
+  stat2Label           String?
+  stat2Value           String?
+  stat3Label           String?
+  stat3Value           String?
+
+  // 5. Financial Blueprint (Deep Metrics - Free Text)
+  metric5Label         String?
+  metric5Value         String?
+  metric6Label         String?
+  metric6Value         String?
+  metric7Label         String?
+  metric7Value         String?
+  metric8Label         String?
+  metric8Value         String?
+
+  // 6. Financial Planning
+  planningHeadline     String?
+  planningDescription  String?  @db.Text
+  ctaButton1           String?
+
+  // 7. Comprehensive Ecosystem (Support & Training)
+  ecosystemSubheading  String?  @default("Comprehensive Ecosystem")
+  ecosystemHeading     String?  @default("Support & Training")
+  ecosystemDescription String?  @db.Text
+
+  support1Title        String?
+  support1Description  String?  @db.Text
+  support1Icon         String?  @default("storefront")
+  support2Title        String?
+  support2Description  String?  @db.Text
+  support2Icon         String?  @default("design_services")
+  support3Title        String?
+  support3Description  String?  @db.Text
+  support3Icon         String?  @default("school")
+  support4Title        String?
+  support4Description  String?  @db.Text
+  support4Icon         String?  @default("campaign")
+
+  // 8. Key Benefits (The FOCO Advantage)
+  benefitsSubheading   String?  @default("The FOCO Advantage")
+  benefitsDescription  String?  @db.Text
+
+  benefit1Title        String?
+  benefit1Description  String?  @db.Text
+  benefit1Icon         String?  @default("volunteer_activism")
+  benefit2Title        String?
+  benefit2Description  String?  @db.Text
+  benefit2Icon         String?  @default("shield")
+  benefit3Title        String?
+  benefit3Description  String?  @db.Text
+  benefit3Icon         String?  @default("trending_up")
+
+  // 9. Next Steps
+  nextStepsSubheading  String?
+  nextStepsDescription String?  @db.Text
+  ctaButton2           String?
+
+  // 10. Gallery Images (Property Creation Gallery Style)
+  galleryImages        Json?
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([propertyId])
 }
 

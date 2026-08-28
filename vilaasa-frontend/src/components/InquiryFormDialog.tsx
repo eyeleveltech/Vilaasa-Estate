@@ -26,8 +26,17 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { CountryCodeSelect } from "./CountryCodeSelect";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { markOtpVerified, isOtpVerified } from "@/lib/otpAccess";
+import { markOtpVerified, isOtpVerified, getSavedLeadProfile } from "@/lib/otpAccess";
 import api from "@/api/axios";
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (error && typeof error === "object" && "response" in error) {
+    const res = (error as { response?: { data?: { message?: string } } }).response;
+    if (res?.data?.message) return res.data.message;
+  }
+  if (error instanceof Error) return error.message;
+  return fallback;
+};
 
 interface InquiryFormDialogProps {
   open: boolean;
@@ -35,6 +44,10 @@ interface InquiryFormDialogProps {
   projectType?: "real-estate" | "franchise";
   projectId?: string;
   projectName?: string;
+  notes?: string;
+  intent?: "unlock_view" | "inquiry";
+  customTitle?: string;
+  customSubtitle?: string;
   onVerified?: () => void;
 }
 
@@ -57,6 +70,10 @@ export const InquiryFormDialog = ({
   projectType,
   projectId,
   projectName,
+  notes,
+  intent = "unlock_view",
+  customTitle,
+  customSubtitle,
   onVerified,
 }: InquiryFormDialogProps) => {
   const navigate = useNavigate();
@@ -74,6 +91,22 @@ export const InquiryFormDialog = ({
     investmentRange: "",
   });
   const [otp, setOtp] = useState("");
+
+  // Prepopulate saved lead profile if available
+  useEffect(() => {
+    if (open) {
+      const saved = getSavedLeadProfile();
+      if (saved) {
+        setFormData((prev) => ({
+          ...prev,
+          name: saved.name || prev.name,
+          email: saved.email || prev.email,
+          phone: saved.phone || prev.phone,
+          phoneCountryCode: saved.phoneCountryCode || prev.phoneCountryCode,
+        }));
+      }
+    }
+  }, [open]);
 
   // Resend OTP Countdown Timer
   useEffect(() => {
@@ -120,20 +153,21 @@ export const InquiryFormDialog = ({
     value ||
     "Private Client Advisory";
 
-  // Step 1: Request OTP Code
+  // Step 1: Request OTP Code (or direct submit if already OTP-verified)
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const isUnlock = intent === "unlock_view";
 
     if (
       !formData.name ||
       !formData.phone ||
       !formData.email ||
-      !formData.investmentType ||
-      !formData.investmentRange
+      (!isUnlock && (!formData.investmentType || !formData.investmentRange))
     ) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all fields to continue.",
+        description: "Please fill in all required fields to continue.",
         variant: "destructive",
       });
       return;
@@ -170,8 +204,12 @@ export const InquiryFormDialog = ({
           name: formData.name.trim(),
           email: formData.email.trim(),
           phone: `${formData.phoneCountryCode} ${formData.phone}`.trim(),
-          investmentType: formData.investmentType,
-          investmentRange: getSelectedInvestmentRangeLabel(formData.investmentRange),
+          investmentType: formData.investmentType || projectType || "real-estate",
+          investmentRange: formData.investmentRange
+            ? getSelectedInvestmentRangeLabel(formData.investmentRange)
+            : isUnlock
+              ? "Portfolio Viewer"
+              : "Private Client Advisory",
           currency: currency || "INR",
           propertyId: projectId || undefined,
           source: projectId
@@ -179,12 +217,17 @@ export const InquiryFormDialog = ({
               ? "FRANCHISE_DETAIL"
               : "PROPERTY_DETAIL"
             : "HERO_INQUIRY",
+          notes: notes || (isUnlock ? "Confidential Dossier Unlocked (View Only)" : "Direct Inquiry with Senior Partner"),
+          sendEmail: !isUnlock,
+          intent: isUnlock ? "UNLOCK_VIEW" : "INQUIRY",
         });
 
         setStep("success");
         toast({
-          title: "Session Active",
-          description: "Inquiry submitted under your verified session. Redirecting...",
+          title: isUnlock ? "Dossier Unlocked" : "Inquiry Submitted",
+          description: isUnlock
+            ? "Access granted to architectural assets and floor plans."
+            : "Inquiry submitted under your verified session. A Senior Partner will contact you shortly.",
         });
 
         setTimeout(() => {
@@ -194,10 +237,10 @@ export const InquiryFormDialog = ({
           }
           setStep("form");
         }, 1200);
-      } catch (error: any) {
+      } catch (error: unknown) {
         toast({
           title: "Submission Error",
-          description: error?.response?.data?.message || "Something went wrong",
+          description: getErrorMessage(error, "Something went wrong"),
           variant: "destructive",
         });
       } finally {
@@ -221,13 +264,11 @@ export const InquiryFormDialog = ({
           description: `A 6-digit security code has been sent to ${formData.email}`,
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error requesting OTP:", error);
       toast({
         title: "Submission Error",
-        description:
-          error?.response?.data?.message ||
-          "Something went wrong, please try again",
+        description: getErrorMessage(error, "Something went wrong, please try again"),
         variant: "destructive",
       });
     } finally {
@@ -235,7 +276,7 @@ export const InquiryFormDialog = ({
     }
   };
 
-  // Step 2: Verify OTP and Submit Full Inquiry
+  // Step 2: Verify OTP and Complete Action
   const handleOtpVerify = async () => {
     if (otp.length < 6) {
       toast({
@@ -267,15 +308,19 @@ export const InquiryFormDialog = ({
       markOtpVerified();
       onVerified?.();
 
-      // 2. Submit Inquiry directly to PostgreSQL database
+      const isUnlock = intent === "unlock_view";
+
+      // 2. Submit Inquiry record: sendEmail is FALSE for unlock_view, TRUE for inquiry
       await api.post("/inquiries", {
         name: formData.name.trim(),
         email: formData.email.trim(),
         phone: `${formData.phoneCountryCode} ${formData.phone}`.trim(),
-        investmentType: formData.investmentType,
-        investmentRange: getSelectedInvestmentRangeLabel(
-          formData.investmentRange,
-        ),
+        investmentType: formData.investmentType || projectType || "real-estate",
+        investmentRange: formData.investmentRange
+          ? getSelectedInvestmentRangeLabel(formData.investmentRange)
+          : isUnlock
+            ? "Portfolio Viewer"
+            : "Private Client Advisory",
         currency: currency || "INR",
         propertyId: projectId || undefined,
         source: projectId
@@ -283,12 +328,17 @@ export const InquiryFormDialog = ({
             ? "FRANCHISE_DETAIL"
             : "PROPERTY_DETAIL"
           : "HERO_INQUIRY",
+        notes: notes || (isUnlock ? "Confidential Dossier Unlocked (View Only)" : "Direct Inquiry with Senior Partner"),
+        sendEmail: !isUnlock,
+        intent: isUnlock ? "UNLOCK_VIEW" : "INQUIRY",
       });
 
       setStep("success");
       toast({
-        title: "Verified Successfully",
-        description: "Your inquiry has been submitted. Redirecting...",
+        title: isUnlock ? "Dossier Unlocked" : "Verified Successfully",
+        description: isUnlock
+          ? "Identity confirmed. Unlocking confidential dossier..."
+          : "Your inquiry has been submitted. A Senior Partner will contact you shortly.",
       });
 
       setTimeout(() => {
@@ -312,9 +362,9 @@ export const InquiryFormDialog = ({
         });
         setOtp("");
       }, 1500);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error during OTP verification:", error);
-      const msg = error?.response?.data?.message || "";
+      const msg = getErrorMessage(error, "");
       if (msg.toLowerCase().includes("expired")) {
         toast({
           title: "OTP Expired",
@@ -357,12 +407,10 @@ export const InquiryFormDialog = ({
           description: `A new 6-digit security code was sent to ${formData.email}`,
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Resend Error",
-        description:
-          error?.response?.data?.message ||
-          "Something went wrong, please try again",
+        description: getErrorMessage(error, "Something went wrong, please try again"),
         variant: "destructive",
       });
     } finally {
@@ -375,19 +423,25 @@ export const InquiryFormDialog = ({
       <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md max-h-[90vh] overflow-y-auto bg-background border-border p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl font-light">
-            {step === "form" && "Express Your Interest"}
-            {step === "otp" && "Verify Your Email"}
-            {step === "success" && "Verification Complete"}
-          </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
             {step === "form" &&
-              (projectName
-                ? `Please share your details to explore ${projectName}`
-                : "Please share your details to explore luxury opportunities")}
+              (customTitle || (intent === "inquiry" ? "Contact Senior Partner" : "Unlock Confidential Dossier"))}
+            {step === "otp" && "Verify Security Code"}
+            {step === "success" && (intent === "inquiry" ? "Inquiry Confirmed" : "Dossier Unlocked")}
+          </DialogTitle>
+          <DialogDescription className="text-muted-foreground text-xs sm:text-sm">
+            {step === "form" &&
+              (customSubtitle ||
+                (projectName
+                  ? intent === "inquiry"
+                    ? `Connect directly with our senior luxury advisory team for ${projectName}.`
+                    : `Verify your identity to access full architectural floor plans, high-res photography, and specifications for ${projectName}.`
+                  : "Please share your details to proceed."))}
             {step === "otp" &&
               `Enter the 6-digit security code sent to ${formData.email}`}
             {step === "success" &&
-              "Your details have been confirmed. You now have privileged access."}
+              (intent === "inquiry"
+                ? "Your bespoke advisory request has been dispatched to our Senior Partner."
+                : "Your identity has been verified. You now have privileged access to this dossier.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -459,43 +513,49 @@ export const InquiryFormDialog = ({
                 </div>
               </div>
 
-              <div className="space-y-1.5 sm:space-y-2">
-                <Label
-                  htmlFor="investmentRange"
-                  className="text-xs sm:text-sm"
-                >
-                  Capital Range *
-                </Label>
-                <Select
-                  value={formData.investmentRange}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, investmentRange: value })
-                  }
-                  required
-                >
-                  <SelectTrigger className="bg-secondary/50 h-9 sm:h-10 text-xs sm:text-sm">
-                    <SelectValue placeholder="Select target allocation" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {investmentRangeOptions.map((option) => (
-                      <SelectItem
-                        key={option.value}
-                        value={option.value}
-                        className="text-xs sm:text-sm"
-                      >
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {intent === "inquiry" && (
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label
+                    htmlFor="investmentRange"
+                    className="text-xs sm:text-sm"
+                  >
+                    Target Allocation Range *
+                  </Label>
+                  <Select
+                    value={formData.investmentRange}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, investmentRange: value })
+                    }
+                    required
+                  >
+                    <SelectTrigger className="bg-secondary/50 h-9 sm:h-10 text-xs sm:text-sm">
+                      <SelectValue placeholder="Select target allocation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {investmentRangeOptions.map((option) => (
+                        <SelectItem
+                          key={option.value}
+                          value={option.value}
+                          className="text-xs sm:text-sm"
+                        >
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <Button
                 type="submit"
                 disabled={isSubmitting}
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90 mt-4 sm:mt-6 h-9 sm:h-10 text-xs sm:text-sm uppercase tracking-wider font-semibold"
               >
-                {isSubmitting ? "Sending Code..." : "Continue to Verify"}
+                {isSubmitting
+                  ? "Processing..."
+                  : intent === "inquiry"
+                    ? "Connect with Senior Partner"
+                    : "Verify & Unlock Dossier"}
               </Button>
             </motion.form>
           )}

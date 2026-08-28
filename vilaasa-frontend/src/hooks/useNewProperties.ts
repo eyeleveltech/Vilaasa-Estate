@@ -118,9 +118,9 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
   
   const configurations = (prop.configurations || []).map((c) => ({
     type: c.unitType,
-    area: `${c.areaSqFt.toLocaleString()} Sq.Ft.`,
-    view: c.viewType || "Panoramic Skyline",
-    price: Number(c.price),
+    area: c.areaSqFt && Number(c.areaSqFt) > 0 ? `${Number(c.areaSqFt).toLocaleString()} Sq.Ft.` : "",
+    view: c.viewType && c.viewType.trim() ? c.viewType.trim() : "",
+    price: Number(c.price) || 0,
   }));
 
   const amenities = (prop.amenities || []).map((a) => ({
@@ -225,7 +225,7 @@ export function useProperty(slug: string) {
       throw new Error(`Property with slug '${slug}' was not found`);
     },
     enabled: !!slug,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 10,
   });
 }
 

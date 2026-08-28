@@ -23,6 +23,7 @@ import {
   UploadCloud,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import api from "../../api/axios";
 import { MediaUploader } from "../components/MediaUploader";
 import { BrochureUploader } from "../components/BrochureUploader";
@@ -38,7 +39,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export const detectAmenityIcon = (name: string): string => {
+const detectAmenityIcon = (name: string): string => {
   const lower = (name || "").toLowerCase();
   if (lower.includes("panchakarma") || lower.includes("wellness") || lower.includes("ayurved")) return "spa";
   if (lower.includes("boat") || lower.includes("yacht") || lower.includes("marina") || lower.includes("sailing") || lower.includes("lake") || lower.includes("kayak")) return "directions_boat";
@@ -89,7 +90,7 @@ const COMMON_AMENITY_ICONS = [
   { label: "Star / Bespoke", icon: "star" },
 ];
 
-export const STATUS_CONFIG: Record<
+const STATUS_CONFIG: Record<
   PropertyStatus,
   { label: string; dotColor: string; badgeClass: string; activeBorder: string; emoji: string }
 > = {
@@ -137,13 +138,31 @@ export const STATUS_CONFIG: Record<
   },
 };
 
-export const mapToPropertyTypeEnum = (text: string): PropertyType => {
+const getSpecPlaceholder = (label: string): string => {
+  const l = (label || "").toLowerCase();
+  if (l.includes("type")) return "Residential Villa";
+  if (l.includes("built") || l.includes("area") || l.includes("sq")) return "4,500 Sq.Ft.";
+  if (l.includes("bed")) return "4 Master Suites";
+  if (l.includes("bath")) return "5 En-Suite Baths";
+  if (l.includes("furnish")) return "Fully Furnished";
+  if (l.includes("owner")) return "Freehold";
+  if (l.includes("rera") || l.includes("permit")) return "Approved";
+  if (l.includes("possess")) return "Ready to Move";
+  if (l.includes("ceiling") || l.includes("height")) return "14 Ft.";
+  if (l.includes("land") || l.includes("plot")) return "1.5 Acres";
+  if (l.includes("park")) return "4 Covered Bays";
+  if (l.includes("price") || l.includes("cost") || l.includes("invest")) return "Price on Application";
+  return "e.g. 140,000 Sq.Ft., 4 BHK, Freehold";
+};
+
+const mapToPropertyTypeEnum = (text: string): PropertyType => {
   const lower = (text || "").toLowerCase();
-  if (lower.includes("apartment") || lower.includes("flat")) return "LUXURY_APARTMENT";
+  if (lower.includes("apartment") || lower.includes("flat")) return "RESIDENTIAL_APARTMENT";
   if (lower.includes("penthouse")) return "PENTHOUSE";
-  if (lower.includes("commercial") || lower.includes("office") || lower.includes("retail")) return "COMMERCIAL_DEVELOPMENT";
-  if (lower.includes("plot") || lower.includes("land") || lower.includes("farm")) return "PLOT_LAND";
+  if (lower.includes("commercial") || lower.includes("office") || lower.includes("retail")) return "COMMERCIAL";
+  if (lower.includes("plot") || lower.includes("land") || lower.includes("farm")) return "FARMLAND";
   if (lower.includes("franchise")) return "FRANCHISE";
+  if (lower.includes("heritage") || lower.includes("estate")) return "HERITAGE_ESTATE";
   return "RESIDENTIAL_VILLA";
 };
 
@@ -162,6 +181,7 @@ export const AdminPropertyForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
+  const queryClient = useQueryClient();
 
   const [activeSection, setActiveSection] = useState<number>(1);
   const [createdPropertyId, setCreatedPropertyId] = useState<string | null>(
@@ -181,8 +201,6 @@ export const AdminPropertyForm: React.FC = () => {
   const [status, setStatus] = useState<PropertyStatus>("AVAILABLE");
   const [virtualTour360Url, setVirtualTour360Url] = useState<string>("");
   const [brochureUrl, setBrochureUrl] = useState<string>("");
-  const [uploadingBrochure, setUploadingBrochure] = useState<boolean>(false);
-  const brochureFileInputRef = useRef<HTMLInputElement>(null);
 
   // 2. Concept & Vision
   const [visionHeadline, setVisionHeadline] = useState<string>("");
@@ -193,11 +211,11 @@ export const AdminPropertyForm: React.FC = () => {
 
   // 3. At a Glance (100% Free-Text Specs)
   const [customSpecs, setCustomSpecs] = useState<{ label: string; value: string }[]>([
-    { label: "Property Type", value: "Residential Villa" },
+    { label: "Property Type", value: "" },
     { label: "Built-up Area", value: "" },
     { label: "Bedrooms", value: "" },
-    { label: "Furnishing", value: "Fully Furnished" },
-    { label: "Ownership", value: "Freehold" },
+    { label: "Furnishing", value: "" },
+    { label: "Ownership", value: "" },
   ]);
 
   // 4. Financial Intelligence (Admin-filled Labels & Values)
@@ -226,8 +244,8 @@ export const AdminPropertyForm: React.FC = () => {
   const [amenities, setAmenities] = useState<{ name: string; iconKey: string; description: string }[]>([]);
 
   // 8. Location & Connectivity
-  const [city, setCity] = useState<string>("Goa");
-  const [country, setCountry] = useState<string>("India");
+  const [city, setCity] = useState<string>("");
+  const [country, setCountry] = useState<string>("");
   const [community, setCommunity] = useState<string>("");
   const [addressLine, setAddressLine] = useState<string>("");
   const [latitude, setLatitude] = useState<string>("");
@@ -238,22 +256,12 @@ export const AdminPropertyForm: React.FC = () => {
   const handleMarketScopeChange = (scope: "DOMESTIC" | "INTERNATIONAL") => {
     setMarketScope(scope);
     if (scope === "DOMESTIC") {
-      setCountry("India");
       if (currency === "AED" || currency === "USD") {
         setCurrency("INR");
       }
-      if (!city || city === "Dubai" || city === "Abu Dhabi") {
-        setCity("Goa");
-      }
     } else {
-      if (!country || country.trim().toLowerCase() === "india") {
-        setCountry("United Arab Emirates");
-      }
       if (currency === "INR") {
         setCurrency("AED");
-      }
-      if (!city || city === "Goa" || city === "Mumbai" || city === "Kumarakom") {
-        setCity("Dubai");
       }
     }
   };
@@ -308,7 +316,7 @@ export const AdminPropertyForm: React.FC = () => {
 
             // 4. Financial Intelligence metrics
             if (prop.financialMetrics && prop.financialMetrics.length > 0) {
-              setFinancialMetrics(prop.financialMetrics.map((f: any) => ({
+              setFinancialMetrics(prop.financialMetrics.map((f) => ({
                 label: f.label || "",
                 value: f.value || "",
                 note: f.note || "",
@@ -318,7 +326,7 @@ export const AdminPropertyForm: React.FC = () => {
 
             // 5. Unit Configurations
             if (prop.configurations && prop.configurations.length > 0) {
-              setConfigurations(prop.configurations.map((c: any) => ({
+              setConfigurations(prop.configurations.map((c) => ({
                 unitType: c.unitType || "",
                 areaSqFt: c.areaSqFt?.toString() || "",
                 viewType: c.viewType || "",
@@ -339,12 +347,12 @@ export const AdminPropertyForm: React.FC = () => {
               setAddressLine(prop.location.addressLine || "");
               setLatitude(prop.location.latitude?.toString() || "");
               setLongitude(prop.location.longitude?.toString() || "");
-              setGoogleMapUrl(prop.location.googleMapUrl || "");
+              setGoogleMapUrl(prop.location.mapEmbedUrl || prop.location.googleMapUrl || "");
             }
 
             // 7. Amenities
             if (prop.amenities && prop.amenities.length > 0) {
-              setAmenities(prop.amenities.map((a: any) => ({
+              setAmenities(prop.amenities.map((a) => ({
                 name: a.amenity?.name || "",
                 iconKey: a.amenity?.iconKey || detectAmenityIcon(a.amenity?.name || "") || "star",
                 description: a.description || "",
@@ -353,11 +361,11 @@ export const AdminPropertyForm: React.FC = () => {
 
             // 8. Nearby Places
             if (prop.nearbyPlaces && prop.nearbyPlaces.length > 0) {
-              setNearbyPlaces(prop.nearbyPlaces.map((p: any) => ({
+              setNearbyPlaces(prop.nearbyPlaces.map((p) => ({
                 name: p.name || "",
-                distance: p.distance || "",
+                distance: p.distance || "Nearby",
                 travelTime: p.travelTime || "",
-                category: p.category || "",
+                category: p.category || "Transit",
                 description: p.description || "",
               })));
             }
@@ -378,42 +386,6 @@ export const AdminPropertyForm: React.FC = () => {
     }
   }, [isEditMode, id]);
 
-  const handleBrochureFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 15 * 1024 * 1024) {
-      toast.error("Brochure file size must be less than 15MB");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("folder", "vilaasa/brochures");
-
-    setUploadingBrochure(true);
-    const toastId = toast.loading("Uploading brochure file...");
-
-    try {
-      const res = await api.post("/media/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      if (res.data.success && res.data.data?.url) {
-        setBrochureUrl(res.data.data.url);
-        toast.success("Brochure uploaded & attached successfully!", { id: toastId });
-      } else {
-        toast.error("Failed to retrieve brochure upload link", { id: toastId });
-      }
-    } catch {
-      toast.error("Brochure upload failed", { id: toastId });
-    } finally {
-      setUploadingBrochure(false);
-      if (brochureFileInputRef.current) {
-        brochureFileInputRef.current.value = "";
-      }
-    }
-  };
-
   const validateForm = (): boolean => {
     if (!name.trim()) {
       toast.error("Property name is required (Hero Section)");
@@ -433,16 +405,6 @@ export const AdminPropertyForm: React.FC = () => {
     if (!priceOnApplication && (!price || Number(price) <= 0)) {
       toast.error("Valid property price is required unless Price On Application is selected");
       setActiveSection(5);
-      return false;
-    }
-    if (!city.trim()) {
-      toast.error("City is required (Location Section)");
-      setActiveSection(8);
-      return false;
-    }
-    if (!country.trim()) {
-      toast.error("Country is required (Location Section)");
-      setActiveSection(8);
       return false;
     }
     return true;
@@ -466,13 +428,13 @@ export const AdminPropertyForm: React.FC = () => {
       }));
 
     const cleanedConfigurations = configurations
-      .filter((c) => c.unitType.trim() && Number(c.areaSqFt) > 0)
+      .filter((c) => c.unitType.trim())
       .map((c) => ({
         unitType: c.unitType.trim(),
-        areaSqFt: parseFloat(c.areaSqFt),
+        areaSqFt: parseFloat(c.areaSqFt) || 0,
         viewType: c.viewType.trim() || undefined,
         price: parseFloat(c.price) || 0,
-        isAvailable: c.isAvailable,
+        isAvailable: c.isAvailable ?? true,
       }));
 
     const mappedType = mapToPropertyTypeEnum(propertyType);
@@ -497,7 +459,7 @@ export const AdminPropertyForm: React.FC = () => {
       rentalYieldPercent: rentalYieldPercent ? parseFloat(rentalYieldPercent) : undefined,
       expectedIrrPercent: expectedIrrPercent ? parseFloat(expectedIrrPercent) : undefined,
       financialMetrics: cleanedFinancialMetrics,
-      configurations: cleanedConfigurations.length > 0 ? cleanedConfigurations : undefined,
+      configurations: cleanedConfigurations,
       amenities: amenities
         .filter((a) => a.name.trim())
         .map((a) => ({
@@ -506,7 +468,7 @@ export const AdminPropertyForm: React.FC = () => {
           description: a.description.trim() || undefined,
         })),
       nearbyPlaces: nearbyPlaces
-        .filter((p) => p.name.trim() && (p.distance.trim() || p.travelTime.trim()))
+        .filter((p) => p.name.trim())
         .map((p) => ({
           name: p.name.trim(),
           distance: p.distance.trim() || (p.travelTime.trim() ? `${p.travelTime.trim()} drive` : "Nearby"),
@@ -515,24 +477,31 @@ export const AdminPropertyForm: React.FC = () => {
           description: p.description.trim() || undefined,
         })),
       location: {
-        city: city.trim(),
-        country: country.trim(),
+        city: city.trim() || (marketScope === "INTERNATIONAL" ? "Dubai" : "Goa"),
+        country: country.trim() || (marketScope === "INTERNATIONAL" ? "United Arab Emirates" : "India"),
         community: community.trim() || undefined,
         addressLine: addressLine.trim() || undefined,
         latitude: latitude ? parseFloat(latitude) : undefined,
         longitude: longitude ? parseFloat(longitude) : undefined,
         googleMapUrl: googleMapUrl.trim() || undefined,
+        mapEmbedUrl: googleMapUrl.trim() || undefined,
       },
     };
 
+    const effectiveId = createdPropertyId || id;
+
     try {
-      if (isEditMode && createdPropertyId) {
+      if (effectiveId) {
         const res = await api.put<ApiResponse<Property>>(
-          `/properties/${createdPropertyId}`,
+          `/properties/${effectiveId}`,
           payload,
         );
         if (res.data.success) {
+          queryClient.invalidateQueries({ queryKey: ["properties"] });
+          queryClient.invalidateQueries({ queryKey: ["property"] });
+          queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
           toast.success("Property specifications updated successfully!");
+          navigate("/admin/properties");
           return true;
         }
       } else {
@@ -541,10 +510,11 @@ export const AdminPropertyForm: React.FC = () => {
           payload,
         );
         if (res.data.success && res.data.data) {
-          const newId = res.data.data.id;
-          setCreatedPropertyId(newId);
-          toast.success("Property created! You can now upload gallery assets or review sections.");
-          setActiveSection(6); // Navigate to Gallery
+          queryClient.invalidateQueries({ queryKey: ["properties"] });
+          queryClient.invalidateQueries({ queryKey: ["property"] });
+          queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
+          toast.success("Property created successfully!");
+          navigate("/admin/properties");
           return true;
         }
       }
@@ -553,6 +523,117 @@ export const AdminPropertyForm: React.FC = () => {
       const errMsg =
         (err as { response?: { data?: { message?: string } } })?.response
           ?.data?.message || "Failed to save property";
+      toast.error(errMsg);
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveDraftForMedia = async (): Promise<boolean> => {
+    if (!validateForm()) return false;
+
+    setSaving(true);
+    const cleanedCustomSpecs = customSpecs
+      .filter((s) => s.label.trim() && s.value.trim())
+      .map((s) => ({ label: s.label.trim(), value: s.value.trim() }));
+
+    const cleanedFinancialMetrics = financialMetrics
+      .filter((f) => f.label.trim() && f.value.trim())
+      .map((f) => ({
+        label: f.label.trim(),
+        value: f.value.trim(),
+        note: f.note.trim() || undefined,
+        icon: f.icon.trim() || undefined,
+      }));
+
+    const cleanedConfigurations = configurations
+      .filter((c) => c.unitType.trim())
+      .map((c) => ({
+        unitType: c.unitType.trim(),
+        areaSqFt: parseFloat(c.areaSqFt) || 0,
+        viewType: c.viewType.trim() || undefined,
+        price: parseFloat(c.price) || 0,
+        isAvailable: c.isAvailable ?? true,
+      }));
+
+    const mappedType = mapToPropertyTypeEnum(propertyType);
+
+    const payload = {
+      name: name.trim(),
+      tagline: tagline.trim() || undefined,
+      visionHeadline: visionHeadline.trim() || undefined,
+      verdictQuote: verdictQuote.trim() || undefined,
+      verdictAuthor: verdictAuthor.trim() || undefined,
+      verdictTitle: verdictTitle.trim() || undefined,
+      type: mappedType,
+      customType: propertyType.trim(),
+      status,
+      description: description.trim(),
+      virtualTour360Url: virtualTour360Url.trim() || undefined,
+      brochureUrl: brochureUrl.trim() || undefined,
+      customSpecs: cleanedCustomSpecs,
+      price: priceOnApplication ? 0 : parseFloat(price) || 0,
+      currency,
+      priceOnApplication,
+      rentalYieldPercent: rentalYieldPercent ? parseFloat(rentalYieldPercent) : undefined,
+      expectedIrrPercent: expectedIrrPercent ? parseFloat(expectedIrrPercent) : undefined,
+      financialMetrics: cleanedFinancialMetrics,
+      configurations: cleanedConfigurations,
+      amenities: amenities
+        .filter((a) => a.name.trim())
+        .map((a) => ({
+          name: a.name.trim(),
+          iconKey: a.iconKey.trim() || detectAmenityIcon(a.name.trim()) || "star",
+          description: a.description.trim() || undefined,
+        })),
+      nearbyPlaces: nearbyPlaces
+        .filter((p) => p.name.trim())
+        .map((p) => ({
+          name: p.name.trim(),
+          distance: p.distance.trim() || (p.travelTime.trim() ? `${p.travelTime.trim()} drive` : "Nearby"),
+          travelTime: p.travelTime.trim() || undefined,
+          category: p.category.trim() || undefined,
+          description: p.description.trim() || undefined,
+        })),
+      location: {
+        city: city.trim() || (marketScope === "INTERNATIONAL" ? "Dubai" : "Goa"),
+        country: country.trim() || (marketScope === "INTERNATIONAL" ? "United Arab Emirates" : "India"),
+        community: community.trim() || undefined,
+        addressLine: addressLine.trim() || undefined,
+        latitude: latitude ? parseFloat(latitude) : undefined,
+        longitude: longitude ? parseFloat(longitude) : undefined,
+        googleMapUrl: googleMapUrl.trim() || undefined,
+        mapEmbedUrl: googleMapUrl.trim() || undefined,
+      },
+    };
+
+    const effectiveId = createdPropertyId || id;
+
+    try {
+      if (effectiveId) {
+        await api.put(`/properties/${effectiveId}`, payload);
+        queryClient.invalidateQueries({ queryKey: ["properties"] });
+        queryClient.invalidateQueries({ queryKey: ["property"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
+        toast.success("Draft saved! Media uploads are active.");
+        return true;
+      } else {
+        const res = await api.post<ApiResponse<Property>>("/properties", payload);
+        if (res.data.success && res.data.data) {
+          setCreatedPropertyId(res.data.data.id);
+          queryClient.invalidateQueries({ queryKey: ["properties"] });
+          queryClient.invalidateQueries({ queryKey: ["property"] });
+          queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
+          toast.success("Draft created! You can now upload gallery assets.");
+          return true;
+        }
+      }
+      return false;
+    } catch (err: unknown) {
+      const errMsg =
+        (err as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Failed to save draft";
       toast.error(errMsg);
       return false;
     } finally {
@@ -575,10 +656,10 @@ export const AdminPropertyForm: React.FC = () => {
     setConfigurations([
       ...configurations,
       {
-        unitType: "Villa Suite",
-        areaSqFt: "3500",
-        viewType: "Private Garden View",
-        price: price || "0",
+        unitType: "",
+        areaSqFt: "",
+        viewType: "",
+        price: "",
         isAvailable: true,
       },
     ]);
@@ -807,15 +888,10 @@ export const AdminPropertyForm: React.FC = () => {
                       Listing Status <span className="text-destructive">*</span>
                     </Label>
                     <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
                         STATUS_CONFIG[status]?.badgeClass || "border-border text-foreground"
                       }`}
                     >
-                      <span
-                        className={`h-2 w-2 rounded-full ${
-                          STATUS_CONFIG[status]?.dotColor || "bg-primary"
-                        } animate-pulse`}
-                      />
                       {STATUS_CONFIG[status]?.label || status}
                     </span>
                   </div>
@@ -844,73 +920,6 @@ export const AdminPropertyForm: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Brochure Direct PDF URL & Add Media */}
-                <div className="space-y-2 md:col-span-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="brochureUrl" className="text-xs font-semibold flex items-center gap-1.5">
-                      <FileText className="h-3.5 w-3.5 text-primary" />
-                      <span>Brochure Direct PDF URL / Media Link</span>
-                    </Label>
-                    {brochureUrl && (
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={brochureUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline font-medium"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                          <span>View Brochure</span>
-                        </a>
-                        <button
-                          type="button"
-                          onClick={() => setBrochureUrl("")}
-                          className="text-[11px] text-muted-foreground hover:text-destructive transition-colors"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Input
-                      id="brochureUrl"
-                      placeholder="https://drive.google.com/file/d/1A2B3C4D5E6F.../view?usp=sharing"
-                      value={brochureUrl}
-                      onChange={(e) => setBrochureUrl(e.target.value)}
-                      className="bg-secondary/40 h-10 text-xs font-mono flex-1"
-                    />
-
-                    <input
-                      ref={brochureFileInputRef}
-                      type="file"
-                      accept="application/pdf,image/*,.doc,.docx"
-                      onChange={handleBrochureFileUpload}
-                      className="hidden"
-                    />
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => brochureFileInputRef.current?.click()}
-                      disabled={uploadingBrochure}
-                      className="h-10 px-3.5 text-xs font-medium gap-1.5 shrink-0 bg-primary/10 border-primary/30 text-primary hover:bg-primary/20"
-                    >
-                      {uploadingBrochure ? (
-                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      ) : (
-                        <UploadCloud className="h-3.5 w-3.5" />
-                      )}
-                      <span>{uploadingBrochure ? "Uploading..." : "Upload / Add Media"}</span>
-                    </Button>
-                  </div>
-
-                  <p className="text-[10px] text-muted-foreground flex flex-wrap items-center gap-1">
-                    <span className="text-primary font-medium">Google Drive format:</span>
-                    <span>Paste a Google Drive shareable link (e.g. https://drive.google.com/file/d/.../view) or click &quot;Upload / Add Media&quot; to upload directly.</span>
-                  </p>
-                </div>
 
                 {/* Virtual Tour 360 URL */}
                 <div className="space-y-1.5">
@@ -1088,22 +1097,37 @@ export const AdminPropertyForm: React.FC = () => {
                   Quick Add Common Specs (Click to add editable row)
                 </Label>
                 <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const formattedPrice = priceOnApplication
+                        ? "Price on Application"
+                        : price && Number(price) > 0
+                        ? `${currency} ${Number(price).toLocaleString()}`
+                        : "";
+                      handleAddSpec("Price", formattedPrice);
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] py-1 px-2.5 rounded-full border border-primary/50 bg-primary/10 text-primary font-medium hover:bg-primary/20 transition-colors shadow-sm"
+                  >
+                    <Plus className="h-3 w-3 text-primary" />
+                    <span>Price ({currency})</span>
+                  </button>
                   {[
-                    { label: "Built-up Area", defVal: "4,500 Sq.Ft." },
-                    { label: "Bedrooms", defVal: "4 Master Suites" },
-                    { label: "Bathrooms", defVal: "5 En-Suite Baths" },
-                    { label: "Furnishing", defVal: "Designer Furnished" },
-                    { label: "Ownership", defVal: "Freehold" },
-                    { label: "RERA / Permit", defVal: "Approved" },
-                    { label: "Possession", defVal: "Ready to Move" },
-                    { label: "Ceiling Height", defVal: "14 Ft." },
-                    { label: "Private Land", defVal: "1.5 Acres" },
-                    { label: "Parking", defVal: "4 Covered Bays" },
+                    { label: "Built-up Area" },
+                    { label: "Bedrooms" },
+                    { label: "Bathrooms" },
+                    { label: "Furnishing" },
+                    { label: "Ownership" },
+                    { label: "RERA / Permit" },
+                    { label: "Possession" },
+                    { label: "Ceiling Height" },
+                    { label: "Private Land" },
+                    { label: "Parking" },
                   ].map((preset, idx) => (
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => handleAddSpec(preset.label, preset.defVal)}
+                      onClick={() => handleAddSpec(preset.label, "")}
                       className="inline-flex items-center gap-1 text-[11px] py-1 px-2.5 rounded-full border border-border bg-secondary/40 text-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors"
                     >
                       <Plus className="h-3 w-3 text-primary" />
@@ -1124,7 +1148,7 @@ export const AdminPropertyForm: React.FC = () => {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => handleAddSpec("Built-up Area", "4,500 Sq.Ft.")}
+                      onClick={() => handleAddSpec("Built-up Area", "")}
                       className="text-xs"
                     >
                       Add First Specification
@@ -1154,11 +1178,34 @@ export const AdminPropertyForm: React.FC = () => {
                         </div>
 
                         <div className="flex-1 space-y-1">
-                          <Label className="text-[10px] text-muted-foreground font-mono uppercase">
-                            Value
-                          </Label>
+                          <div className="flex items-center justify-between">
+                            <Label className="text-[10px] text-muted-foreground font-mono uppercase">
+                              Value
+                            </Label>
+                            {(spec.label.toLowerCase().includes("price") ||
+                              spec.label.toLowerCase().includes("investment") ||
+                              spec.label.toLowerCase().includes("cost")) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...customSpecs];
+                                  updated[idx].value = priceOnApplication
+                                    ? "Price on Application"
+                                    : price && Number(price) > 0
+                                    ? `${currency} ${Number(price).toLocaleString()}`
+                                    : "";
+                                  setCustomSpecs(updated);
+                                  toast.success("Synced with Price from Pricing section");
+                                }}
+                                className="text-[10px] text-primary hover:underline font-medium"
+                                title="Get price directly from Section 5"
+                              >
+                                Pull from Pricing
+                              </button>
+                            )}
+                          </div>
                           <Input
-                            placeholder="e.g. 140,000 Sq.Ft., 4 BHK, Freehold"
+                            placeholder={getSpecPlaceholder(spec.label)}
                             value={spec.value}
                             onChange={(e) => {
                               const updated = [...customSpecs];
@@ -1465,7 +1512,7 @@ export const AdminPropertyForm: React.FC = () => {
                         <div className="sm:col-span-1 space-y-1">
                           <Label className="text-[10px] text-muted-foreground uppercase">Unit Type</Label>
                           <Input
-                            placeholder="e.g. 3 BHK Villa"
+                            placeholder="Villa Suite"
                             value={config.unitType}
                             onChange={(e) => {
                               const updated = [...configurations];
@@ -1480,7 +1527,7 @@ export const AdminPropertyForm: React.FC = () => {
                           <Label className="text-[10px] text-muted-foreground uppercase">Area (Sq.Ft.)</Label>
                           <Input
                             type="number"
-                            placeholder="3200"
+                            placeholder="3500"
                             value={config.areaSqFt}
                             onChange={(e) => {
                               const updated = [...configurations];
@@ -1494,7 +1541,7 @@ export const AdminPropertyForm: React.FC = () => {
                         <div className="sm:col-span-1 space-y-1">
                           <Label className="text-[10px] text-muted-foreground uppercase">View Type</Label>
                           <Input
-                            placeholder="e.g. Ocean View"
+                            placeholder="Private Garden View"
                             value={config.viewType}
                             onChange={(e) => {
                               const updated = [...configurations];
@@ -1509,7 +1556,7 @@ export const AdminPropertyForm: React.FC = () => {
                           <Label className="text-[10px] text-muted-foreground uppercase">Price ({currency})</Label>
                           <Input
                             type="number"
-                            placeholder="25000000"
+                            placeholder="0"
                             value={config.price}
                             onChange={(e) => {
                               const updated = [...configurations];
@@ -1573,8 +1620,8 @@ export const AdminPropertyForm: React.FC = () => {
                 </p>
               </div>
 
-              {createdPropertyId ? (
-                <div className="space-y-8">
+              <div className="space-y-8">
+                {createdPropertyId ? (
                   <MediaUploader
                     propertyId={createdPropertyId}
                     existingMedia={existingMedia}
@@ -1586,42 +1633,50 @@ export const AdminPropertyForm: React.FC = () => {
                       });
                     }}
                   />
+                ) : (
+                  <div className="p-8 text-center border border-dashed border-border rounded-xl bg-secondary/10 space-y-4 max-w-lg mx-auto my-4">
+                    <div className="flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <ImageIcon className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-foreground">
+                        Save Draft First to Enable Image Gallery Uploads
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Direct Cloudinary gallery media streaming requires a property record. Click below to save your core details and unlock photo uploads.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleSaveDraftForMedia}
+                      disabled={saving}
+                      className="bg-primary text-primary-foreground text-xs gap-1.5"
+                    >
+                      <Save className="h-3.5 w-3.5" />
+                      <span>Save Draft & Enable Gallery Uploads</span>
+                    </Button>
+                  </div>
+                )}
 
-                  <div className="pt-6 border-t border-border">
-                    <BrochureUploader
-                      propertyId={createdPropertyId}
-                      currentBrochureUrl={brochureUrl}
-                      onBrochureUploaded={(url) => {
-                        setBrochureUrl(url);
-                        toast.success("Brochure attached to property!");
-                      }}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="p-8 text-center border border-dashed border-border rounded-xl bg-secondary/10 space-y-4 max-w-lg mx-auto my-8">
-                  <div className="flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <ImageIcon className="h-6 w-6" />
-                  </div>
+                <div className="pt-6 border-t border-border space-y-2">
                   <div>
-                    <h4 className="text-sm font-semibold text-foreground">
-                      Save Property First to Enable Direct Uploads
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground flex items-center gap-2">
+                      <FileText className="h-3.5 w-3.5 text-primary" />
+                      <span>Official Property Brochure (PDF)</span>
                     </h4>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Direct Cloudinary media streaming requires a property record. Click below to save your core details and unlock media uploads.
+                    <p className="text-[11px] text-muted-foreground">
+                      Upload a PDF investment brochure or marketing deck for clients to download.
                     </p>
                   </div>
-                  <Button
-                    type="button"
-                    onClick={handleSaveProperty}
-                    disabled={saving}
-                    className="bg-primary text-primary-foreground text-xs gap-1.5"
-                  >
-                    <Save className="h-3.5 w-3.5" />
-                    <span>Save Draft & Enable Media Uploads</span>
-                  </Button>
+                  <BrochureUploader
+                    value={brochureUrl}
+                    onChange={(url) => {
+                      setBrochureUrl(url);
+                      toast.success("Brochure attached to property!");
+                    }}
+                  />
                 </div>
-              )}
+              </div>
             </motion.div>
           )}
 
@@ -1785,7 +1840,7 @@ export const AdminPropertyForm: React.FC = () => {
                   </Label>
                   <Input
                     id="city"
-                    placeholder="e.g. Goa, Dubai, Kumarakom"
+                    placeholder={marketScope === "INTERNATIONAL" ? "Dubai" : "Goa"}
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     className="bg-secondary/40 h-10"
@@ -1798,7 +1853,7 @@ export const AdminPropertyForm: React.FC = () => {
                   </Label>
                   <Input
                     id="country"
-                    placeholder="e.g. India, United Arab Emirates"
+                    placeholder={marketScope === "INTERNATIONAL" ? "United Arab Emirates" : "India"}
                     value={country}
                     onChange={(e) => setCountry(e.target.value)}
                     className="bg-secondary/40 h-10"
@@ -1811,7 +1866,7 @@ export const AdminPropertyForm: React.FC = () => {
                   </Label>
                   <Input
                     id="community"
-                    placeholder="e.g. Candolim Beachfront, Palm Jumeirah"
+                    placeholder={marketScope === "INTERNATIONAL" ? "Palm Jumeirah" : "Candolim Beachfront"}
                     value={community}
                     onChange={(e) => setCommunity(e.target.value)}
                     className="bg-secondary/40 h-10"
@@ -1824,7 +1879,7 @@ export const AdminPropertyForm: React.FC = () => {
                   </Label>
                   <Input
                     id="addressLine"
-                    placeholder="e.g. Plot 42, Coastal Highway"
+                    placeholder="Plot 42, Coastal Highway"
                     value={addressLine}
                     onChange={(e) => setAddressLine(e.target.value)}
                     className="bg-secondary/40 h-10"
@@ -1839,7 +1894,7 @@ export const AdminPropertyForm: React.FC = () => {
                     id="latitude"
                     type="number"
                     step="any"
-                    placeholder="15.5186"
+                    placeholder={marketScope === "INTERNATIONAL" ? "25.1124" : "15.5186"}
                     value={latitude}
                     onChange={(e) => setLatitude(e.target.value)}
                     className="bg-secondary/40 h-10 font-mono"
@@ -1854,7 +1909,7 @@ export const AdminPropertyForm: React.FC = () => {
                     id="longitude"
                     type="number"
                     step="any"
-                    placeholder="73.7634"
+                    placeholder={marketScope === "INTERNATIONAL" ? "55.1390" : "73.7634"}
                     value={longitude}
                     onChange={(e) => setLongitude(e.target.value)}
                     className="bg-secondary/40 h-10 font-mono"
@@ -1868,7 +1923,7 @@ export const AdminPropertyForm: React.FC = () => {
                   <Input
                     id="mapUrl"
                     type="text"
-                    placeholder='e.g. <iframe src="https://www.google.com/maps/embed?pb=..."></iframe>'
+                    placeholder='<iframe src="https://www.google.com/maps/embed?pb=..."></iframe>'
                     value={googleMapUrl}
                     onChange={(e) => setGoogleMapUrl(e.target.value)}
                     className="bg-secondary/40 h-10"

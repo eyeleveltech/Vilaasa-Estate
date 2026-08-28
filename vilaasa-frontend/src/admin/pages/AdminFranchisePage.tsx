@@ -1,22 +1,27 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft,
-  DollarSign,
-  Sparkles,
   Save,
-  BookOpen,
-  Layers,
-  CheckCircle2,
   Upload,
   Trash2,
+  Image as ImageIcon,
+  Sparkles,
+  ExternalLink,
+  CheckCircle2,
+  Layers,
+  DollarSign,
+  BookOpen,
   Plus,
   Star,
-  Image as ImageIcon,
 } from "lucide-react";
-import toast from "react-hot-toast";
-import api from "../../api/axios";
-import { Property, ApiResponse } from "../types/admin.types";
+import { toast } from "react-hot-toast";
+import api from "@/api/axios";
+import { ApiResponse, Property } from "../types/admin.types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
 import {
   FranchisePageData,
   DEFAULT_PAGE_DATA,
@@ -34,204 +39,29 @@ import {
   normalizeFranchisePageData,
   prepareFranchisePagePayload,
 } from "../lib/franchisePageHelpers";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-
-/* -------------------------------------------------------------------------- */
-/*                                HELPER UTILS                                */
-/* -------------------------------------------------------------------------- */
-
-const parseValueToNumber = (val: string | undefined, defaultNum: number): number => {
-  if (!val) return defaultNum;
-  const cleaned = val.replace(/[^0-9.]/g, "");
-  const num = parseFloat(cleaned);
-  if (isNaN(num)) return defaultNum;
-  if (/cr/i.test(val)) return num * 10000000;
-  if (/l|lac|lakh/i.test(val)) return num * 100000;
-  if (/k/i.test(val)) return num * 1000;
-  if (/m/i.test(val)) return num * 1000000;
-  return num;
-};
 
 /* -------------------------------------------------------------------------- */
 /*                               MAIN COMPONENT                               */
 /* -------------------------------------------------------------------------- */
 
-export const AdminFranchiseForm: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+export const AdminFranchisePage: React.FC = () => {
+  const { id: propertyId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const isEditMode = Boolean(id);
 
-  const [property, setProperty] = useState<Property | null>(null);
-  const [pageData, setPageData] = useState<FranchisePageData>(DEFAULT_PAGE_DATA);
-  const [loading, setLoading] = useState<boolean>(isEditMode);
+  const [franchise, setFranchise] = useState<Property | null>(null);
+  const [data, setData] = useState<FranchisePageData>(DEFAULT_PAGE_DATA);
+  const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [uploadingGallery, setUploadingGallery] = useState<boolean>(false);
 
-  /* -------------------------- Fetch Initial Data -------------------------- */
-  const fetchFranchiseData = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const [propRes, pageRes] = await Promise.all([
-        api.get<ApiResponse<Property>>(`/properties/${id}`),
-        api.get<ApiResponse<FranchisePageData | null>>(`/franchise/${id}/page`),
-      ]);
-
-      if (propRes.data.success && propRes.data.data) {
-        setProperty(propRes.data.data);
-      }
-
-      if (pageRes.data.success && pageRes.data.data) {
-        setPageData(normalizeFranchisePageData(pageRes.data.data));
-      }
-    } catch (err) {
-      console.error("Failed to load franchise details:", err);
-      toast.error("Could not load franchise data. Please check connection.");
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    void fetchFranchiseData();
-  }, [fetchFranchiseData]);
-
-  /* ------------------------ Array Mutator Handlers ------------------------ */
-  // Section 2: Hero Financial Metrics
-  const handleAddHeroMetric = () => {
-    const newBadge: MetricBadge = {
-      id: `hero-${Date.now()}`,
-      label: "",
-      value: "",
-    };
-    setPageData((p) => ({ ...p, heroMetrics: [...p.heroMetrics, newBadge] }));
+  // Helper setter
+  const setField = <K extends keyof FranchisePageData>(key: K, value: FranchisePageData[K]) => {
+    setData((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleRemoveHeroMetric = (index: number) => {
-    setPageData((p) => ({
-      ...p,
-      heroMetrics: p.heroMetrics.filter((_, idx) => idx !== index),
-    }));
-  };
-
-  const handleUpdateHeroMetric = (index: number, field: "label" | "value", val: string) => {
-    const formattedVal = field === "value" ? autoFormatCurrencySymbol(val) : val;
-    setPageData((p) => {
-      const updated = [...p.heroMetrics];
-      if (updated[index]) {
-        updated[index] = { ...updated[index], [field]: formattedVal };
-      }
-      return { ...p, heroMetrics: updated };
-    });
-  };
-
-  // Section 4: Financial Blueprint
-  const handleAddBlueprintMetric = () => {
-    const newMetric: MetricBadge = {
-      id: `bp-${Date.now()}`,
-      label: "",
-      value: "",
-    };
-    setPageData((p) => ({ ...p, blueprintMetrics: [...p.blueprintMetrics, newMetric] }));
-  };
-
-  const handleRemoveBlueprintMetric = (index: number) => {
-    setPageData((p) => ({
-      ...p,
-      blueprintMetrics: p.blueprintMetrics.filter((_, idx) => idx !== index),
-    }));
-  };
-
-  const handleUpdateBlueprintMetric = (index: number, field: "label" | "value", val: string) => {
-    const formattedVal = field === "value" ? autoFormatCurrencySymbol(val) : val;
-    setPageData((p) => {
-      const updated = [...p.blueprintMetrics];
-      if (updated[index]) {
-        updated[index] = { ...updated[index], [field]: formattedVal };
-      }
-      return { ...p, blueprintMetrics: updated };
-    });
-  };
-
-  // Section 5: Comprehensive Ecosystem Cards
-  const handleAddEcosystemCard = () => {
-    const newCard: SupportCard = {
-      id: `eco-${Date.now()}`,
-      title: "",
-      description: "",
-      icon: "storefront",
-    };
-    setPageData((p) => ({ ...p, ecosystemCards: [...p.ecosystemCards, newCard] }));
-  };
-
-  const handleRemoveEcosystemCard = (index: number) => {
-    setPageData((p) => ({
-      ...p,
-      ecosystemCards: p.ecosystemCards.filter((_, idx) => idx !== index),
-    }));
-  };
-
-  const handleUpdateEcosystemCard = (
-    index: number,
-    field: "title" | "description" | "icon",
-    val: string,
-    detectedIcon?: string
-  ) => {
-    setPageData((p) => {
-      const updated = [...p.ecosystemCards];
-      if (updated[index]) {
-        updated[index] = {
-          ...updated[index],
-          [field]: val,
-          ...(detectedIcon ? { icon: detectedIcon } : {}),
-        };
-      }
-      return { ...p, ecosystemCards: updated };
-    });
-  };
-
-  // Section 6: Key Benefits (The FOCO Advantage)
-  const handleAddBenefitCard = () => {
-    const newCard: BenefitCard = {
-      id: `ben-${Date.now()}`,
-      title: "",
-      description: "",
-      icon: "volunteer_activism",
-    };
-    setPageData((p) => ({ ...p, benefitCards: [...p.benefitCards, newCard] }));
-  };
-
-  const handleRemoveBenefitCard = (index: number) => {
-    setPageData((p) => ({
-      ...p,
-      benefitCards: p.benefitCards.filter((_, idx) => idx !== index),
-    }));
-  };
-
-  const handleUpdateBenefitCard = (
-    index: number,
-    field: "title" | "description" | "icon",
-    val: string,
-    detectedIcon?: string
-  ) => {
-    setPageData((p) => {
-      const updated = [...p.benefitCards];
-      if (updated[index]) {
-        updated[index] = {
-          ...updated[index],
-          [field]: val,
-          ...(detectedIcon ? { icon: detectedIcon } : {}),
-        };
-      }
-      return { ...p, benefitCards: updated };
-    });
-  };
-
-  // Section 7: Hero Image Selection Toggle
+  // Hero Image Selection Toggle
   const handleToggleHeroImage = (index: number) => {
-    setPageData((prev) => {
+    setData((prev) => {
       const target = prev.galleryImages[index];
       if (!target) return prev;
       const isCurrentlyHero = Boolean(target.isHero || (prev.heroImage && prev.heroImage === target.url));
@@ -249,134 +79,233 @@ export const AdminFranchiseForm: React.FC = () => {
     });
   };
 
-  /* ---------------------------- Save Handler ------------------------------ */
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  // Section 2: Hero Financial Metrics
+  const handleAddHeroMetric = () => {
+    const newBadge: MetricBadge = {
+      id: `hero-${Date.now()}`,
+      label: "",
+      value: "",
+    };
+    setData((p) => ({ ...p, heroMetrics: [...p.heroMetrics, newBadge] }));
+  };
 
-    const resolvedName = pageData.mainHeadline.trim() || pageData.pageTitle.trim();
-    if (!resolvedName || resolvedName.length < 2) {
-      toast.error("Please enter a Main Headline or Page Title in Section 1 (min. 2 characters)");
-      return;
-    }
+  const handleRemoveHeroMetric = (index: number) => {
+    setData((p) => ({
+      ...p,
+      heroMetrics: p.heroMetrics.filter((_, idx) => idx !== index),
+    }));
+  };
 
-    const minTicket = parseValueToNumber(
-      pageData.heroMetrics[0]?.value || pageData.blueprintMetrics[1]?.value,
-      35000000
-    );
-    const totalCost = parseValueToNumber(pageData.blueprintMetrics[0]?.value, 120000000);
-    const roi = parseValueToNumber(pageData.heroMetrics[1]?.value, 24);
-    const payback = parseValueToNumber(pageData.heroMetrics[2]?.value, 3);
-    const lockIn = parseValueToNumber(pageData.blueprintMetrics[2]?.value, 2);
+  const handleUpdateHeroMetric = (index: number, field: "label" | "value", val: string) => {
+    const formattedVal = field === "value" ? autoFormatCurrencySymbol(val) : val;
+    setData((p) => {
+      const updated = [...p.heroMetrics];
+      if (updated[index]) {
+        updated[index] = { ...updated[index], [field]: formattedVal };
+      }
+      return { ...p, heroMetrics: updated };
+    });
+  };
 
-    const cleanDescription =
-      pageData.visionDescription.trim().length >= 10
-        ? pageData.visionDescription.trim()
-        : pageData.subheading.trim().length >= 10
-        ? pageData.subheading.trim()
-        : `${resolvedName} - Luxury franchise asset opportunity with institutional management.`;
+  // Section 4: Financial Blueprint
+  const handleAddBlueprintMetric = () => {
+    const newMetric: MetricBadge = {
+      id: `bp-${Date.now()}`,
+      label: "",
+      value: "",
+    };
+    setData((p) => ({ ...p, blueprintMetrics: [...p.blueprintMetrics, newMetric] }));
+  };
 
-    const finalPagePayload = prepareFranchisePagePayload(pageData);
-    const heroImageUrl = finalPagePayload.heroImage;
+  const handleRemoveBlueprintMetric = (index: number) => {
+    setData((p) => ({
+      ...p,
+      blueprintMetrics: p.blueprintMetrics.filter((_, idx) => idx !== index),
+    }));
+  };
 
-    const propertyPayload = {
-      name: resolvedName,
-      type: "FRANCHISE",
-      customType: "Wellness Resort",
-      tagline: pageData.subheading.trim() || undefined,
-      description: cleanDescription,
-      price: minTicket,
-      minTicketSize: minTicket,
-      totalProjectCost: totalCost,
-      currency: "INR" as const,
-      status: "AVAILABLE" as const,
-      franchiseModel: "FOCO" as const,
-      expectedAnnualRoi: roi,
-      rentalYieldPercent: roi,
-      paybackPeriodYears: payback,
-      lockInPeriodYears: lockIn,
-      yieldPayoutFrequency: "QUARTERLY" as const,
-      location: {
-        city: "Wayanad",
-        country: "India",
-      },
-      ...(pageData.galleryImages.length > 0
-        ? {
-            media: pageData.galleryImages.map((img, idx) => ({
-              url: img.url,
-              altText: img.caption || `${resolvedName} Image ${idx + 1}`,
-              orderIndex: idx,
-              isFeatured: Boolean(
-                img.isHero || (heroImageUrl && img.url === heroImageUrl) || idx === 0
-              ),
-            })),
-          }
-        : {}),
+  const handleUpdateBlueprintMetric = (index: number, field: "label" | "value", val: string) => {
+    const formattedVal = field === "value" ? autoFormatCurrencySymbol(val) : val;
+    setData((p) => {
+      const updated = [...p.blueprintMetrics];
+      if (updated[index]) {
+        updated[index] = { ...updated[index], [field]: formattedVal };
+      }
+      return { ...p, blueprintMetrics: updated };
+    });
+  };
+
+  // Section 5: Comprehensive Ecosystem Cards
+  const handleAddEcosystemCard = () => {
+    const newCard: SupportCard = {
+      id: `eco-${Date.now()}`,
+      title: "",
+      description: "",
+      icon: "storefront",
+    };
+    setData((p) => ({ ...p, ecosystemCards: [...p.ecosystemCards, newCard] }));
+  };
+
+  const handleRemoveEcosystemCard = (index: number) => {
+    setData((p) => ({
+      ...p,
+      ecosystemCards: p.ecosystemCards.filter((_, idx) => idx !== index),
+    }));
+  };
+
+  const handleUpdateEcosystemCard = (
+    index: number,
+    field: "title" | "description" | "icon",
+    val: string,
+    detectedIcon?: string
+  ) => {
+    setData((p) => {
+      const updated = [...p.ecosystemCards];
+      if (updated[index]) {
+        updated[index] = {
+          ...updated[index],
+          [field]: val,
+          ...(detectedIcon ? { icon: detectedIcon } : {}),
+        };
+      }
+      return { ...p, ecosystemCards: updated };
+    });
+  };
+
+  // Section 6: Key Benefits Cards
+  const handleAddBenefitCard = () => {
+    const newBenefit: BenefitCard = {
+      id: `ben-${Date.now()}`,
+      title: "",
+      description: "",
+      icon: "volunteer_activism",
+    };
+    setData((p) => ({ ...p, benefitCards: [...p.benefitCards, newBenefit] }));
+  };
+
+  const handleRemoveBenefitCard = (index: number) => {
+    setData((p) => ({
+      ...p,
+      benefitCards: p.benefitCards.filter((_, idx) => idx !== index),
+    }));
+  };
+
+  const handleUpdateBenefitCard = (
+    index: number,
+    field: "title" | "description" | "icon",
+    val: string,
+    detectedIcon?: string
+  ) => {
+    setData((p) => {
+      const updated = [...p.benefitCards];
+      if (updated[index]) {
+        updated[index] = {
+          ...updated[index],
+          [field]: val,
+          ...(detectedIcon ? { icon: detectedIcon } : {}),
+        };
+      }
+      return { ...p, benefitCards: updated };
+    });
+  };
+
+  // Load existing content & franchise metadata
+  useEffect(() => {
+    if (!propertyId) return;
+
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const propRes = await api.get<ApiResponse<Property>>(`/properties/${propertyId}`);
+        if (propRes.data.success && propRes.data.data) {
+          setFranchise(propRes.data.data);
+        }
+
+        const pageRes = await api.get<ApiResponse<FranchisePageData | null>>(
+          `/franchise/${propertyId}/page`
+        );
+        if (pageRes.data.success && pageRes.data.data) {
+          const loaded = pageRes.data.data;
+          setData(normalizeFranchisePageData(loaded));
+        }
+      } catch (err) {
+        console.error("Error loading franchise page content:", err);
+        toast.error("Failed to load franchise content");
+      } finally {
+        setLoading(false);
+      }
     };
 
+    void loadData();
+  }, [propertyId]);
+
+  // Save all changes
+  const handleSave = async () => {
+    if (!propertyId) return;
     setSaving(true);
-    const toastId = toast.loading(isEditMode ? "Updating franchise..." : "Creating franchise...");
 
     try {
-      if (isEditMode && id) {
-        await api.put(`/properties/${id}`, propertyPayload);
-        await api.put(`/franchise/${id}/page`, finalPagePayload);
-        toast.success("Franchise updated successfully!", { id: toastId });
-        navigate(`/admin/franchises/${id}`);
+      const finalPayload = prepareFranchisePagePayload(data);
+      const res = await api.put<ApiResponse<FranchisePageData>>(
+        `/franchise/${propertyId}/page`,
+        finalPayload
+      );
+      if (res.data.success) {
+        toast.success("Franchise page content saved successfully!");
       } else {
-        const res = await api.post<ApiResponse<Property>>("/properties", propertyPayload);
-        if (res.data.success && res.data.data) {
-          const newId = res.data.data.id;
-          await api.put(`/franchise/${newId}/page`, finalPagePayload);
-          toast.success("Franchise registered successfully!", { id: toastId });
-          navigate(`/admin/franchises/${newId}`);
-        } else {
-          throw new Error(res.data.message || "Failed to create franchise");
-        }
+        throw new Error(res.data.message || "Save failed");
       }
     } catch (err: unknown) {
-      console.error("Save franchise error:", err);
-      const resp = (err as { response?: { data?: { message?: string; errors?: string[] } } })?.response?.data;
-      let errMsg = resp?.message || (err instanceof Error ? err.message : "Failed to save franchise");
-      if (resp?.errors && Array.isArray(resp.errors)) {
-        errMsg = resp.errors.join(", ");
-      }
-      toast.error(errMsg, { id: toastId });
+      console.error("Error saving franchise page:", err);
+      const errMsg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Failed to save page changes";
+      toast.error(errMsg);
     } finally {
       setSaving(false);
     }
   };
 
+  // Gallery multi-image upload handler
   const handleGalleryUpload = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || !propertyId) return;
     setUploadingGallery(true);
-    const toastId = toast.loading(`Uploading ${files.length} image(s)...`);
+
     try {
       const newItems: GalleryItem[] = [];
+
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const formData = new FormData();
         formData.append("file", file);
         formData.append("folder", "vilaasa/franchises/gallery");
-        const res = await api.post<ApiResponse<{ url: string }>>(
+
+        const res = await api.post<ApiResponse<{ url: string; id?: string }>>(
           "/media/upload",
           formData,
           { headers: { "Content-Type": "multipart/form-data" } }
         );
+
         if (res.data.success && res.data.data?.url) {
           const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
           newItems.push({
             id: `gal-${Date.now()}-${i}`,
             url: res.data.data.url,
             caption: cleanName.charAt(0).toUpperCase() + cleanName.slice(1),
-            orderIndex: pageData.galleryImages.length + i,
+            orderIndex: data.galleryImages.length + i,
           });
         }
       }
-      setPageData((p) => ({ ...p, galleryImages: [...p.galleryImages, ...newItems] }));
-      toast.success(`${newItems.length} image(s) uploaded!`, { id: toastId });
-    } catch (err) {
+
+      setData((prev) => ({
+        ...prev,
+        galleryImages: [...prev.galleryImages, ...newItems],
+      }));
+
+      toast.success(`${newItems.length} gallery image(s) uploaded! Remember to save.`);
+    } catch (err: unknown) {
       console.error("Gallery upload error:", err);
-      toast.error("Gallery upload failed. Make sure the backend server is running.", { id: toastId });
+      toast.error("Failed to upload gallery images");
     } finally {
       setUploadingGallery(false);
     }
@@ -384,72 +313,82 @@ export const AdminFranchiseForm: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex h-96 flex-col items-center justify-center gap-3 text-muted-foreground">
+      <div className="flex h-96 flex-col items-center justify-center space-y-4">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <p className="text-xs">Loading franchise details...</p>
+        <p className="text-sm text-muted-foreground">Loading bespoke page editor...</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-20">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-5">
-        <div>
+    <div className="mx-auto max-w-5xl space-y-8 pb-24">
+      {/* Top Bar Navigation */}
+      <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
           <Link
             to="/admin/franchises"
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground mb-1"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             <span>Back to Franchises</span>
           </Link>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              {isEditMode
-                ? `Edit Franchise — ${pageData.mainHeadline || pageData.pageTitle || "Opportunity"}`
-                : "Create Franchise"}
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-light tracking-tight text-foreground sm:text-3xl">
+              {franchise?.name || "Franchise Showcase Page"}
             </h1>
-            <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">
+            <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
               <Sparkles className="h-3 w-3" />
-              <span>FOCO Commercial</span>
+              <span>7 Public Sections</span>
             </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {isEditMode
-              ? "Customize dynamic metrics, editorial story, support ecosystem, and gallery images."
-              : "Register and configure a luxury franchise asset opportunity for global investors."}
+          <p className="text-xs text-muted-foreground">
+            Configure dynamic badges, editorial narrative, support ecosystem, and gallery images.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => navigate(isEditMode ? `/admin/franchises/${id}` : "/admin/franchises")}
-            className="text-xs"
+            onClick={() => navigate(`/admin/franchises/${propertyId}`)}
           >
             Cancel
           </Button>
 
+          {franchise && (
+            <Button
+              type="button"
+              asChild
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs"
+            >
+              <Link to={`/franchise/${franchise.slug || franchise.id}`} target="_blank">
+                <ExternalLink className="h-3.5 w-3.5" />
+                <span>View Public Page</span>
+              </Link>
+            </Button>
+          )}
+
           <Button
             type="button"
-            onClick={() => handleSubmit()}
+            onClick={handleSave}
             disabled={saving}
             size="sm"
-            className="gap-1.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 font-medium px-4"
+            className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 font-medium px-4"
           >
             {saving ? (
               <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
             ) : (
               <Save className="h-3.5 w-3.5" />
             )}
-            <span>{isEditMode ? "Save Changes" : "Create Franchise"}</span>
+            <span>Save All Changes</span>
           </Button>
         </div>
       </div>
 
-      {/* 7-Section Page Content Body */}
+      {/* 7 Editable Sections */}
       <div className="space-y-8">
         {/* SECTION 1: HERO */}
         <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
@@ -463,18 +402,18 @@ export const AdminFranchiseForm: React.FC = () => {
             <div>
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Page Title (SEO)</Label>
               <Input
-                value={pageData.pageTitle}
-                onChange={(e) => setPageData((p) => ({ ...p, pageTitle: e.target.value }))}
+                value={data.pageTitle}
+                onChange={(e) => setField("pageTitle", e.target.value)}
                 placeholder="e.g. Wellness Resorts Kerala — Ultra-luxury healing experiences"
                 className="bg-secondary/40 h-10 text-sm mt-1"
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Main Headline *</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Main Headline</Label>
                 <Input
-                  value={pageData.mainHeadline}
-                  onChange={(e) => setPageData((p) => ({ ...p, mainHeadline: e.target.value }))}
+                  value={data.mainHeadline}
+                  onChange={(e) => setField("mainHeadline", e.target.value)}
                   placeholder="e.g. Wellness Resorts"
                   className="bg-secondary/40 h-10 text-sm mt-1"
                 />
@@ -483,8 +422,8 @@ export const AdminFranchiseForm: React.FC = () => {
                 <Label className="text-xs text-muted-foreground uppercase tracking-wider">Hero Subheading</Label>
                 <textarea
                   rows={2}
-                  value={pageData.subheading}
-                  onChange={(e) => setPageData((p) => ({ ...p, subheading: e.target.value }))}
+                  value={data.subheading}
+                  onChange={(e) => setField("subheading", e.target.value)}
                   placeholder="e.g. Experience authentic Ayurvedic treatments..."
                   className="w-full bg-secondary/40 border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary mt-1 resize-y"
                 />
@@ -512,13 +451,13 @@ export const AdminFranchiseForm: React.FC = () => {
             </Button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {pageData.heroMetrics.map((metric, idx) => {
+            {data.heroMetrics.map((metric, idx) => {
               const heroPh = HERO_PLACEHOLDERS[idx] || { label: "e.g. METRIC NAME", value: "e.g. ₹1.5 Cr / 18%" };
               return (
                 <div key={metric.id || idx} className="relative p-3.5 rounded-lg border border-border/60 bg-secondary/20 space-y-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Badge #{idx + 1}</Label>
-                    {pageData.heroMetrics.length > 1 && (
+                    {data.heroMetrics.length > 1 && (
                       <button
                         type="button"
                         onClick={() => handleRemoveHeroMetric(idx)}
@@ -565,8 +504,8 @@ export const AdminFranchiseForm: React.FC = () => {
             <div>
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Vision Headline</Label>
               <Input
-                value={pageData.visionHeadline}
-                onChange={(e) => setPageData((p) => ({ ...p, visionHeadline: e.target.value }))}
+                value={data.visionHeadline}
+                onChange={(e) => setField("visionHeadline", e.target.value)}
                 placeholder="e.g. Where culinary artistry meets intelligent capital."
                 className="bg-secondary/40 h-10 text-sm mt-1"
               />
@@ -575,8 +514,8 @@ export const AdminFranchiseForm: React.FC = () => {
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Vision Description</Label>
               <textarea
                 rows={4}
-                value={pageData.visionDescription}
-                onChange={(e) => setPageData((p) => ({ ...p, visionDescription: e.target.value }))}
+                value={data.visionDescription}
+                onChange={(e) => setField("visionDescription", e.target.value)}
                 placeholder="Detail the brand story, wellness philosophy, and market opportunity..."
                 className="w-full bg-secondary/40 border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary mt-1 resize-y"
               />
@@ -603,13 +542,13 @@ export const AdminFranchiseForm: React.FC = () => {
             </Button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {pageData.blueprintMetrics.map((metric, idx) => {
+            {data.blueprintMetrics.map((metric, idx) => {
               const bpPh = BLUEPRINT_PLACEHOLDERS[idx] || { label: "e.g. METRIC PARAMETER", value: "e.g. ₹5 Cr / 5 Years" };
               return (
                 <div key={metric.id || idx} className="relative p-3.5 rounded-lg border border-border/60 bg-secondary/20 space-y-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Metric #{idx + 1}</Label>
-                    {pageData.blueprintMetrics.length > 1 && (
+                    {data.blueprintMetrics.length > 1 && (
                       <button
                         type="button"
                         onClick={() => handleRemoveBlueprintMetric(idx)}
@@ -667,8 +606,8 @@ export const AdminFranchiseForm: React.FC = () => {
               <div>
                 <Label className="text-xs text-muted-foreground uppercase tracking-wider">Section Eyebrow</Label>
                 <Input
-                  value={pageData.ecosystemSubheading}
-                  onChange={(e) => setPageData((p) => ({ ...p, ecosystemSubheading: e.target.value }))}
+                  value={data.ecosystemSubheading}
+                  onChange={(e) => setField("ecosystemSubheading", e.target.value)}
                   placeholder="e.g. Comprehensive Ecosystem"
                   className="bg-secondary/40 h-10 text-sm mt-1"
                 />
@@ -676,8 +615,8 @@ export const AdminFranchiseForm: React.FC = () => {
               <div>
                 <Label className="text-xs text-muted-foreground uppercase tracking-wider">Section Heading</Label>
                 <Input
-                  value={pageData.ecosystemHeading}
-                  onChange={(e) => setPageData((p) => ({ ...p, ecosystemHeading: e.target.value }))}
+                  value={data.ecosystemHeading}
+                  onChange={(e) => setField("ecosystemHeading", e.target.value)}
                   placeholder="e.g. Support & Training"
                   className="bg-secondary/40 h-10 text-sm mt-1"
                 />
@@ -687,15 +626,15 @@ export const AdminFranchiseForm: React.FC = () => {
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Section Description</Label>
               <textarea
                 rows={2}
-                value={pageData.ecosystemDescription}
-                onChange={(e) => setPageData((p) => ({ ...p, ecosystemDescription: e.target.value }))}
+                value={data.ecosystemDescription}
+                onChange={(e) => setField("ecosystemDescription", e.target.value)}
                 placeholder="e.g. Turnkey institutional development covering location scouting, biophilic architectural styling, therapist certification, and international marketing."
                 className="w-full bg-secondary/40 border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary mt-1 resize-y"
               />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {pageData.ecosystemCards.map((card, idx) => {
+            {data.ecosystemCards.map((card, idx) => {
               const ecoPh = ECOSYSTEM_PLACEHOLDERS[idx] || { title: "e.g. Support Module Title", description: "e.g. Description of operational support..." };
               return (
                 <div key={card.id || idx} className="p-4 rounded-lg border border-border bg-secondary/20 space-y-3">
@@ -718,7 +657,7 @@ export const AdminFranchiseForm: React.FC = () => {
                           </option>
                         ))}
                       </select>
-                      {pageData.ecosystemCards.length > 1 && (
+                      {data.ecosystemCards.length > 1 && (
                         <button
                           type="button"
                           onClick={() => handleRemoveEcosystemCard(idx)}
@@ -780,8 +719,8 @@ export const AdminFranchiseForm: React.FC = () => {
             <div>
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Section Subheading</Label>
               <Input
-                value={pageData.benefitsSubheading}
-                onChange={(e) => setPageData((p) => ({ ...p, benefitsSubheading: e.target.value }))}
+                value={data.benefitsSubheading}
+                onChange={(e) => setField("benefitsSubheading", e.target.value)}
                 placeholder="e.g. The FOCO Advantage"
                 className="bg-secondary/40 h-10 text-sm mt-1"
               />
@@ -790,15 +729,15 @@ export const AdminFranchiseForm: React.FC = () => {
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Description</Label>
               <textarea
                 rows={2}
-                value={pageData.benefitsDescription}
-                onChange={(e) => setPageData((p) => ({ ...p, benefitsDescription: e.target.value }))}
+                value={data.benefitsDescription}
+                onChange={(e) => setField("benefitsDescription", e.target.value)}
                 placeholder="e.g. Franchise Owned, Company Operated. A completely hands-off investment model designed for busy professionals."
                 className="w-full bg-secondary/40 border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary mt-1 resize-y"
               />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pageData.benefitCards.map((card, idx) => {
+            {data.benefitCards.map((card, idx) => {
               const benPh = BENEFIT_PLACEHOLDERS[idx] || { title: "e.g. Benefit Title", description: "e.g. Description of investor advantage..." };
               return (
                 <div key={card.id || idx} className="p-4 rounded-lg border border-border bg-secondary/20 space-y-3">
@@ -821,7 +760,7 @@ export const AdminFranchiseForm: React.FC = () => {
                           </option>
                         ))}
                       </select>
-                      {pageData.benefitCards.length > 1 && (
+                      {data.benefitCards.length > 1 && (
                         <button
                           type="button"
                           onClick={() => handleRemoveBenefitCard(idx)}
@@ -888,14 +827,14 @@ export const AdminFranchiseForm: React.FC = () => {
               />
             </label>
           </div>
-          {pageData.galleryImages.length === 0 ? (
+          {data.galleryImages.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground text-xs border border-border/40 rounded-lg bg-secondary/10">
               No gallery images yet.
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {pageData.galleryImages.map((img, idx) => {
-                const isHero = Boolean(img.isHero || (pageData.heroImage && pageData.heroImage === img.url));
+              {data.galleryImages.map((img, idx) => {
+                const isHero = Boolean(img.isHero || (data.heroImage && data.heroImage === img.url));
                 return (
                   <div key={img.id || idx} className={`rounded-lg border bg-secondary/20 overflow-hidden flex flex-col transition-all ${isHero ? 'border-primary shadow-sm shadow-primary/20 ring-1 ring-primary' : 'border-border'}`}>
                     <div className="relative aspect-video bg-black/40 overflow-hidden">
@@ -909,7 +848,7 @@ export const AdminFranchiseForm: React.FC = () => {
                       <button
                         type="button"
                         onClick={() =>
-                          setPageData((p) => {
+                          setData((p) => {
                             const remaining = p.galleryImages.filter((_, i) => i !== idx);
                             const nextHero = isHero ? (remaining[0]?.url || "") : p.heroImage;
                             return {
@@ -929,9 +868,9 @@ export const AdminFranchiseForm: React.FC = () => {
                       <Input
                         value={img.caption}
                         onChange={(e) => {
-                          const updated = [...pageData.galleryImages];
+                          const updated = [...data.galleryImages];
                           updated[idx] = { ...updated[idx], caption: e.target.value };
-                          setPageData((p) => ({ ...p, galleryImages: updated }));
+                          setData((p) => ({ ...p, galleryImages: updated }));
                         }}
                         placeholder="Image caption"
                         className="bg-secondary/50 h-8 text-xs"
@@ -962,7 +901,7 @@ export const AdminFranchiseForm: React.FC = () => {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => navigate(isEditMode ? `/admin/franchises/${id}` : "/admin/franchises")}
+            onClick={() => navigate(`/admin/franchises/${propertyId}`)}
             className="text-xs"
           >
             Cancel
@@ -970,7 +909,7 @@ export const AdminFranchiseForm: React.FC = () => {
 
           <Button
             type="button"
-            onClick={() => handleSubmit()}
+            onClick={handleSave}
             disabled={saving}
             size="lg"
             className="gap-2 text-xs bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase tracking-wider px-8"
@@ -980,7 +919,7 @@ export const AdminFranchiseForm: React.FC = () => {
             ) : (
               <Save className="h-4 w-4" />
             )}
-            <span>{isEditMode ? "Save Changes" : "Create Franchise"}</span>
+            <span>Save All Changes</span>
           </Button>
         </div>
       </div>
@@ -988,4 +927,4 @@ export const AdminFranchiseForm: React.FC = () => {
   );
 };
 
-export default AdminFranchiseForm;
+export default AdminFranchisePage;

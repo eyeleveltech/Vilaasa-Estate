@@ -6,11 +6,13 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { ShareButtons } from "@/components/ShareButtons";
 import { useToast } from "@/hooks/use-toast";
-import Gallery from "@/components/Gallery";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useFranchise } from "@/hooks/useNewFranchise";
 import { InquiryFormDialog } from "@/components/InquiryFormDialog";
 import { trackSilentPropertyView, isOtpVerified } from "@/lib/otpAccess";
+import api from "@/api/axios";
+import { FranchisePageData, GalleryItem } from "@/admin/types/admin.types";
+import { normalizeFranchisePageData } from "@/admin/lib/franchisePageHelpers";
 
 const FranchiseDetail = () => {
   const navigate = useNavigate();
@@ -22,6 +24,19 @@ const FranchiseDetail = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState<boolean>(() => isOtpVerified());
   const [inquiryDialogOpen, setInquiryDialogOpen] = useState<boolean>(() => !isOtpVerified());
+  const [pageContent, setPageContent] = useState<FranchisePageData | null>(null);
+
+  useEffect(() => {
+    if (!franchise?.id) return;
+    api
+      .get(`/franchise/${franchise.id}/page`)
+      .then((res) => {
+        if (res.data?.success && res.data?.data) {
+          setPageContent(normalizeFranchisePageData(res.data.data));
+        }
+      })
+      .catch(() => {});
+  }, [franchise?.id]);
 
   useEffect(() => {
     if (isUnlocked && franchise?.id) {
@@ -75,6 +90,74 @@ const FranchiseDetail = () => {
     setIsSubmitting(false);
   };
 
+  const supportCards =
+    pageContent?.ecosystemCards?.length
+      ? pageContent.ecosystemCards
+          .filter((c) => c.title)
+          .map((c) => ({
+            name: c.title,
+            description: c.description,
+            icon: c.icon || "storefront",
+          }))
+      : pageContent?.support1Title
+      ? [
+          {
+            name: pageContent.support1Title,
+            description: pageContent.support1Description,
+            icon: pageContent.support1Icon || "storefront",
+          },
+          {
+            name: pageContent.support2Title,
+            description: pageContent.support2Description,
+            icon: pageContent.support2Icon || "design_services",
+          },
+          {
+            name: pageContent.support3Title,
+            description: pageContent.support3Description,
+            icon: pageContent.support3Icon || "school",
+          },
+          {
+            name: pageContent.support4Title,
+            description: pageContent.support4Description,
+            icon: pageContent.support4Icon || "campaign",
+          },
+        ].filter((c) => c.name)
+      : franchise?.support_training || [];
+
+  const benefitCards =
+    pageContent?.benefitCards?.length
+      ? pageContent.benefitCards
+          .filter((b) => b.title)
+          .map((b) => ({
+            name: b.title,
+            description: b.description,
+            icon: b.icon || "volunteer_activism",
+          }))
+      : pageContent?.benefit1Title
+      ? [
+          {
+            name: pageContent.benefit1Title,
+            description: pageContent.benefit1Description,
+            icon: pageContent.benefit1Icon || "volunteer_activism",
+          },
+          {
+            name: pageContent.benefit2Title,
+            description: pageContent.benefit2Description,
+            icon: pageContent.benefit2Icon || "shield",
+          },
+          {
+            name: pageContent.benefit3Title,
+            description: pageContent.benefit3Description,
+            icon: pageContent.benefit3Icon || "trending_up",
+          },
+        ].filter((b) => b.name)
+      : franchise?.advantages || [];
+
+  const heroImageSrc =
+    pageContent?.heroImage ||
+    pageContent?.galleryImages?.find((img) => img.isHero)?.url ||
+    franchise.heroImage;
+
   return (
     <div className="overflow-x-hidden bg-background">
       <Navbar />
@@ -84,7 +167,7 @@ const FranchiseDetail = () => {
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent z-10" />
           <img
-            src={franchise.heroImage}
+            src={heroImageSrc}
             alt={franchise.name}
             className="w-full h-full object-cover"
           />
@@ -99,12 +182,22 @@ const FranchiseDetail = () => {
               className="flex flex-col gap-4"
             >
               <div className="flex flex-wrap items-center gap-3 text-sm">
-                <span className="px-3 py-1 bg-gold/20 text-gold-accent text-xs rounded font-bold uppercase tracking-wider">
-                  {franchise.type}
+                <span className="px-3 py-1 bg-gold/20 text-gold-accent text-xs rounded font-bold uppercase tracking-wider border border-gold/30">
+                  {franchise.categoryEyebrow || franchise.type}
                 </span>
+                {franchise.brandOperatorName && franchise.brandOperatorName !== franchise.name && (
+                  <span className="px-3 py-1 bg-secondary/80 text-foreground/80 border border-border text-xs rounded font-medium">
+                    By {franchise.brandOperatorName}
+                  </span>
+                )}
                 <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs rounded font-bold uppercase tracking-wider">
                   {franchise.franchiseModel || "FOCO"} Model
                 </span>
+                {franchise.projectCostRange && (
+                  <span className="px-3 py-1 bg-primary/20 text-primary border border-primary/30 text-xs rounded font-semibold">
+                    Cost: {franchise.projectCostRange}
+                  </span>
+                )}
                 {franchise.yieldPayoutFrequency && (
                   <span className="px-3 py-1 bg-primary/20 text-primary border border-primary/30 text-xs rounded font-medium uppercase tracking-wider">
                     {franchise.yieldPayoutFrequency} Payouts
@@ -113,17 +206,24 @@ const FranchiseDetail = () => {
               </div>
 
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-light text-foreground font-luxia">
-                {franchise.name.split(" ").slice(0, -1).join(" ")} <br />
-                <span className="italic text-gold-accent">
-                  {franchise.name.split(" ").slice(-1)}
-                </span>
+                {pageContent?.mainHeadline ? (
+                  pageContent.mainHeadline
+                ) : (
+                  <>
+                    {franchise.name.split(" ").slice(0, -1).join(" ")} <br />
+                    <span className="italic text-gold-accent">
+                      {franchise.name.split(" ").slice(-1)}
+                    </span>
+                  </>
+                )}
               </h1>
 
               <div className="flex flex-col space-y-4 md:flex-row w-full justify-between">
                 <p className="text-muted-foreground text-lg max-w-2xl line-clamp-2">
-                  {Array.isArray(franchise.description)
-                    ? franchise.description.join(" ")
-                    : franchise.description}
+                  {pageContent?.subheading ||
+                    (Array.isArray(franchise.description)
+                      ? franchise.description.join(" ")
+                      : franchise.description)}
                 </p>
                 <ShareButtons title={`${franchise.name} - ${franchise.type}`} />
               </div>
@@ -132,19 +232,52 @@ const FranchiseDetail = () => {
         </div>
       </header>
 
-      {/* Stats Bar */}
+      {/* Stats Bar (Section 2: Hero Financial Metrics) */}
       <section className="py-8 px-4 md:px-10 bg-card border-y border-border">
         <div className="max-w-[1280px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-6">
-          {franchise.spec.map((stat) => (
-            <div key={stat.label} className="text-center">
-              <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
-                {stat.label}
-              </p>
-              <p className="text-foreground text-lg md:text-xl font-medium">
-                {formatDynamicValue(stat.value)}
-              </p>
-            </div>
-          ))}
+          {pageContent?.heroMetrics && pageContent.heroMetrics.length > 0 ? (
+            pageContent.heroMetrics
+              .filter((stat) => stat.label && stat.value)
+              .map((stat, idx) => (
+                <div key={stat.id || idx} className="text-center">
+                  <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
+                    {stat.label}
+                  </p>
+                  <p className="text-foreground text-lg md:text-xl font-medium">
+                    {formatDynamicValue(stat.value)}
+                  </p>
+                </div>
+              ))
+          ) : pageContent?.metric1Label ? (
+            [
+              { label: pageContent.metric1Label, value: pageContent.metric1Value },
+              { label: pageContent.metric2Label, value: pageContent.metric2Value },
+              { label: pageContent.metric3Label, value: pageContent.metric3Value },
+              { label: pageContent.metric4Label, value: pageContent.metric4Value },
+            ]
+              .filter((stat) => stat.label && stat.value)
+              .map((stat, idx) => (
+                <div key={idx} className="text-center">
+                  <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
+                    {stat.label}
+                  </p>
+                  <p className="text-foreground text-lg md:text-xl font-medium">
+                    {formatDynamicValue(stat.value)}
+                  </p>
+                </div>
+              ))
+          ) : (
+            franchise.spec.map((stat) => (
+              <div key={stat.label} className="text-center">
+                <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
+                  {stat.label}
+                </p>
+                <p className="text-foreground text-lg md:text-xl font-medium">
+                  {stat.value}
+                </p>
+              </div>
+            ))
+          )}
         </div>
       </section>
 
@@ -157,63 +290,41 @@ const FranchiseDetail = () => {
             viewport={{ once: true }}
           >
             <span className="text-gold-accent/60 uppercase tracking-[0.2em] text-xs font-bold">
-              The Vision
+              {franchise.visionEyebrow || "The Vision"}
             </span>
-            <h2 className="text-3xl md:text-4xl font-light text-foreground mt-4 mb-8">
-              {franchise.visionHeadline ? (
-                franchise.visionHeadline
-              ) : (
-                <>
-                  Where culinary artistry meets{" "}
-                  <span className="italic text-gold-accent">
-                    intelligent capital.
-                  </span>
-                </>
-              )}
+            <h2 className="text-3xl md:text-4xl font-light text-foreground mt-4 mb-6">
+              {pageContent?.visionHeadline ||
+                franchise.visionHeadline ||
+                "Elevating wellness into a professionally managed investment category."}
             </h2>
-            {franchise.description.map((para, idx) => (
-              <p
-                key={idx}
-                className="text-muted-foreground leading-relaxed mb-4"
-              >
-                {para}
-              </p>
-            ))}
-          </motion.div>
 
-          {/* <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="grid grid-cols-3 gap-4"
-          >
-            <div className="text-center p-6 bg-card rounded-lg border border-border">
-              <p className="text-3xl font-light text-gold-accent">
-                {franchise.location.length}
+            {franchise.highlightQuote && (
+              <div className="my-6 p-6 rounded-xl border border-primary/30 bg-primary/5 italic text-base md:text-lg text-foreground/90 font-serif leading-relaxed">
+                &ldquo;{franchise.highlightQuote}&rdquo;
+              </div>
+            )}
+
+            {pageContent?.visionDescription ? (
+              <p className="text-muted-foreground leading-relaxed mb-4 text-base whitespace-pre-line">
+                {pageContent.visionDescription}
               </p>
-              <p className="text-muted-foreground text-xs uppercase tracking-wider mt-2">
-                Live Locations
-              </p>
-            </div>
-            <div className="text-center p-6 bg-card rounded-lg border border-border">
-              <p className="text-3xl font-light text-gold-accent">12k+</p>
-              <p className="text-muted-foreground text-xs uppercase tracking-wider mt-2">
-                Monthly Footfall
-              </p>
-            </div>
-            <div className="text-center p-6 bg-card rounded-lg border border-border">
-              <p className="text-3xl font-light text-gold-accent">4.8</p>
-              <p className="text-muted-foreground text-xs uppercase tracking-wider mt-2">
-                Avg Rating
-              </p>
-            </div>
-          </motion.div> */}
+            ) : (
+              franchise.description.map((para, idx) => (
+                <p
+                  key={idx}
+                  className="text-muted-foreground leading-relaxed mb-4 text-base"
+                >
+                  {para}
+                </p>
+              ))
+            )}
+          </motion.div>
         </div>
       </section>
 
       {/* Financial Blueprint */}
       <section className="py-20 px-4 md:px-10 bg-[#0c1a14]">
-        <div>
+        <div className="max-w-[1280px] mx-auto">
           <div className="flex items-center gap-2 mb-6">
             <span className="material-symbols-outlined text-gold-accent text-3xl">
               pie_chart
@@ -222,24 +333,90 @@ const FranchiseDetail = () => {
               Financial Blueprint
             </h2>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {franchise.financial.map((item) => (
-              <div
-                key={item.label}
-                className="p-4 bg-background/50 rounded border border-border"
-              >
-                <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
-                  {item.label}
-                </p>
 
-                <p className="text-foreground text-lg font-medium">
-                  {Array.isArray(item.value)
-                    ? item.value.map((v) => formatDynamicValue(v)).join(" - ")
-                    : formatDynamicValue(item.value)}
-                </p>
+          {/* Flexible Return Headline & Terms if configured */}
+          {(franchise.returnHeadline || franchise.returnTerms) && (
+            <div className="mb-8 p-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 max-w-3xl">
+              <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs tracking-wider uppercase mb-1">
+                <span className="material-symbols-outlined text-base">verified</span>
+                <span>Target Return Framework</span>
               </div>
-            ))}
+              {franchise.returnHeadline && (
+                <h3 className="text-xl md:text-2xl font-light text-foreground font-luxia mb-2">
+                  {franchise.returnHeadline}
+                </h3>
+              )}
+              {franchise.returnTerms && (
+                <p className="text-muted-foreground text-xs md:text-sm leading-relaxed">
+                  {franchise.returnTerms}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {pageContent?.blueprintMetrics?.length ? (
+              pageContent.blueprintMetrics
+                .filter((item) => item.label)
+                .map((item, idx) => (
+                  <div
+                    key={item.id || idx}
+                    className="p-4 bg-background/50 rounded border border-border"
+                  >
+                    <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
+                      {item.label}
+                    </p>
+                    <p className="text-foreground text-lg font-medium">
+                      {formatDynamicValue(item.value)}
+                    </p>
+                  </div>
+                ))
+            ) : pageContent?.metric5Label ? (
+              [
+                { label: pageContent.metric5Label, value: pageContent.metric5Value },
+                { label: pageContent.metric6Label, value: pageContent.metric6Value },
+                { label: pageContent.metric7Label, value: pageContent.metric7Value },
+                { label: pageContent.metric8Label, value: pageContent.metric8Value },
+              ]
+                .filter((item) => item.label)
+                .map((item) => (
+                  <div
+                    key={item.label}
+                    className="p-4 bg-background/50 rounded border border-border"
+                  >
+                    <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
+                      {item.label}
+                    </p>
+                    <p className="text-foreground text-lg font-medium">
+                      {formatDynamicValue(item.value)}
+                    </p>
+                  </div>
+                ))
+            ) : (
+              franchise.financial.map((item) => (
+                <div
+                  key={item.label}
+                  className="p-4 bg-background/50 rounded border border-border"
+                >
+                  <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
+                    {item.label}
+                  </p>
+
+                  <p className="text-foreground text-lg font-medium">
+                    {Array.isArray(item.value)
+                      ? item.value.map((v) => formatDynamicValue(v)).join(" - ")
+                      : formatDynamicValue(item.value)}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
+
+          {franchise.financialDisclaimer && (
+            <p className="text-[11px] text-muted-foreground/60 mt-6 italic">
+              * {franchise.financialDisclaimer}
+            </p>
+          )}
         </div>
       </section>
 
@@ -266,68 +443,70 @@ const FranchiseDetail = () => {
         </div>
       </section>
 
-      {/* Support & Training Section (for franchises with supportFeatures) */}
-      {franchise.support_training_para && (
-        <section className="py-20 px-4 md:px-10 bg-card">
-          <div className="max-w-[1280px] mx-auto">
-            <div className="text-center mb-12">
-              <span className="text-gold-accent/60 uppercase tracking-[0.2em] text-xs font-bold">
-                Comprehensive Ecosystem
-              </span>
-              <h2 className="text-3xl font-light text-foreground mt-4 mb-4">
-                Support & Training
-              </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                {franchise.support_training_para}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {franchise.support_training?.map((feature, idx) => (
-                <motion.div
-                  key={feature.name}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="p-6 bg-background rounded-lg border border-border"
-                >
-                  <span className="material-symbols-outlined text-3xl text-gold-accent mb-4 block">
-                    {feature.icon}
-                  </span>
-                  <h3 className="text-lg font-medium text-foreground mb-2">
-                    {feature.name}
-                  </h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    {feature.description}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
+      {/* Support & Training Section */}
+      <section className="py-20 px-4 md:px-10 bg-card">
+        <div className="max-w-[1280px] mx-auto">
+          <div className="text-center mb-12">
+            <span className="text-gold-accent/60 uppercase tracking-[0.2em] text-xs font-bold">
+              {pageContent?.ecosystemSubheading || franchise.ecosystemEyebrow || "Comprehensive Ecosystem"}
+            </span>
+            <h2 className="text-3xl font-light text-foreground mt-4 mb-4">
+              {pageContent?.ecosystemHeading || franchise.ecosystemHeading || "Support & Training"}
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              {pageContent?.ecosystemDescription ||
+                franchise.ecosystemIntro ||
+                franchise.support_training_para?.[0] ||
+                "Turnkey institutional development covering location scouting, biophilic architectural styling, therapist certification, and international marketing."}
+            </p>
           </div>
-        </section>
-      )}
 
-      {/* FOCO Advantage */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {supportCards.map((feature, idx: number) => (
+              <motion.div
+                key={feature.name || idx}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                className="p-6 bg-background rounded-lg border border-border"
+              >
+                <span className="material-symbols-outlined text-3xl text-gold-accent mb-4 block">
+                  {feature.icon || "storefront"}
+                </span>
+                <h3 className="text-lg font-medium text-foreground mb-2">
+                  {feature.name}
+                </h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  {feature.description}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Key Benefits / FOCO Advantage */}
       <section className="py-20 px-4 md:px-10">
         <div className="max-w-[1280px] mx-auto">
           <div className="text-center mb-12">
             <span className="text-gold-accent/60 uppercase tracking-[0.2em] text-xs font-bold">
-              Key Benefits
+              {pageContent?.benefitsSubheading || franchise.benefitsEyebrow || "The FOCO Advantage"}
             </span>
             <h2 className="text-3xl font-light text-foreground mt-4 mb-4">
-              The FOCO Advantage
+              {franchise.benefitsHeading || "The FOCO Advantage"}
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Franchise Owned, Company Operated. A completely hands-off
-              investment model designed for busy professionals.
+            <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              {pageContent?.benefitsDescription ||
+                franchise.benefitsIntro ||
+                "Franchise Owned, Company Operated. A completely hands-off investment model designed for busy professionals."}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {franchise.advantages?.map((adv, idx) => (
+            {benefitCards.map((adv, idx: number) => (
               <motion.div
-                key={adv.name}
+                key={adv.name || idx}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -335,7 +514,7 @@ const FranchiseDetail = () => {
                 className="p-8 bg-card rounded-lg border border-border hover:border-gold-accent/50 transition-colors"
               >
                 <span className="material-symbols-outlined text-4xl text-gold-accent mb-4 block">
-                  {adv.icon}
+                  {adv.icon || "verified_user"}
                 </span>
                 <h3 className="text-xl font-medium text-foreground mb-3">
                   {adv.name}
@@ -346,32 +525,170 @@ const FranchiseDetail = () => {
               </motion.div>
             ))}
           </div>
+
+          {franchise.claimDisclaimer && (
+            <div className="mt-10 text-center">
+              <p className="text-[11px] text-muted-foreground/60 italic max-w-2xl mx-auto">
+                * {franchise.claimDisclaimer}
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Next Steps */}
+      {/* Investor Documents & Memorandums (Separated from Visual Gallery) */}
+      {franchise.investorDocuments && franchise.investorDocuments.length > 0 && (
+        <section className="py-16 px-4 md:px-10 bg-secondary/20 border-y border-border">
+          <div className="max-w-[1280px] mx-auto">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+              <div>
+                <span className="text-gold-accent/60 uppercase tracking-[0.2em] text-xs font-bold">
+                  Investor Downloads
+                </span>
+                <h2 className="text-2xl md:text-3xl font-light text-foreground mt-2">
+                  Dossiers &amp; Memorandums
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Access institutional pitch books, architectural floor plans, and operational SOP audits.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {franchise.investorDocuments.map((doc) => {
+                const isGated = doc.access === "LEAD_GATED";
+                return (
+                  <div
+                    key={doc.id}
+                    className="flex flex-col justify-between p-5 rounded-xl border border-border bg-card shadow-sm hover:border-primary/40 transition-all group"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
+                          <span className="material-symbols-outlined text-xl">description</span>
+                        </div>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full border font-semibold uppercase tracking-wider text-muted-foreground border-border bg-secondary/50">
+                          {doc.type.replace(/_/g, " ")}
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                        {doc.title}
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        {doc.fileSize || "Verified PDF Document"}
+                      </p>
+                    </div>
+
+                    <div className="pt-4 mt-4 border-t border-border/60 flex items-center justify-between">
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        {isGated ? (
+                          <>
+                            <span className="material-symbols-outlined text-xs text-amber-400">lock</span>
+                            <span className="text-amber-400">Requires OTP</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-xs text-emerald-400">public</span>
+                            <span className="text-emerald-400">Public Document</span>
+                          </>
+                        )}
+                      </span>
+
+                      {isGated && !isUnlocked ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setInquiryDialogOpen(true)}
+                          className="h-8 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                        >
+                          <span className="material-symbols-outlined text-sm">lock_open</span>
+                          <span>Unlock</span>
+                        </Button>
+                      ) : (
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-sm">download</span>
+                          <span>Download</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Next Steps / Dynamic Call to Action */}
       <section className="py-20 px-4 md:px-10 bg-card border-t border-border">
         <div className="max-w-[800px] mx-auto">
           <div className="text-center mb-12">
             <span className="text-gold-accent/60 uppercase tracking-[0.2em] text-xs font-bold">
-              Next Steps
+              {pageContent?.nextStepsSubheading || "Next Steps"}
             </span>
             <h2 className="text-3xl font-light text-foreground mt-4">
               Secure Your Legacy
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              We provide end-to-end support to ensure your franchise asset
-              performs at the highest level from day one.
+            <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              {pageContent?.nextStepsDescription ||
+                "We provide end-to-end support to ensure your franchise asset performs at the highest level from day one."}
             </p>
-            <Link to="/calendar">
-              <Button className="mt-10">Book a call today</Button>
+            <Link to={franchise.primaryCta?.link || "/calendar"}>
+              <Button className="mt-10">
+                {pageContent?.ctaButton2 || franchise.primaryCta?.text || "Book a call today"}
+              </Button>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Gallery  */}
-      <Gallery property={franchise} />
+      {/* Bespoke Gallery & Architectural Layouts (Section 10) */}
+      {pageContent?.galleryImages && pageContent.galleryImages.length > 0 && (
+        <section className="py-20 px-4 md:px-10 bg-background border-t border-border">
+          <div className="max-w-[1280px] mx-auto">
+            <div className="text-center mb-12">
+              <span className="text-gold-accent/60 uppercase tracking-[0.2em] text-xs font-bold">
+                Visual Showcase
+              </span>
+              <h2 className="text-3xl font-light text-foreground mt-4 mb-2 font-luxia">
+                Gallery Images &amp; Layouts
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto text-sm leading-relaxed">
+                Master floor plans, architectural layouts, and experiential spaces.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {pageContent.galleryImages.map((img: GalleryItem, idx: number) => (
+                <div
+                  key={img.id || idx}
+                  className="rounded-xl border border-border bg-card overflow-hidden group hover:border-primary/50 transition-all shadow-sm flex flex-col justify-between"
+                >
+                  <div className="aspect-[4/3] overflow-hidden bg-black/40 relative">
+                    <img
+                      src={img.url}
+                      alt={img.caption || `Gallery ${idx + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                  {img.caption && (
+                    <div className="p-4 border-t border-border/60">
+                      <p className="text-sm font-medium text-foreground line-clamp-2">
+                        {img.caption}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* 🔐 Locked Franchise Gate if User lands directly on URL without verifying */}
       {!isUnlocked && (
@@ -412,7 +729,7 @@ const FranchiseDetail = () => {
         </div>
       )}
 
-      {/* Inquiry & Verification Dialog */}
+      {/* Inquiry & Verification Dialog (Unlock Dossier - No Email Sent) */}
       <InquiryFormDialog
         open={inquiryDialogOpen}
         onOpenChange={(open) => {
@@ -421,6 +738,9 @@ const FranchiseDetail = () => {
         projectType="franchise"
         projectId={franchise.id}
         projectName={franchise.name}
+        intent="unlock_view"
+        customTitle={`Unlock Dossier — ${franchise.name}`}
+        customSubtitle={`Verify your mobile to access full operator financials, expansion models, and specifications for ${franchise.name}.`}
         onVerified={() => {
           setIsUnlocked(true);
           setInquiryDialogOpen(false);

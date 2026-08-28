@@ -113,6 +113,8 @@ export interface NearbyPlace {
   name: string;
   distance: string;
   category?: string | null;
+  travelTime?: string | null;
+  description?: string | null;
 }
 
 export interface PropertyFinancialMetric {
@@ -418,3 +420,20 @@ export interface VaultAdminInvestor {
   appreciationPercent: number;
   monthlyRental: number;
 }
+
+export interface GalleryItem {
+  id: string;
+  url: string;
+  caption: string;
+  orderIndex: number;
+}
+
+export type {
+  FranchisePageData,
+  MetricBadge,
+  SupportCard,
+  BenefitCard,
+  GalleryItem,
+} from "../lib/franchisePageHelpers";
+
+

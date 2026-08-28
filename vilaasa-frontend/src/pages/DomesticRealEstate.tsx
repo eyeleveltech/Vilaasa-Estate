@@ -316,6 +316,9 @@ const DomesticRealEstate = () => {
         projectType="real-estate"
         projectId={selectedProperty?.id}
         projectName={selectedProperty?.name}
+        intent="unlock_view"
+        customTitle={`Unlock Dossier — ${selectedProperty?.name || "Luxury Property"}`}
+        customSubtitle="Verify your mobile to view full photography, floor plans, and architectural specifications."
       />
 
       <Footer />

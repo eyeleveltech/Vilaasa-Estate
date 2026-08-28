@@ -15,11 +15,63 @@ import { InquiryFormDialog } from "@/components/InquiryFormDialog";
 import { trackSilentPropertyView, isOtpVerified } from "@/lib/otpAccess";
 import api from "@/api/axios";
 
+const getStatusConfig = (rawStatus?: string) => {
+  const s = (rawStatus || "AVAILABLE").toUpperCase().replace(/[\s-]+/g, "_");
+  if (s.includes("AVAILABLE") || s.includes("SALE")) {
+    return {
+      label: "Available",
+      dotColor: "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]",
+      badgeClass: "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.15)]",
+    };
+  }
+  if (s.includes("READY")) {
+    return {
+      label: "Ready to Move",
+      dotColor: "bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.8)]",
+      badgeClass: "border-teal-500/40 bg-teal-500/10 text-teal-300 shadow-[0_0_12px_rgba(20,184,166,0.15)]",
+    };
+  }
+  if (s.includes("CONSTRUCTION") || s.includes("DEVELOPMENT")) {
+    return {
+      label: "Under Construction",
+      dotColor: "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]",
+      badgeClass: "border-amber-500/40 bg-amber-500/10 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.15)]",
+    };
+  }
+  if (s.includes("OFF_PLAN") || s.includes("OFFPLAN")) {
+    return {
+      label: "Off-Plan",
+      dotColor: "bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)]",
+      badgeClass: "border-sky-500/40 bg-sky-500/10 text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.15)]",
+    };
+  }
+  if (s.includes("RESERVE")) {
+    return {
+      label: "Reserved",
+      dotColor: "bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.8)]",
+      badgeClass: "border-purple-500/40 bg-purple-500/10 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.15)]",
+    };
+  }
+  if (s.includes("SOLD") || s.includes("CLOSE")) {
+    return {
+      label: "Sold Out",
+      dotColor: "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]",
+      badgeClass: "border-rose-500/40 bg-rose-500/10 text-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.15)]",
+    };
+  }
+  return {
+    label: rawStatus || "Available",
+    dotColor: "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]",
+    badgeClass: "border-emerald-500/40 bg-emerald-500/10 text-emerald-400",
+  };
+};
+
 const PropertyDetail = () => {
   const navigate = useNavigate();
   const [openCalendar, setOpenCalendar] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState<boolean>(() => isOtpVerified());
   const [inquiryDialogOpen, setInquiryDialogOpen] = useState<boolean>(() => !isOtpVerified());
+  const [contactPartnerOpen, setContactPartnerOpen] = useState<boolean>(false);
   const [requested, setRequested] = useState<number[]>([]);
   const [costSheetModalOpen, setCostSheetModalOpen] = useState(false);
   const [selectedUnitIdx, setSelectedUnitIdx] = useState<number | null>(null);
@@ -28,7 +80,10 @@ const PropertyDetail = () => {
   const { formatAmount, formatDynamicValue } = useCurrency();
   const { toast } = useToast();
   const configurations = property?.configurations ?? [];
-  const hasArea = configurations.some((c) => Boolean(c.area));
+  const hasArea = configurations.some((c) => Boolean(c.area && c.area.trim() && c.area !== "0 Sq.Ft."));
+  const hasView = configurations.some((c) => Boolean(c.view && c.view.trim()));
+  const hasPrice = configurations.some((c) => Boolean(c.price && Number(c.price) > 0));
+  const statusInfo = getStatusConfig(property?.status);
 
   // 🚀 Silent View Tracking Effect for active 2-hour session
   useEffect(() => {
@@ -136,22 +191,43 @@ const PropertyDetail = () => {
                 {property.description[0]?.substring(0, 120)}...
               </p>
 
-              <div className="mt-4 flex flex-wrap items-end gap-4 sm:gap-6">
-                <div className="flex flex-col">
-                  <span className="text-muted-foreground text-xs uppercase tracking-wider">
+              <div className="mt-6 flex flex-wrap items-start gap-6 sm:gap-10">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                     Starting From
                   </span>
-                  <span className="text-xl font-medium text-foreground sm:text-2xl">
-                    {formatDynamicValue(property.price)}
-                  </span>
+                  <div className="flex items-center h-8">
+                    <span className="text-xl font-medium text-foreground sm:text-2xl leading-none">
+                      {property.price && Number(property.price) > 0
+                        ? formatDynamicValue(property.price)
+                        : "Price on Application"}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-muted-foreground text-xs uppercase tracking-wider">
+
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                     Status
                   </span>
-                  <span className="text-foreground">{property.status}</span>
+                  <div className="flex items-center h-8">
+                    <span
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide uppercase border ${statusInfo.badgeClass}`}
+                    >
+                      <span>{statusInfo.label}</span>
+                    </span>
+                  </div>
                 </div>
-                <div className="w-full sm:ml-auto sm:w-auto">
+
+                <div className="w-full sm:ml-auto sm:w-auto self-end pt-1 flex items-center gap-2">
+                  <Button
+                    onClick={() => setContactPartnerOpen(true)}
+                    variant="outline"
+                    size="sm"
+                    className="border-primary/40 text-foreground hover:bg-primary/10 hover:text-primary gap-1.5 text-xs font-semibold uppercase tracking-wider h-8 px-3"
+                  >
+                    <span className="material-symbols-outlined text-[16px] text-primary">support_agent</span>
+                    <span>Contact Senior Partner</span>
+                  </Button>
                   <ShareButtons
                     title={`${property.name} - ${property.location}`}
                   />
@@ -354,7 +430,7 @@ const PropertyDetail = () => {
             </h2>
 
             <div className="overflow-x-auto">
-              <table className="min-w-[640px] w-full border-collapse">
+              <table className="w-full max-w-4xl border-collapse">
                 <thead>
                   <tr className="border-b border-border text-left">
                     <th className="py-4 px-4 text-muted-foreground text-sm font-medium">
@@ -367,11 +443,19 @@ const PropertyDetail = () => {
                       </th>
                     )}
 
-                    <th className="py-4 px-4 text-muted-foreground text-sm font-medium">
-                      Price
-                    </th>
+                    {hasView && (
+                      <th className="py-4 px-4 text-muted-foreground text-sm font-medium">
+                        View
+                      </th>
+                    )}
 
-                    <th className="py-4 px-4 text-muted-foreground text-sm font-medium">
+                    {hasPrice && (
+                      <th className="py-4 px-4 text-muted-foreground text-sm font-medium">
+                        Price
+                      </th>
+                    )}
+
+                    <th className="py-4 px-4 text-muted-foreground text-sm font-medium text-right sm:text-left">
                       Action
                     </th>
                   </tr>
@@ -386,21 +470,31 @@ const PropertyDetail = () => {
                         key={idx}
                         className="border-b border-border/50 hover:bg-card/50 transition-colors"
                       >
-                        <td className="py-4 px-4 text-foreground font-medium">
+                        <td className="py-4 px-4 text-foreground font-medium whitespace-nowrap">
                           {config.type || "-"}
                         </td>
 
                         {hasArea && (
-                          <td className="py-4 px-4 text-muted-foreground">
-                            {config.area ? `${config.area}` : "-"}
+                          <td className="py-4 px-4 text-muted-foreground whitespace-nowrap">
+                            {config.area || "-"}
                           </td>
                         )}
 
-                        <td className="py-4 px-4 text-foreground">
-                          {config.price ? formatDynamicValue(config.price) : "-"}
-                        </td>
+                        {hasView && (
+                          <td className="py-4 px-4 text-muted-foreground whitespace-nowrap">
+                            {config.view || "-"}
+                          </td>
+                        )}
 
-                        <td className="py-4 px-4">
+                        {hasPrice && (
+                          <td className="py-4 px-4 text-foreground whitespace-nowrap">
+                            {config.price && Number(config.price) > 0
+                              ? formatDynamicValue(config.price)
+                              : "Price on Request"}
+                          </td>
+                        )}
+
+                        <td className="py-4 px-4 text-right sm:text-left whitespace-nowrap">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -545,13 +639,21 @@ const PropertyDetail = () => {
               </p>
             </div>
           </div>
-          <div className="flex w-full items-center gap-3 sm:w-auto">
+          <div className="flex w-full items-center gap-2.5 sm:w-auto">
+            <Button
+              onClick={() => setContactPartnerOpen(true)}
+              variant="outline"
+              className="flex-1 sm:flex-none border-primary/40 text-foreground hover:bg-primary/10 hover:text-primary gap-1.5 text-xs sm:text-sm font-semibold uppercase tracking-wider py-2.5 sm:py-2"
+            >
+              <span className="material-symbols-outlined text-[16px] text-primary">support_agent</span>
+              <span>Contact Senior Partner</span>
+            </Button>
             <Button
               onClick={() => setOpenCalendar(true)}
               variant="hero"
-              className="w-full sm:w-auto"
+              className="flex-1 sm:flex-none text-xs sm:text-sm font-bold uppercase tracking-wider py-2.5 sm:py-2"
             >
-              Book a site Visit
+              Book Private Inspection
             </Button>
           </div>
         </div>
@@ -603,7 +705,7 @@ const PropertyDetail = () => {
 
           void (async () => {
             try {
-              // 1. Submit directly to PostgreSQL backend
+              // 1. Submit directly to PostgreSQL backend (deliberate inquiry: sendEmail = true)
               await api.post("/inquiries", {
                 name: savedLead?.name?.trim() || "VIP Client",
                 email: savedLead?.email?.trim() || `vip-visit-${Date.now()}@client.com`,
@@ -612,7 +714,9 @@ const PropertyDetail = () => {
                 investmentRange: property.priceValue || "Ultra Prime",
                 currency: "USD",
                 source: "SITE_VISIT_MODAL",
-                notes: `Private Site Visit scheduled for ${date.toLocaleDateString()} at ${time}. Property: ${property.name}`,
+                notes: `Private Inspection scheduled for ${date.toLocaleDateString()} at ${time}. Property: ${property.name}`,
+                sendEmail: true,
+                intent: "INQUIRY",
               });
 
               // 2. Also forward to webhook if available
@@ -627,8 +731,8 @@ const PropertyDetail = () => {
               }
 
               toast({
-                title: "Site Visit Scheduled",
-                description: `Your private viewing for ${property.name} on ${date.toLocaleDateString()} has been received.`,
+                title: "Private Inspection Scheduled",
+                description: `Your private viewing for ${property.name} on ${date.toLocaleDateString()} at ${time} has been confirmed. Our Senior Partner will contact you shortly.`,
               });
             } catch (error) {
               console.error("Site visit booking failed:", error);
@@ -681,7 +785,7 @@ const PropertyDetail = () => {
         </div>
       )}
 
-      {/* Inquiry & Verification Dialog */}
+      {/* Unlock Dossier Dialog (View Only - No Email Sent) */}
       <InquiryFormDialog
         open={inquiryDialogOpen}
         onOpenChange={(open) => {
@@ -690,26 +794,49 @@ const PropertyDetail = () => {
         projectType="real-estate"
         projectId={property.id}
         projectName={property.name}
+        intent="unlock_view"
+        customTitle="Unlock Confidential Dossier"
+        customSubtitle={`Verify your mobile to access full architectural floor plans, high-res photography, and specifications for ${property.name}.`}
         onVerified={() => {
           setIsUnlocked(true);
           setInquiryDialogOpen(false);
         }}
       />
 
-      {/* Cost Sheet Request Dialog */}
+      {/* Contact Senior Partner Dialog (Deliberate Inquiry - Sends Email) */}
+      <InquiryFormDialog
+        open={contactPartnerOpen}
+        onOpenChange={(open) => {
+          setContactPartnerOpen(open);
+        }}
+        projectType="real-estate"
+        projectId={property.id}
+        projectName={property.name}
+        intent="inquiry"
+        customTitle={`Contact Senior Partner — ${property.name}`}
+        customSubtitle={`Connect directly with our luxury advisory desk for bespoke guidance on ${property.name}.`}
+        notes={`Direct inquiry to Senior Partner for ${property.name}`}
+        onVerified={() => {
+          setContactPartnerOpen(false);
+        }}
+      />
+
+      {/* Cost Sheet Request Dialog (Deliberate Inquiry - Sends Email) */}
       <InquiryFormDialog
         open={costSheetModalOpen}
         onOpenChange={(open) => setCostSheetModalOpen(open)}
         projectType="real-estate"
         projectId={property.id}
         projectName={property.name}
+        intent="inquiry"
+        customTitle={`Request Cost Sheet — ${property.name}`}
         notes={
           selectedUnitIdx !== null && configurations[selectedUnitIdx]
-            ? `Requested Cost Sheet for ${configurations[selectedUnitIdx].unitType} (${
-                configurations[selectedUnitIdx].areaSqFt
-                  ? `${configurations[selectedUnitIdx].areaSqFt} Sq.Ft.`
+            ? `Requested Cost Sheet for ${configurations[selectedUnitIdx].type}${
+                configurations[selectedUnitIdx].area
+                  ? ` (${configurations[selectedUnitIdx].area})`
                   : ""
-              })`
+              }`
             : undefined
         }
         onVerified={() => {

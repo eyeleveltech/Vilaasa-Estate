@@ -139,6 +139,11 @@ const AdminFranchiseDetail = lazy(() =>
     default: m.AdminFranchiseDetail,
   })),
 );
+const AdminFranchisePage = lazy(() =>
+  import("./admin/pages/AdminFranchisePage").then((m) => ({
+    default: m.AdminFranchisePage,
+  })),
+);
 const AdminVaultManagement = lazy(() =>
   import("./admin/pages/AdminVaultManagement").then((m) => ({
     default: m.AdminVaultManagement,
@@ -296,6 +301,7 @@ const App = () => (
                   element={<AdminFranchiseForm />}
                 />
                 <Route path="franchises/:id" element={<AdminFranchiseDetail />} />
+                <Route path="franchises/:id/page" element={<AdminFranchisePage />} />
                 <Route
                   path="vault"
                   element={<Navigate to="/admin/channel-partners" replace />}
