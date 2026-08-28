@@ -374,9 +374,10 @@ const International = () => {
         projectId={selectedProperty?.id}
         projectName={selectedProperty?.name}
         intent="unlock_view"
-        customTitle={`Unlock Dossier — ${selectedProperty?.name || "International Asset"}`}
+        customTitle={`View Details — ${selectedProperty?.name || "International Asset"}`}
         customSubtitle="Verify your mobile to view full photography, floor plans, and architectural specifications."
       />
+
 
       {/* Benefits Section */}
       <section className="border-t border-border/10 bg-background px-4 py-16 md:px-10 md:py-32">

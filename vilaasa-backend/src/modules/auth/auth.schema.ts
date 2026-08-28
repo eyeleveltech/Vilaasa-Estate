@@ -34,24 +34,61 @@ export const LoginSchema = z.object({
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;
 
-export const SendOtpSchema = z.object({
-  email: z
-    .string({ required_error: "Email is required" })
-    .email("Invalid email format")
-    .toLowerCase()
-    .trim(),
-});
+export const SendOtpSchema = z
+  .object({
+    channel: z.enum(["EMAIL", "SMS"]).default("SMS"),
+    email: z
+      .string()
+      .email("Invalid email format")
+      .toLowerCase()
+      .trim()
+      .optional(),
+    phone: z.string().trim().optional(),
+    phoneCode: z.string().trim().default("+91"),
+    propertyName: z.string().trim().optional(),
+  })
 
-export const VerifyOtpSchema = z.object({
-  email: z
-    .string({ required_error: "Email is required" })
-    .email("Invalid email format")
-    .toLowerCase()
-    .trim(),
-  otp: z
-    .string({ required_error: "OTP is required" })
-    .length(6, "OTP must be exactly 6 digits"),
-});
+  .refine(
+    (data) => {
+      if (data.channel === "SMS") {
+        return !!data.phone && data.phone.replace(/\D/g, "").length >= 6;
+      }
+      return !!data.email;
+    },
+    {
+      message: "Phone number is required for SMS, and email is required for Email OTP",
+      path: ["channel"],
+    },
+  );
+
+export const VerifyOtpSchema = z
+  .object({
+    channel: z.enum(["EMAIL", "SMS"]).default("SMS"),
+    email: z
+      .string()
+      .email("Invalid email format")
+      .toLowerCase()
+      .trim()
+      .optional(),
+    phone: z.string().trim().optional(),
+    phoneCode: z.string().trim().default("+91"),
+    otp: z
+      .string({ required_error: "OTP is required" })
+      .length(6, "OTP must be exactly 6 digits"),
+  })
+  .refine(
+    (data) => {
+      if (data.channel === "SMS") {
+        return !!data.phone;
+      }
+      return !!data.email;
+    },
+    {
+      message: "Phone is required to verify SMS OTP, and email is required for Email OTP",
+      path: ["channel"],
+    },
+  );
 
 export type SendOtpInput = z.infer<typeof SendOtpSchema>;
 export type VerifyOtpInput = z.infer<typeof VerifyOtpSchema>;
+

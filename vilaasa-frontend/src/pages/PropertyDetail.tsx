@@ -795,8 +795,9 @@ const PropertyDetail = () => {
         projectId={property.id}
         projectName={property.name}
         intent="unlock_view"
-        customTitle="Unlock Confidential Dossier"
+        customTitle={`View Details — ${property.name}`}
         customSubtitle={`Verify your mobile to access full architectural floor plans, high-res photography, and specifications for ${property.name}.`}
+
         onVerified={() => {
           setIsUnlocked(true);
           setInquiryDialogOpen(false);

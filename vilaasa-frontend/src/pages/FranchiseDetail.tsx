@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { trackSilentPropertyView, isOtpVerified } from "@/lib/otpAccess";
 import api from "@/api/axios";
 import { FranchisePageData, GalleryItem } from "@/admin/types/admin.types";
 import { normalizeFranchisePageData } from "@/admin/lib/franchisePageHelpers";
+import { Maximize2, Eye, X, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 
 const FranchiseDetail = () => {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ const FranchiseDetail = () => {
   const [isUnlocked, setIsUnlocked] = useState<boolean>(() => isOtpVerified());
   const [inquiryDialogOpen, setInquiryDialogOpen] = useState<boolean>(() => !isOtpVerified());
   const [pageContent, setPageContent] = useState<FranchisePageData | null>(null);
+  const [activeLightboxIndex, setActiveLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (!franchise?.id) return;
@@ -43,6 +45,46 @@ const FranchiseDetail = () => {
       trackSilentPropertyView(franchise.id, franchise.name);
     }
   }, [isUnlocked, franchise?.id, franchise?.name]);
+
+  const galleryImages: GalleryItem[] = pageContent?.galleryImages || [];
+
+  const handlePrevImage = useCallback(() => {
+    if (activeLightboxIndex === null || galleryImages.length === 0) return;
+    setActiveLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : galleryImages.length - 1));
+  }, [activeLightboxIndex, galleryImages.length]);
+
+  const handleNextImage = useCallback(() => {
+    if (activeLightboxIndex === null || galleryImages.length === 0) return;
+    setActiveLightboxIndex((prev) => (prev !== null && prev < galleryImages.length - 1 ? prev + 1 : 0));
+  }, [activeLightboxIndex, galleryImages.length]);
+
+  useEffect(() => {
+    if (activeLightboxIndex === null) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setActiveLightboxIndex(null);
+      } else if (e.key === "ArrowLeft") {
+        handlePrevImage();
+      } else if (e.key === "ArrowRight") {
+        handleNextImage();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeLightboxIndex, handlePrevImage, handleNextImage]);
+
+  useEffect(() => {
+    if (activeLightboxIndex !== null) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [activeLightboxIndex]);
 
   console.log("Franchise Data:", franchise);
 
@@ -648,7 +690,7 @@ const FranchiseDetail = () => {
       </section>
 
       {/* Bespoke Gallery & Architectural Layouts (Section 10) */}
-      {pageContent?.galleryImages && pageContent.galleryImages.length > 0 && (
+      {galleryImages.length > 0 && (
         <section className="py-20 px-4 md:px-10 bg-background border-t border-border">
           <div className="max-w-[1280px] mx-auto">
             <div className="text-center mb-12">
@@ -664,10 +706,11 @@ const FranchiseDetail = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {pageContent.galleryImages.map((img: GalleryItem, idx: number) => (
+              {galleryImages.map((img: GalleryItem, idx: number) => (
                 <div
                   key={img.id || idx}
-                  className="rounded-xl border border-border bg-card overflow-hidden group hover:border-primary/50 transition-all shadow-sm flex flex-col justify-between"
+                  onClick={() => setActiveLightboxIndex(idx)}
+                  className="rounded-xl border border-border bg-card overflow-hidden group hover:border-primary/60 transition-all shadow-sm hover:shadow-xl flex flex-col justify-between cursor-pointer"
                 >
                   <div className="aspect-[4/3] overflow-hidden bg-black/40 relative">
                     <img
@@ -675,12 +718,36 @@ const FranchiseDetail = () => {
                       alt={img.caption || `Gallery ${idx + 1}`}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
+
+                    {/* Hover Overlay with Full View Action */}
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center p-4">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveLightboxIndex(idx);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/80 hover:bg-black text-white text-xs font-semibold uppercase tracking-wider border border-primary/50 hover:border-primary shadow-xl transform translate-y-2 group-hover:translate-y-0 transition-all duration-300"
+                      >
+                        <Maximize2 className="h-3.5 w-3.5 text-primary" />
+                        <span>Full View</span>
+                      </button>
+                    </div>
+
+                    {/* Expand Icon Badge in Top-Right */}
+                    <div className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/60 backdrop-blur-md text-white/80 border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <Maximize2 className="h-3.5 w-3.5 text-primary" />
+                    </div>
                   </div>
                   {img.caption && (
-                    <div className="p-4 border-t border-border/60">
+                    <div className="p-4 border-t border-border/60 flex items-center justify-between gap-2">
                       <p className="text-sm font-medium text-foreground line-clamp-2">
                         {img.caption}
                       </p>
+                      <span className="text-[11px] text-primary font-semibold flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <Eye className="h-3 w-3" />
+                        View
+                      </span>
                     </div>
                   )}
                 </div>
@@ -689,6 +756,145 @@ const FranchiseDetail = () => {
           </div>
         </section>
       )}
+
+      {/* 🖼️ Full View Gallery Lightbox Modal */}
+      <AnimatePresence>
+        {activeLightboxIndex !== null && galleryImages[activeLightboxIndex] && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col justify-between p-4 md:p-6 select-none"
+            onClick={() => setActiveLightboxIndex(null)}
+          >
+            {/* Top Header Bar */}
+            <div
+              className="flex items-center justify-between w-full max-w-7xl mx-auto z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary px-3 py-1 rounded-full bg-primary/10 border border-primary/30">
+                  Visual Showcase
+                </span>
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  {franchise.name}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground font-mono mr-2">
+                  {activeLightboxIndex + 1} / {galleryImages.length}
+                </span>
+
+                <a
+                  href={galleryImages[activeLightboxIndex].url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors"
+                  title="Open Original in New Tab"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveLightboxIndex(null)}
+                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors"
+                  title="Close Full View (Esc)"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Main Image Stage */}
+            <div
+              className="relative flex-1 flex items-center justify-center my-2 max-w-7xl mx-auto w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Previous Button */}
+              {galleryImages.length > 1 && (
+                <button
+                  type="button"
+                  onClick={handlePrevImage}
+                  className="absolute left-2 md:left-4 z-10 p-3 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 hover:border-primary transition-all shadow-2xl hover:scale-110"
+                  title="Previous Image (Left Arrow)"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+              )}
+
+              {/* High-Resolution Image */}
+              <motion.div
+                key={activeLightboxIndex}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.25 }}
+                className="max-h-[75vh] max-w-[90vw] md:max-w-[80vw] flex items-center justify-center"
+              >
+                <img
+                  src={galleryImages[activeLightboxIndex].url}
+                  alt={galleryImages[activeLightboxIndex].caption || `Full View ${activeLightboxIndex + 1}`}
+                  className="max-h-[75vh] max-w-full object-contain rounded-xl shadow-2xl border border-white/10"
+                />
+              </motion.div>
+
+              {/* Next Button */}
+              {galleryImages.length > 1 && (
+                <button
+                  type="button"
+                  onClick={handleNextImage}
+                  className="absolute right-2 md:right-4 z-10 p-3 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 hover:border-primary transition-all shadow-2xl hover:scale-110"
+                  title="Next Image (Right Arrow)"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+              )}
+            </div>
+
+            {/* Bottom Caption & Thumbnail Bar */}
+            <div
+              className="w-full max-w-3xl mx-auto text-center space-y-3 z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {galleryImages[activeLightboxIndex].caption && (
+                <div className="px-5 py-2.5 rounded-xl bg-card/80 border border-border/80 backdrop-blur-md inline-block max-w-full">
+                  <p className="text-sm md:text-base font-medium text-foreground">
+                    {galleryImages[activeLightboxIndex].caption}
+                  </p>
+                </div>
+              )}
+
+              {/* Thumbnail Strip for fast navigation */}
+              {galleryImages.length > 1 && (
+                <div className="flex items-center justify-center gap-2 overflow-x-auto py-1">
+                  {galleryImages.map((thumb: GalleryItem, tIdx: number) => (
+                    <button
+                      key={thumb.id || tIdx}
+                      type="button"
+                      onClick={() => setActiveLightboxIndex(tIdx)}
+                      className={`h-12 w-16 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${
+                        tIdx === activeLightboxIndex
+                          ? "border-primary scale-105 shadow-md"
+                          : "border-transparent opacity-50 hover:opacity-100"
+                      }`}
+                    >
+                      <img
+                        src={thumb.url}
+                        alt={`Thumbnail ${tIdx + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 🔐 Locked Franchise Gate if User lands directly on URL without verifying */}
       {!isUnlocked && (
@@ -739,8 +945,9 @@ const FranchiseDetail = () => {
         projectId={franchise.id}
         projectName={franchise.name}
         intent="unlock_view"
-        customTitle={`Unlock Dossier — ${franchise.name}`}
+        customTitle={`View Details — ${franchise.name}`}
         customSubtitle={`Verify your mobile to access full operator financials, expansion models, and specifications for ${franchise.name}.`}
+
         onVerified={() => {
           setIsUnlocked(true);
           setInquiryDialogOpen(false);

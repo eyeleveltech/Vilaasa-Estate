@@ -384,7 +384,9 @@ model ConstructionGalleryItem {
 
 model OtpRecord {
   id        String   @id @default(cuid())
-  email     String
+  email     String?
+  phone     String?
+  channel   String   @default("EMAIL") // "EMAIL" | "SMS"
   otp       String
   expiresAt DateTime
   verified  Boolean  @default(false)
@@ -392,6 +394,7 @@ model OtpRecord {
   createdAt DateTime @default(now())
 
   @@index([email])
+  @@index([phone])
 }
 
 // ----------------------------------------------------

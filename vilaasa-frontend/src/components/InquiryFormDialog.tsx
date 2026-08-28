@@ -82,6 +82,7 @@ export const InquiryFormDialog = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { formatAmount, currency } = useCurrency();
   const [resendTimer, setResendTimer] = useState<number>(60);
+  const [otpChannel, setOtpChannel] = useState<"SMS" | "EMAIL">("SMS");
   const [formData, setFormData] = useState({
     name: "",
     phoneCountryCode: "+91",
@@ -154,9 +155,7 @@ export const InquiryFormDialog = ({
     "Private Client Advisory";
 
   // Step 1: Request OTP Code (or direct submit if already OTP-verified)
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSendOtp = async (channel: "SMS" | "EMAIL") => {
     const isUnlock = intent === "unlock_view";
 
     if (
@@ -217,14 +216,14 @@ export const InquiryFormDialog = ({
               ? "FRANCHISE_DETAIL"
               : "PROPERTY_DETAIL"
             : "HERO_INQUIRY",
-          notes: notes || (isUnlock ? "Confidential Dossier Unlocked (View Only)" : "Direct Inquiry with Senior Partner"),
+          notes: notes || (isUnlock ? "Property Details Viewed" : "Direct Inquiry with Senior Partner"),
           sendEmail: !isUnlock,
           intent: isUnlock ? "UNLOCK_VIEW" : "INQUIRY",
         });
 
         setStep("success");
         toast({
-          title: isUnlock ? "Dossier Unlocked" : "Inquiry Submitted",
+          title: isUnlock ? "Access Granted" : "Inquiry Submitted",
           description: isUnlock
             ? "Access granted to architectural assets and floor plans."
             : "Inquiry submitted under your verified session. A Senior Partner will contact you shortly.",
@@ -249,19 +248,28 @@ export const InquiryFormDialog = ({
       return;
     }
 
-    // If not verified or 2 hours expired -> Proceed with standard OTP request:
+    // If not verified or 2 hours expired -> Dispatch OTP
     setIsSubmitting(true);
+    setOtpChannel(channel);
     try {
       const res = await api.post("/auth/otp/send", {
+        channel,
         email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        phoneCode: formData.phoneCountryCode.trim(),
+        propertyName: projectName || undefined,
       });
+
 
       if (res.data.success) {
         setStep("otp");
         setResendTimer(60);
         toast({
-          title: "OTP Sent",
-          description: `A 6-digit security code has been sent to ${formData.email}`,
+          title: channel === "SMS" ? "SMS Code Sent" : "Email Code Sent",
+          description:
+            channel === "SMS"
+              ? `A 6-digit verification code has been sent via SMS to ${formData.phoneCountryCode} ${formData.phone}`
+              : `A 6-digit verification code has been sent to ${formData.email}`,
         });
       }
     } catch (error: unknown) {
@@ -276,12 +284,19 @@ export const InquiryFormDialog = ({
     }
   };
 
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await handleSendOtp("SMS");
+  };
+
   // Step 2: Verify OTP and Complete Action
-  const handleOtpVerify = async () => {
-    if (otp.length < 6) {
+  const handleOtpVerify = async (overrideOtp?: string) => {
+    const codeToVerify = (overrideOtp || otp).trim();
+
+    if (codeToVerify.length < 6) {
       toast({
-        title: "Invalid OTP",
-        description: "Please enter the complete 6-digit OTP.",
+        title: "Incomplete Code",
+        description: "Please enter the 6-digit security code sent to your mobile.",
         variant: "destructive",
       });
       return;
@@ -291,8 +306,11 @@ export const InquiryFormDialog = ({
     try {
       // 1. Verify OTP with backend
       const verifyRes = await api.post("/auth/otp/verify", {
+        channel: otpChannel,
         email: formData.email.trim(),
-        otp: otp.trim(),
+        phone: formData.phone.trim(),
+        phoneCode: formData.phoneCountryCode.trim(),
+        otp: codeToVerify,
       });
 
       if (!verifyRes.data.success) {
@@ -328,16 +346,16 @@ export const InquiryFormDialog = ({
             ? "FRANCHISE_DETAIL"
             : "PROPERTY_DETAIL"
           : "HERO_INQUIRY",
-        notes: notes || (isUnlock ? "Confidential Dossier Unlocked (View Only)" : "Direct Inquiry with Senior Partner"),
+        notes: notes || (isUnlock ? "Property Details Viewed" : "Direct Inquiry with Senior Partner"),
         sendEmail: !isUnlock,
         intent: isUnlock ? "UNLOCK_VIEW" : "INQUIRY",
       });
 
       setStep("success");
       toast({
-        title: isUnlock ? "Dossier Unlocked" : "Verified Successfully",
+        title: isUnlock ? "Details Unlocked" : "Verified Successfully",
         description: isUnlock
-          ? "Identity confirmed. Unlocking confidential dossier..."
+          ? "Identity confirmed. Unlocking property details..."
           : "Your inquiry has been submitted. A Senior Partner will contact you shortly.",
       });
 
@@ -389,22 +407,35 @@ export const InquiryFormDialog = ({
     }
   };
 
-  // Step 2: Resend OTP
-  const handleResendOtp = async () => {
-    if (resendTimer > 0) return;
 
+  // Step 2: Resend OTP (with optional channel switch)
+  const handleResendOtp = async (overrideChannel?: "SMS" | "EMAIL") => {
+    if (resendTimer > 0 && !overrideChannel) return;
+
+    const targetChannel = overrideChannel || otpChannel;
     setIsSubmitting(true);
     setOtp("");
     try {
       const res = await api.post("/auth/otp/send", {
+        channel: targetChannel,
         email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        phoneCode: formData.phoneCountryCode.trim(),
+        propertyName: projectName || undefined,
       });
 
+
       if (res.data.success) {
+        if (overrideChannel) {
+          setOtpChannel(overrideChannel);
+        }
         setResendTimer(60);
         toast({
-          title: "OTP Resent",
-          description: `A new 6-digit security code was sent to ${formData.email}`,
+          title: targetChannel === "SMS" ? "SMS Code Sent" : "Email Code Sent",
+          description:
+            targetChannel === "SMS"
+              ? `A new 6-digit security code was sent via SMS to ${formData.phoneCountryCode} ${formData.phone}`
+              : `A new 6-digit security code was sent to ${formData.email}`,
         });
       }
     } catch (error: unknown) {
@@ -424,9 +455,9 @@ export const InquiryFormDialog = ({
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl font-light">
             {step === "form" &&
-              (customTitle || (intent === "inquiry" ? "Contact Senior Partner" : "Unlock Confidential Dossier"))}
+              (customTitle || (intent === "inquiry" ? "Contact Senior Partner" : projectName ? `View Details — ${projectName}` : "View Details"))}
             {step === "otp" && "Verify Security Code"}
-            {step === "success" && (intent === "inquiry" ? "Inquiry Confirmed" : "Dossier Unlocked")}
+            {step === "success" && (intent === "inquiry" ? "Inquiry Confirmed" : "Access Granted")}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground text-xs sm:text-sm">
             {step === "form" &&
@@ -434,14 +465,16 @@ export const InquiryFormDialog = ({
                 (projectName
                   ? intent === "inquiry"
                     ? `Connect directly with our senior luxury advisory team for ${projectName}.`
-                    : `Verify your identity to access full architectural floor plans, high-res photography, and specifications for ${projectName}.`
+                    : `Verify your mobile to view full photography, floor plans, and architectural specifications for ${projectName}.`
                   : "Please share your details to proceed."))}
             {step === "otp" &&
-              `Enter the 6-digit security code sent to ${formData.email}`}
+              (otpChannel === "SMS"
+                ? `Enter the 6-digit security code sent via SMS to ${formData.phoneCountryCode} ${formData.phone}`
+                : `Enter the 6-digit security code sent to ${formData.email}`)}
             {step === "success" &&
               (intent === "inquiry"
                 ? "Your bespoke advisory request has been dispatched to our Senior Partner."
-                : "Your identity has been verified. You now have privileged access to this dossier.")}
+                : "Your identity has been verified. You now have privileged access to this property.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -546,19 +579,34 @@ export const InquiryFormDialog = ({
                 </div>
               )}
 
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 mt-4 sm:mt-6 h-9 sm:h-10 text-xs sm:text-sm uppercase tracking-wider font-semibold"
-              >
-                {isSubmitting
-                  ? "Processing..."
-                  : intent === "inquiry"
-                    ? "Connect with Senior Partner"
-                    : "Verify & Unlock Dossier"}
-              </Button>
+              {/* Action Buttons */}
+              <div className="pt-2 space-y-2.5">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 sm:h-11 text-xs sm:text-sm uppercase tracking-wider font-bold shadow-md shadow-primary/20"
+                >
+                  {isSubmitting
+                    ? "Sending Code..."
+                    : intent === "inquiry"
+                      ? "Connect & Send OTP to Mobile"
+                      : "Send OTP to Mobile"}
+                </Button>
+
+                <div className="text-center pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => handleSendOtp("EMAIL")}
+                    disabled={isSubmitting}
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors underline-offset-4 hover:underline cursor-pointer"
+                  >
+                    Prefer email? Send OTP to email instead
+                  </button>
+                </div>
+              </div>
             </motion.form>
           )}
+
 
           {step === "otp" && (
             <motion.div
@@ -572,7 +620,13 @@ export const InquiryFormDialog = ({
                 <InputOTP
                   maxLength={6}
                   value={otp}
-                  onChange={(val) => setOtp(val)}
+                  autoFocus
+                  onChange={(val) => {
+                    setOtp(val);
+                    if (val.length === 6) {
+                      handleOtpVerify(val);
+                    }
+                  }}
                 >
                   <InputOTPGroup className="gap-1.5 sm:gap-2">
                     <InputOTPSlot
@@ -603,35 +657,61 @@ export const InquiryFormDialog = ({
                 </InputOTP>
               </div>
 
-              <div className="flex justify-between items-center text-xs text-muted-foreground">
-                <button
-                  type="button"
-                  onClick={() => setStep("form")}
-                  className="hover:text-foreground underline transition-colors"
-                >
-                  Change Email
-                </button>
-                <button
-                  type="button"
-                  onClick={handleResendOtp}
-                  disabled={resendTimer > 0 || isSubmitting}
-                  className="hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {resendTimer > 0
-                    ? `Resend Code in ${resendTimer}s`
-                    : "Resend Code"}
-                </button>
+              {/* Channel Fallback & Switch Options */}
+              <div className="rounded-lg border border-border/60 bg-secondary/20 p-2.5 space-y-2 text-xs">
+                <div className="flex justify-between items-center text-muted-foreground">
+                  <span>
+                    Sent via <strong className="text-foreground">{otpChannel}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleResendOtp()}
+                    disabled={resendTimer > 0 || isSubmitting}
+                    className="text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                  >
+                    {resendTimer > 0
+                      ? `Resend in ${resendTimer}s`
+                      : "Resend Code"}
+                  </button>
+                </div>
+
+                {/* Instant Fallback Switcher */}
+                <div className="pt-1.5 border-t border-border/40 flex justify-between items-center">
+                  <button
+                    type="button"
+                    onClick={() => handleResendOtp(otpChannel === "SMS" ? "EMAIL" : "SMS")}
+                    disabled={isSubmitting}
+                    className="text-[11px] text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-xs">
+                      {otpChannel === "SMS" ? "mail" : "sms"}
+                    </span>
+                    {otpChannel === "SMS"
+                      ? "Didn't get SMS? Send to Email instead"
+                      : "Didn't get Email? Send via SMS instead"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStep("form")}
+                    className="text-[11px] text-muted-foreground hover:text-foreground underline transition-colors"
+                  >
+                    Edit details
+                  </button>
+                </div>
               </div>
 
               <Button
-                onClick={handleOtpVerify}
-                disabled={isSubmitting || otp.length < 6}
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-9 sm:h-10 text-xs sm:text-sm uppercase tracking-wider font-semibold"
+                type="button"
+                onClick={() => handleOtpVerify()}
+                disabled={isSubmitting}
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 sm:h-11 text-xs sm:text-sm uppercase tracking-wider font-bold shadow-md shadow-primary/20 cursor-pointer"
               >
                 {isSubmitting ? "Verifying..." : "Verify & Unlock Access"}
               </Button>
+
             </motion.div>
           )}
+
 
           {step === "success" && (
             <motion.div

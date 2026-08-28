@@ -79,7 +79,54 @@
 - **Description:** Returns profile of the authenticated user.
 - **Response:** `200 OK` with user details and assigned properties.
 
+### POST `/api/v1/auth/otp/send`
+- **Auth:** Public
+- **Description:** Dispatches a 6-digit verification security code via Twilio SMS or Email.
+- **Request Body (SMS Mode):**
+  ```json
+  {
+    "channel": "SMS",
+    "phone": "9876543210",
+    "phoneCode": "+91"
+  }
+  ```
+- **Request Body (Email Mode):**
+  ```json
+  {
+    "channel": "EMAIL",
+    "email": "investor@capital.com"
+  }
+  ```
+- **Response:** `200 OK`
+  ```json
+  {
+    "success": true,
+    "statusCode": 200,
+    "message": "One-time password sent successfully via SMS to +919876543210",
+    "data": {
+      "channel": "SMS",
+      "destination": "+919876543210",
+      "expiresAt": "2026-08-28T07:11:41.919Z"
+    }
+  }
+  ```
+
+### POST `/api/v1/auth/otp/verify`
+- **Auth:** Public
+- **Description:** Verifies 6-digit OTP code and returns authenticated session token.
+- **Request Body:**
+  ```json
+  {
+    "channel": "SMS",
+    "phone": "9876543210",
+    "phoneCode": "+91",
+    "otp": "511414"
+  }
+  ```
+- **Response:** `200 OK` with JWT token and verified user profile.
+
 ---
+
 
 ## 3. Properties (`/api/v1/properties`)
 

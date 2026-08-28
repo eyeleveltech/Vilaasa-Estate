@@ -178,36 +178,85 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
  * @access  Public
  */
 export const sendOtp = asyncHandler(async (req: Request, res: Response) => {
-  const { email } = req.body;
+  const { email, phone, phoneCode = "+91", channel = "SMS", propertyName } = req.body;
+  const { normalizePhoneNumber, sendOtpSms } = await import(
+    "../../services/sms.service"
+  );
+
+  const { sendOtpEmail } = await import("../../services/email.service");
 
   // Generate 6-digit numeric OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
-  // Invalidate any previous unverified OTPs for this email
-  await prisma.otpRecord.deleteMany({
-    where: { email, verified: false },
-  });
+  let normalizedPhone: string | null = null;
+  if (phone) {
+    const rawPhone = phone.trim().startsWith("+")
+      ? phone.trim()
+      : `${phoneCode} ${phone.trim()}`;
+    normalizedPhone = normalizePhoneNumber(rawPhone, phoneCode);
+  }
+
+  const normalizedEmail = email ? email.toLowerCase().trim() : null;
+
+  // Invalidate any previous unverified OTPs for this phone or email
+  const deleteConditions: Array<{ email?: string; phone?: string }> = [];
+  if (normalizedEmail) deleteConditions.push({ email: normalizedEmail });
+  if (normalizedPhone) deleteConditions.push({ phone: normalizedPhone });
+
+  if (deleteConditions.length > 0) {
+    await prisma.otpRecord.deleteMany({
+      where: {
+        verified: false,
+        OR: deleteConditions,
+      },
+    });
+  }
 
   // Create new OTP record
   await prisma.otpRecord.create({
     data: {
-      email,
+      email: normalizedEmail,
+      phone: normalizedPhone,
+      channel,
       otp,
       expiresAt,
     },
   });
 
-  // Dispatch luxury email
-  const { sendOtpEmail } = await import("../../services/email.service");
-  await sendOtpEmail(email, otp);
+  // Dispatch via preferred channel
+  if (channel === "SMS" && normalizedPhone) {
+    const smsResult = await sendOtpSms(normalizedPhone, otp, propertyName);
+    return res.status(200).json(
 
-  return res.status(200).json(
-    ApiResponse.ok(
-      { email, expiresAt },
-      "One-time password sent successfully to your email",
-    ),
-  );
+      ApiResponse.ok(
+        {
+          channel: "SMS",
+          destination: normalizedPhone,
+          expiresAt,
+          mock: smsResult.messageId?.startsWith("mock-sms-") || false,
+        },
+        `One-time password sent successfully via SMS to ${normalizedPhone}`,
+      ),
+    );
+  }
+
+  // Default / Fallback: Dispatch luxury email
+  if (normalizedEmail) {
+    await sendOtpEmail(normalizedEmail, otp);
+    return res.status(200).json(
+      ApiResponse.ok(
+        {
+          channel: "EMAIL",
+          destination: normalizedEmail,
+          expiresAt,
+        },
+        `One-time password sent successfully to ${normalizedEmail}`,
+      ),
+    );
+  }
+
+  throw ApiError.badRequest("Valid phone number or email address required for OTP dispatch");
 });
 
 /**
@@ -216,19 +265,46 @@ export const sendOtp = asyncHandler(async (req: Request, res: Response) => {
  * @access  Public
  */
 export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
-  const { email, otp } = req.body;
+  const { email, phone, phoneCode = "+91", otp, channel = "SMS" } = req.body;
+  const { normalizePhoneNumber, checkOtpWithTwilioVerify } = await import(
+    "../../services/sms.service"
+  );
+
+  let normalizedPhone: string | null = null;
+  if (phone) {
+    const rawPhone = phone.trim().startsWith("+")
+      ? phone.trim()
+      : `${phoneCode} ${phone.trim()}`;
+    normalizedPhone = normalizePhoneNumber(rawPhone, phoneCode);
+  }
+  const normalizedEmail = email ? email.toLowerCase().trim() : null;
+
+  // Build lookup condition based on channel and provided credentials
+  const searchConditions: Array<{ email?: string; phone?: string }> = [];
+  if (channel === "SMS" && normalizedPhone) {
+    searchConditions.push({ phone: normalizedPhone });
+  } else if (channel === "EMAIL" && normalizedEmail) {
+    searchConditions.push({ email: normalizedEmail });
+  } else {
+    if (normalizedPhone) searchConditions.push({ phone: normalizedPhone });
+    if (normalizedEmail) searchConditions.push({ email: normalizedEmail });
+  }
+
+  if (searchConditions.length === 0) {
+    throw ApiError.badRequest("Email or phone is required to verify OTP.");
+  }
 
   const record = await prisma.otpRecord.findFirst({
     where: {
-      email,
       verified: false,
+      OR: searchConditions,
     },
     orderBy: { createdAt: "desc" },
   });
 
   if (!record) {
     throw ApiError.badRequest(
-      "No active OTP found for this email. Request a new code.",
+      "No active OTP found for this contact. Please request a new code.",
     );
   }
 
@@ -244,7 +320,18 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
     );
   }
 
-  if (record.otp !== otp) {
+  // Verify OTP: Check local database code or Twilio Verify service
+  let isVerified = false;
+  if (record.otp === otp) {
+    isVerified = true;
+  } else if (channel === "SMS" && normalizedPhone) {
+    const twilioVerifyResult = await checkOtpWithTwilioVerify(normalizedPhone, otp);
+    if (twilioVerifyResult === true) {
+      isVerified = true;
+    }
+  }
+
+  if (!isVerified) {
     await prisma.otpRecord.update({
       where: { id: record.id },
       data: { attempts: { increment: 1 } },
@@ -252,15 +339,23 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
     throw ApiError.badRequest("Invalid OTP code. Please check and try again.");
   }
 
+
   // Mark OTP as verified
   await prisma.otpRecord.update({
     where: { id: record.id },
     data: { verified: true },
   });
 
+
+  // Target email for user record
+  const targetEmail =
+    normalizedEmail ||
+    record.email ||
+    `vip-${(normalizedPhone || record.phone || "user").replace(/\D/g, "")}@vilaasa.internal`;
+
   // Check if existing user or auto-provision client user record
   let user = await prisma.user.findUnique({
-    where: { email },
+    where: { email: targetEmail },
   });
 
   if (!user) {
@@ -268,14 +363,15 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
       `OtpClient@${Date.now()}_${Math.random()}`,
       10,
     );
-    const defaultName = email
+    const defaultName = targetEmail
       .split("@")[0]
       .replace(/[._-]/g, " ")
       .replace(/\b\w/g, (c: string) => c.toUpperCase());
 
     user = await prisma.user.create({
       data: {
-        email,
+        email: targetEmail,
+        phone: normalizedPhone || record.phone,
         passwordHash: dummyPasswordHash,
         name: defaultName,
         role: "CHANNEL_PARTNER",
@@ -289,7 +385,9 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
     ApiResponse.ok(
       {
         verified: true,
-        email,
+        email: targetEmail,
+        phone: normalizedPhone || record.phone,
+        channel: record.channel,
         token,
         user: {
           id: user.id,

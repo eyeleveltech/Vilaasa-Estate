@@ -303,9 +303,10 @@ const DomesticFranchise = () => {
         projectId={selectedFranchise?.id}
         projectName={selectedFranchise?.name}
         intent="unlock_view"
-        customTitle={`Unlock Dossier — ${selectedFranchise?.name || "Franchise Asset"}`}
+        customTitle={`View Details — ${selectedFranchise?.name || "Franchise Asset"}`}
         customSubtitle="Verify your mobile to view full financials, brand models, and expansion specifications."
       />
+
 
       <Footer />
     </div>
