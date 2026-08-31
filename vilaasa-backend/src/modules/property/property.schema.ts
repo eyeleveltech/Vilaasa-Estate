@@ -32,6 +32,7 @@ export const PropertyMediaInputSchema = z.object({
   url: z.string().url("Valid media URL required"),
   thumbnailUrl: z.string().url().optional().or(z.literal("")),
   altText: z.string().optional(),
+  caption: z.string().optional(),
   orderIndex: z.number().int().default(0),
   isFeatured: z.boolean().default(false),
 });
@@ -225,6 +226,7 @@ export interface PropertyMediaInput {
   url: string;
   thumbnailUrl?: string;
   altText?: string;
+  caption?: string;
   orderIndex?: number;
   isFeatured?: boolean;
 }

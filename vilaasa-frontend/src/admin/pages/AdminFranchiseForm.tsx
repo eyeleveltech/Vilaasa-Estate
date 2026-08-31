@@ -1,6 +1,21 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import {
   ArrowLeft,
   DollarSign,
   Sparkles,
@@ -13,6 +28,8 @@ import {
   Plus,
   Star,
   Image as ImageIcon,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../api/axios";
@@ -33,10 +50,17 @@ import {
   autoFormatCurrencySymbol,
   normalizeFranchisePageData,
   prepareFranchisePagePayload,
+  FRANCHISE_BADGE_PRESETS,
+  BLUEPRINT_PRESETS,
+  ECOSYSTEM_CARD_PRESETS,
+  BENEFIT_CARD_PRESETS,
 } from "../lib/franchisePageHelpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SortableArrayItem } from "../components/SortableArrayItem";
+import { PresetDropdown } from "../components/PresetDropdown";
+import { DraftSaveBar } from "../components/DraftSaveBar";
 
 /* -------------------------------------------------------------------------- */
 /*                                HELPER UTILS                                */
@@ -55,6 +79,20 @@ const parseValueToNumber = (val: string | undefined, defaultNum: number): number
 };
 
 /* -------------------------------------------------------------------------- */
+/*                           SECTION NAV CONFIG                               */
+/* -------------------------------------------------------------------------- */
+
+const FRANCHISE_SECTIONS = [
+  { id: "sec-hero", label: "1. Hero & SEO" },
+  { id: "sec-hero-metrics", label: "2. Hero Metrics" },
+  { id: "sec-vision", label: "3. Vision Story" },
+  { id: "sec-blueprint", label: "4. Blueprint" },
+  { id: "sec-ecosystem", label: "5. Ecosystem" },
+  { id: "sec-benefits", label: "6. Benefits" },
+  { id: "sec-gallery", label: "7. Gallery" },
+];
+
+/* -------------------------------------------------------------------------- */
 /*                               MAIN COMPONENT                               */
 /* -------------------------------------------------------------------------- */
 
@@ -68,6 +106,25 @@ export const AdminFranchiseForm: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(isEditMode);
   const [saving, setSaving] = useState<boolean>(false);
   const [uploadingGallery, setUploadingGallery] = useState<boolean>(false);
+
+  const draftKey = `vilaasa_franchise_draft_${id || "new"}`;
+
+  /* -------------------------- DnD Sensors ------------------------------- */
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  /* ---------------------- Section Validation Indicators ----------------- */
+  const sectionStatus = {
+    "sec-hero": pageData.mainHeadline.trim().length >= 2,
+    "sec-hero-metrics": pageData.heroMetrics.some((m) => m.label.trim()),
+    "sec-vision": pageData.visionHeadline.trim().length > 0,
+    "sec-blueprint": pageData.blueprintMetrics.some((m) => m.label.trim()),
+    "sec-ecosystem": pageData.ecosystemCards.some((c) => c.title.trim()),
+    "sec-benefits": pageData.benefitCards.some((c) => c.title.trim()),
+    "sec-gallery": pageData.galleryImages.length > 0,
+  } as Record<string, boolean>;
 
   /* -------------------------- Fetch Initial Data -------------------------- */
   const fetchFranchiseData = useCallback(async () => {
@@ -98,12 +155,42 @@ export const AdminFranchiseForm: React.FC = () => {
     void fetchFranchiseData();
   }, [fetchFranchiseData]);
 
+  /* -------------------- Draft Restore Handler ---------------------------- */
+  const handleDraftRestore = (savedState: unknown) => {
+    try {
+      const restored = normalizeFranchisePageData(savedState as Partial<FranchisePageData>);
+      setPageData(restored);
+      toast.success("Draft restored!");
+    } catch {
+      toast.error("Failed to restore draft.");
+    }
+  };
+
+  /* -------------------- Generic DnD reorder helper ----------------------- */
+  const reorderArray = <T,>(arr: T[], activeId: string, overId: string): T[] => {
+    const activeIdx = arr.findIndex((item: unknown) => (item as { id: string }).id === activeId);
+    const overIdx = arr.findIndex((item: unknown) => (item as { id: string }).id === overId);
+    if (activeIdx < 0 || overIdx < 0) return arr;
+    return arrayMove(arr, activeIdx, overIdx);
+  };
+
+  /* -------------------- Generic clone helper ----------------------------- */
+  const cloneItem = <T extends { id: string }>(arr: T[], index: number): T[] => {
+    const original = arr[index];
+    if (!original) return arr;
+    const cloned = { ...original, id: `${original.id}-clone-${Date.now()}` };
+    const result = [...arr];
+    result.splice(index + 1, 0, cloned);
+    return result;
+  };
+
   /* ------------------------ Array Mutator Handlers ------------------------ */
-  // Section 2: Hero Financial Metrics
-  const handleAddHeroMetric = () => {
+
+  // ── Section 2: Hero Financial Metrics ──────────────────────────────────
+  const handleAddHeroMetric = (preset?: { label: string }) => {
     const newBadge: MetricBadge = {
       id: `hero-${Date.now()}`,
-      label: "",
+      label: preset?.label || "",
       value: "",
     };
     setPageData((p) => ({ ...p, heroMetrics: [...p.heroMetrics, newBadge] }));
@@ -114,6 +201,10 @@ export const AdminFranchiseForm: React.FC = () => {
       ...p,
       heroMetrics: p.heroMetrics.filter((_, idx) => idx !== index),
     }));
+  };
+
+  const handleCloneHeroMetric = (index: number) => {
+    setPageData((p) => ({ ...p, heroMetrics: cloneItem(p.heroMetrics, index) }));
   };
 
   const handleUpdateHeroMetric = (index: number, field: "label" | "value", val: string) => {
@@ -127,11 +218,20 @@ export const AdminFranchiseForm: React.FC = () => {
     });
   };
 
-  // Section 4: Financial Blueprint
-  const handleAddBlueprintMetric = () => {
+  const handleDragEndHeroMetrics = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setPageData((p) => ({
+      ...p,
+      heroMetrics: reorderArray(p.heroMetrics, String(active.id), String(over.id)),
+    }));
+  };
+
+  // ── Section 4: Financial Blueprint ────────────────────────────────────
+  const handleAddBlueprintMetric = (preset?: { label: string }) => {
     const newMetric: MetricBadge = {
       id: `bp-${Date.now()}`,
-      label: "",
+      label: preset?.label || "",
       value: "",
     };
     setPageData((p) => ({ ...p, blueprintMetrics: [...p.blueprintMetrics, newMetric] }));
@@ -142,6 +242,10 @@ export const AdminFranchiseForm: React.FC = () => {
       ...p,
       blueprintMetrics: p.blueprintMetrics.filter((_, idx) => idx !== index),
     }));
+  };
+
+  const handleCloneBlueprintMetric = (index: number) => {
+    setPageData((p) => ({ ...p, blueprintMetrics: cloneItem(p.blueprintMetrics, index) }));
   };
 
   const handleUpdateBlueprintMetric = (index: number, field: "label" | "value", val: string) => {
@@ -155,13 +259,22 @@ export const AdminFranchiseForm: React.FC = () => {
     });
   };
 
-  // Section 5: Comprehensive Ecosystem Cards
-  const handleAddEcosystemCard = () => {
+  const handleDragEndBlueprintMetrics = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setPageData((p) => ({
+      ...p,
+      blueprintMetrics: reorderArray(p.blueprintMetrics, String(active.id), String(over.id)),
+    }));
+  };
+
+  // ── Section 5: Ecosystem Cards ────────────────────────────────────────
+  const handleAddEcosystemCard = (preset?: { label: string; icon?: string } | null) => {
     const newCard: SupportCard = {
       id: `eco-${Date.now()}`,
-      title: "",
+      title: preset?.label || "",
       description: "",
-      icon: "storefront",
+      icon: preset?.icon || "storefront",
     };
     setPageData((p) => ({ ...p, ecosystemCards: [...p.ecosystemCards, newCard] }));
   };
@@ -171,6 +284,10 @@ export const AdminFranchiseForm: React.FC = () => {
       ...p,
       ecosystemCards: p.ecosystemCards.filter((_, idx) => idx !== index),
     }));
+  };
+
+  const handleCloneEcosystemCard = (index: number) => {
+    setPageData((p) => ({ ...p, ecosystemCards: cloneItem(p.ecosystemCards, index) }));
   };
 
   const handleUpdateEcosystemCard = (
@@ -192,13 +309,22 @@ export const AdminFranchiseForm: React.FC = () => {
     });
   };
 
-  // Section 6: Key Benefits (The FOCO Advantage)
-  const handleAddBenefitCard = () => {
+  const handleDragEndEcosystemCards = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setPageData((p) => ({
+      ...p,
+      ecosystemCards: reorderArray(p.ecosystemCards, String(active.id), String(over.id)),
+    }));
+  };
+
+  // ── Section 6: Benefit Cards ──────────────────────────────────────────
+  const handleAddBenefitCard = (preset?: { label: string; icon?: string } | null) => {
     const newCard: BenefitCard = {
       id: `ben-${Date.now()}`,
-      title: "",
+      title: preset?.label || "",
       description: "",
-      icon: "volunteer_activism",
+      icon: preset?.icon || "volunteer_activism",
     };
     setPageData((p) => ({ ...p, benefitCards: [...p.benefitCards, newCard] }));
   };
@@ -208,6 +334,10 @@ export const AdminFranchiseForm: React.FC = () => {
       ...p,
       benefitCards: p.benefitCards.filter((_, idx) => idx !== index),
     }));
+  };
+
+  const handleCloneBenefitCard = (index: number) => {
+    setPageData((p) => ({ ...p, benefitCards: cloneItem(p.benefitCards, index) }));
   };
 
   const handleUpdateBenefitCard = (
@@ -229,7 +359,16 @@ export const AdminFranchiseForm: React.FC = () => {
     });
   };
 
-  // Section 7: Hero Image Selection Toggle
+  const handleDragEndBenefitCards = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setPageData((p) => ({
+      ...p,
+      benefitCards: reorderArray(p.benefitCards, String(active.id), String(over.id)),
+    }));
+  };
+
+  // ── Section 7: Hero Image Selection Toggle ────────────────────────────
   const handleToggleHeroImage = (index: number) => {
     setPageData((prev) => {
       const target = prev.galleryImages[index];
@@ -319,6 +458,7 @@ export const AdminFranchiseForm: React.FC = () => {
         await api.put(`/properties/${id}`, propertyPayload);
         await api.put(`/franchise/${id}/page`, finalPagePayload);
         toast.success("Franchise updated successfully!", { id: toastId });
+        localStorage.removeItem(draftKey);
         navigate(`/admin/franchises/${id}`);
       } else {
         const res = await api.post<ApiResponse<Property>>("/properties", propertyPayload);
@@ -326,6 +466,7 @@ export const AdminFranchiseForm: React.FC = () => {
           const newId = res.data.data.id;
           await api.put(`/franchise/${newId}/page`, finalPagePayload);
           toast.success("Franchise registered successfully!", { id: toastId });
+          localStorage.removeItem(draftKey);
           navigate(`/admin/franchises/${newId}`);
         } else {
           throw new Error(res.data.message || "Failed to create franchise");
@@ -346,12 +487,21 @@ export const AdminFranchiseForm: React.FC = () => {
 
   const handleGalleryUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    const fileArr = Array.from(files);
+    const MAX_GALLERY_SIZE = 2 * 1024 * 1024; // 2MB
+    const oversized = fileArr.filter((f) => f.size > MAX_GALLERY_SIZE);
+    if (oversized.length > 0) {
+      toast.error(
+        `Image(s) exceed 2MB limit: ${oversized.map((f) => f.name).join(", ")}. Please upload images under 2MB.`
+      );
+      return;
+    }
     setUploadingGallery(true);
-    const toastId = toast.loading(`Uploading ${files.length} image(s)...`);
+    const toastId = toast.loading(`Uploading ${fileArr.length} image(s)...`);
     try {
       const newItems: GalleryItem[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+      for (let i = 0; i < fileArr.length; i++) {
+        const file = fileArr[i];
         const formData = new FormData();
         formData.append("file", file);
         formData.append("folder", "vilaasa/franchises/gallery");
@@ -380,6 +530,20 @@ export const AdminFranchiseForm: React.FC = () => {
     }
   };
 
+  /* -------------------- Drag-over gallery handler ---------------------- */
+  const handleGalleryDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleGalleryDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      void handleGalleryUpload(e.dataTransfer.files);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-96 flex-col items-center justify-center gap-3 text-muted-foreground">
@@ -391,6 +555,14 @@ export const AdminFranchiseForm: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-20">
+
+      {/* Draft Save Bar */}
+      <DraftSaveBar
+        storageKey={draftKey}
+        formState={pageData}
+        onRestore={handleDraftRestore}
+      />
+
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-5">
         <div>
@@ -447,10 +619,34 @@ export const AdminFranchiseForm: React.FC = () => {
         </div>
       </div>
 
+      {/* Section Quick Nav with Validation Indicators */}
+      <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 rounded-lg border border-border bg-card shadow-sm">
+        {FRANCHISE_SECTIONS.map((sec) => {
+          const done = sectionStatus[sec.id];
+          return (
+            <a
+              key={sec.id}
+              href={`#${sec.id}`}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/60 whitespace-nowrap transition-colors font-medium text-[11px] group"
+            >
+              {done ? (
+                <CheckCircle className="h-3 w-3 text-emerald-400 shrink-0" />
+              ) : (
+                <AlertCircle className="h-3 w-3 text-amber-400/60 shrink-0" />
+              )}
+              <span>{sec.label}</span>
+            </a>
+          );
+        })}
+      </div>
+
       {/* 7-Section Page Content Body */}
       <div className="space-y-8">
-        {/* SECTION 1: HERO */}
-        <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+
+        {/* ---------------------------------------------------------------- */}
+        {/* SECTION 1: HERO                                                  */}
+        {/* ---------------------------------------------------------------- */}
+        <section id="sec-hero" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
           <div className="border-b border-border/70 pb-3 mb-5">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <Sparkles className="h-3.5 w-3.5" />
@@ -491,68 +687,81 @@ export const AdminFranchiseForm: React.FC = () => {
           </div>
         </section>
 
-        {/* SECTION 2: HERO FINANCIAL METRICS */}
-        <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        {/* ---------------------------------------------------------------- */}
+        {/* SECTION 2: HERO FINANCIAL METRICS                                */}
+        {/* ---------------------------------------------------------------- */}
+        <section id="sec-hero-metrics" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
           <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-5">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <DollarSign className="h-3.5 w-3.5" />
               2. Hero Financial Metrics
             </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddHeroMetric}
-              className="gap-1.5 h-7 text-xs border-primary/40 text-primary hover:bg-primary/10"
-            >
-              <Plus className="h-3 w-3" />
-              <span>Add Badge</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <PresetDropdown
+                presets={FRANCHISE_BADGE_PRESETS}
+                triggerLabel="Add Preset Badge"
+                onSelect={(preset) => handleAddHeroMetric(preset || undefined)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleAddHeroMetric()}
+                className="gap-1.5 h-7 text-xs border-border text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="h-3 w-3" />
+                <span>Custom</span>
+              </Button>
+            </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {pageData.heroMetrics.map((metric, idx) => {
-              const heroPh = HERO_PLACEHOLDERS[idx] || { label: "e.g. METRIC NAME", value: "e.g. ₹1.5 Cr / 18%" };
-              return (
-                <div key={metric.id || idx} className="relative p-3.5 rounded-lg border border-border/60 bg-secondary/20 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Badge #{idx + 1}</Label>
-                    {pageData.heroMetrics.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveHeroMetric(idx)}
-                        className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                        title="Remove Badge"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    )}
-                  </div>
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Label</Label>
-                    <Input
-                      value={metric.label}
-                      onChange={(e) => handleUpdateHeroMetric(idx, "label", e.target.value)}
-                      placeholder={heroPh.label}
-                      className="bg-secondary/40 h-8 text-xs font-semibold mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Value</Label>
-                    <Input
-                      value={metric.value}
-                      onChange={(e) => handleUpdateHeroMetric(idx, "value", e.target.value)}
-                      placeholder={heroPh.value}
-                      className="bg-secondary/40 h-8 text-xs text-primary font-bold mt-1"
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndHeroMetrics}>
+            <SortableContext items={pageData.heroMetrics.map((m) => m.id)} strategy={verticalListSortingStrategy}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
+                {pageData.heroMetrics.map((metric, idx) => {
+                  const heroPh = HERO_PLACEHOLDERS[idx] || { label: "e.g. METRIC NAME", value: "e.g. ₹1.5 Cr / 18%" };
+                  return (
+                    <SortableArrayItem
+                      key={metric.id}
+                      id={metric.id}
+                      onClone={() => handleCloneHeroMetric(idx)}
+                      onRemove={() => handleRemoveHeroMetric(idx)}
+                      canRemove={pageData.heroMetrics.length > 1}
+                    >
+                      <div className="p-3.5 rounded-lg border border-border/60 bg-secondary/20 space-y-2">
+                        <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                          Badge #{idx + 1}
+                        </Label>
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Label</Label>
+                          <Input
+                            value={metric.label}
+                            onChange={(e) => handleUpdateHeroMetric(idx, "label", e.target.value)}
+                            placeholder={heroPh.label}
+                            className="bg-secondary/40 h-8 text-xs font-semibold mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Value</Label>
+                          <Input
+                            value={metric.value}
+                            onChange={(e) => handleUpdateHeroMetric(idx, "value", e.target.value)}
+                            placeholder={heroPh.value}
+                            className="bg-secondary/40 h-8 text-xs text-primary font-bold mt-1"
+                          />
+                        </div>
+                      </div>
+                    </SortableArrayItem>
+                  );
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
         </section>
 
-        {/* SECTION 3: THE VISION */}
-        <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        {/* ---------------------------------------------------------------- */}
+        {/* SECTION 3: THE VISION                                            */}
+        {/* ---------------------------------------------------------------- */}
+        <section id="sec-vision" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
           <div className="border-b border-border/70 pb-3 mb-5">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <BookOpen className="h-3.5 w-3.5" />
@@ -582,83 +791,103 @@ export const AdminFranchiseForm: React.FC = () => {
           </div>
         </section>
 
-        {/* SECTION 4: FINANCIAL BLUEPRINT */}
-        <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        {/* ---------------------------------------------------------------- */}
+        {/* SECTION 4: FINANCIAL BLUEPRINT                                   */}
+        {/* ---------------------------------------------------------------- */}
+        <section id="sec-blueprint" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
           <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-5">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <DollarSign className="h-3.5 w-3.5" />
               4. Financial Blueprint
             </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddBlueprintMetric}
-              className="gap-1.5 h-7 text-xs border-primary/40 text-primary hover:bg-primary/10"
-            >
-              <Plus className="h-3 w-3" />
-              <span>Add Metric</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <PresetDropdown
+                presets={BLUEPRINT_PRESETS}
+                triggerLabel="Add Preset Metric"
+                onSelect={(preset) => handleAddBlueprintMetric(preset || undefined)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleAddBlueprintMetric()}
+                className="gap-1.5 h-7 text-xs border-border text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="h-3 w-3" />
+                <span>Custom</span>
+              </Button>
+            </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {pageData.blueprintMetrics.map((metric, idx) => {
-              const bpPh = BLUEPRINT_PLACEHOLDERS[idx] || { label: "e.g. METRIC PARAMETER", value: "e.g. ₹5 Cr / 5 Years" };
-              return (
-                <div key={metric.id || idx} className="relative p-3.5 rounded-lg border border-border/60 bg-secondary/20 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Metric #{idx + 1}</Label>
-                    {pageData.blueprintMetrics.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveBlueprintMetric(idx)}
-                        className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                        title="Remove Metric"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    )}
-                  </div>
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Label</Label>
-                    <Input
-                      value={metric.label}
-                      onChange={(e) => handleUpdateBlueprintMetric(idx, "label", e.target.value)}
-                      placeholder={bpPh.label}
-                      className="bg-secondary/40 h-8 text-xs font-semibold mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Value</Label>
-                    <Input
-                      value={metric.value}
-                      onChange={(e) => handleUpdateBlueprintMetric(idx, "value", e.target.value)}
-                      placeholder={bpPh.value}
-                      className="bg-secondary/40 h-8 text-xs text-foreground font-bold mt-1"
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndBlueprintMetrics}>
+            <SortableContext items={pageData.blueprintMetrics.map((m) => m.id)} strategy={verticalListSortingStrategy}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
+                {pageData.blueprintMetrics.map((metric, idx) => {
+                  const bpPh = BLUEPRINT_PLACEHOLDERS[idx] || { label: "e.g. METRIC PARAMETER", value: "e.g. ₹5 Cr / 5 Years" };
+                  return (
+                    <SortableArrayItem
+                      key={metric.id}
+                      id={metric.id}
+                      onClone={() => handleCloneBlueprintMetric(idx)}
+                      onRemove={() => handleRemoveBlueprintMetric(idx)}
+                      canRemove={pageData.blueprintMetrics.length > 1}
+                    >
+                      <div className="p-3.5 rounded-lg border border-border/60 bg-secondary/20 space-y-2">
+                        <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                          Metric #{idx + 1}
+                        </Label>
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Label</Label>
+                          <Input
+                            value={metric.label}
+                            onChange={(e) => handleUpdateBlueprintMetric(idx, "label", e.target.value)}
+                            placeholder={bpPh.label}
+                            className="bg-secondary/40 h-8 text-xs font-semibold mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Value</Label>
+                          <Input
+                            value={metric.value}
+                            onChange={(e) => handleUpdateBlueprintMetric(idx, "value", e.target.value)}
+                            placeholder={bpPh.value}
+                            className="bg-secondary/40 h-8 text-xs text-foreground font-bold mt-1"
+                          />
+                        </div>
+                      </div>
+                    </SortableArrayItem>
+                  );
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
         </section>
 
-        {/* SECTION 5: SUPPORT & TRAINING */}
-        <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        {/* ---------------------------------------------------------------- */}
+        {/* SECTION 5: SUPPORT & TRAINING (ECOSYSTEM)                        */}
+        {/* ---------------------------------------------------------------- */}
+        <section id="sec-ecosystem" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
           <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-5">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <Layers className="h-3.5 w-3.5" />
               5. Comprehensive Ecosystem
             </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddEcosystemCard}
-              className="gap-1.5 h-7 text-xs border-primary/40 text-primary hover:bg-primary/10"
-            >
-              <Plus className="h-3 w-3" />
-              <span>Add Card</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <PresetDropdown
+                presets={ECOSYSTEM_CARD_PRESETS}
+                triggerLabel="Add Preset Card"
+                onSelect={(preset) => handleAddEcosystemCard(preset)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleAddEcosystemCard(null)}
+                className="gap-1.5 h-7 text-xs border-border text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="h-3 w-3" />
+                <span>Custom</span>
+              </Button>
+            </div>
           </div>
           <div className="space-y-4 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -692,87 +921,92 @@ export const AdminFranchiseForm: React.FC = () => {
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {pageData.ecosystemCards.map((card, idx) => {
-              const ecoPh = ECOSYSTEM_PLACEHOLDERS[idx] || { title: "e.g. Support Module Title", description: "e.g. Description of operational support..." };
-              return (
-                <div key={card.id || idx} className="p-4 rounded-lg border border-border bg-secondary/20 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/30">
-                        <span className="material-symbols-outlined text-lg">{card.icon || "storefront"}</span>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndEcosystemCards}>
+            <SortableContext items={pageData.ecosystemCards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
+                {pageData.ecosystemCards.map((card, idx) => {
+                  const ecoPh = ECOSYSTEM_PLACEHOLDERS[idx] || { title: "e.g. Support Module Title", description: "e.g. Description of operational support..." };
+                  return (
+                    <SortableArrayItem
+                      key={card.id}
+                      id={card.id}
+                      onClone={() => handleCloneEcosystemCard(idx)}
+                      onRemove={() => handleRemoveEcosystemCard(idx)}
+                      canRemove={pageData.ecosystemCards.length > 1}
+                    >
+                      <div className="p-4 rounded-lg border border-border bg-secondary/20 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/30">
+                            <span className="material-symbols-outlined text-lg">{card.icon || "storefront"}</span>
+                          </div>
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-foreground">Card #{idx + 1}</span>
+                          <select
+                            value={card.icon}
+                            onChange={(e) => handleUpdateEcosystemCard(idx, "icon", e.target.value)}
+                            className="ml-auto bg-secondary/70 border border-border text-[11px] rounded px-2 py-1 text-muted-foreground"
+                          >
+                            {COMMON_ICONS.map((ic) => (
+                              <option key={ic} value={ic}>{ic}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Title</Label>
+                          <Input
+                            value={card.title}
+                            onChange={(e) => {
+                              const detected = detectIconFromKeyword(e.target.value, card.icon);
+                              handleUpdateEcosystemCard(idx, "title", e.target.value, detected);
+                            }}
+                            placeholder={ecoPh.title}
+                            className="bg-secondary/40 h-9 text-xs font-semibold mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Description</Label>
+                          <textarea
+                            rows={3}
+                            value={card.description}
+                            onChange={(e) => handleUpdateEcosystemCard(idx, "description", e.target.value)}
+                            placeholder={ecoPh.description}
+                            className="w-full bg-secondary/40 border border-border rounded-md px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary mt-1 resize-y"
+                          />
+                        </div>
                       </div>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-foreground">Card #{idx + 1}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <select
-                        value={card.icon}
-                        onChange={(e) => handleUpdateEcosystemCard(idx, "icon", e.target.value)}
-                        className="bg-secondary/70 border border-border text-[11px] rounded px-2 py-1 text-muted-foreground"
-                      >
-                        {COMMON_ICONS.map((ic) => (
-                          <option key={ic} value={ic}>
-                            {ic}
-                          </option>
-                        ))}
-                      </select>
-                      {pageData.ecosystemCards.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveEcosystemCard(idx)}
-                          className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                          title="Remove Card"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Title</Label>
-                    <Input
-                      value={card.title}
-                      onChange={(e) => {
-                        const detected = detectIconFromKeyword(e.target.value, card.icon);
-                        handleUpdateEcosystemCard(idx, "title", e.target.value, detected);
-                      }}
-                      placeholder={ecoPh.title}
-                      className="bg-secondary/40 h-9 text-xs font-semibold mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Description</Label>
-                    <textarea
-                      rows={3}
-                      value={card.description}
-                      onChange={(e) => handleUpdateEcosystemCard(idx, "description", e.target.value)}
-                      placeholder={ecoPh.description}
-                      className="w-full bg-secondary/40 border border-border rounded-md px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary mt-1 resize-y"
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                    </SortableArrayItem>
+                  );
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
         </section>
 
-        {/* SECTION 6: KEY BENEFITS */}
-        <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        {/* ---------------------------------------------------------------- */}
+        {/* SECTION 6: KEY BENEFITS                                          */}
+        {/* ---------------------------------------------------------------- */}
+        <section id="sec-benefits" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
           <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-5">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <CheckCircle2 className="h-3.5 w-3.5" />
               6. Key Benefits
             </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddBenefitCard}
-              className="gap-1.5 h-7 text-xs border-primary/40 text-primary hover:bg-primary/10"
-            >
-              <Plus className="h-3 w-3" />
-              <span>Add Card</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <PresetDropdown
+                presets={BENEFIT_CARD_PRESETS}
+                triggerLabel="Add Preset Benefit"
+                onSelect={(preset) => handleAddBenefitCard(preset)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleAddBenefitCard(null)}
+                className="gap-1.5 h-7 text-xs border-border text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="h-3 w-3" />
+                <span>Custom</span>
+              </Button>
+            </div>
           </div>
           <div className="space-y-4 mb-6">
             <div>
@@ -795,72 +1029,70 @@ export const AdminFranchiseForm: React.FC = () => {
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pageData.benefitCards.map((card, idx) => {
-              const benPh = BENEFIT_PLACEHOLDERS[idx] || { title: "e.g. Benefit Title", description: "e.g. Description of investor advantage..." };
-              return (
-                <div key={card.id || idx} className="p-4 rounded-lg border border-border bg-secondary/20 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/30">
-                        <span className="material-symbols-outlined text-lg">{card.icon || "volunteer_activism"}</span>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndBenefitCards}>
+            <SortableContext items={pageData.benefitCards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+                {pageData.benefitCards.map((card, idx) => {
+                  const benPh = BENEFIT_PLACEHOLDERS[idx] || { title: "e.g. Benefit Title", description: "e.g. Description of investor advantage..." };
+                  return (
+                    <SortableArrayItem
+                      key={card.id}
+                      id={card.id}
+                      onClone={() => handleCloneBenefitCard(idx)}
+                      onRemove={() => handleRemoveBenefitCard(idx)}
+                      canRemove={pageData.benefitCards.length > 1}
+                    >
+                      <div className="p-4 rounded-lg border border-border bg-secondary/20 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/30">
+                            <span className="material-symbols-outlined text-lg">{card.icon || "volunteer_activism"}</span>
+                          </div>
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-foreground">Benefit #{idx + 1}</span>
+                          <select
+                            value={card.icon}
+                            onChange={(e) => handleUpdateBenefitCard(idx, "icon", e.target.value)}
+                            className="ml-auto bg-secondary/70 border border-border text-[11px] rounded px-2 py-1 text-muted-foreground"
+                          >
+                            {COMMON_ICONS.map((ic) => (
+                              <option key={ic} value={ic}>{ic}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Title</Label>
+                          <Input
+                            value={card.title}
+                            onChange={(e) => {
+                              const detected = detectIconFromKeyword(e.target.value, card.icon);
+                              handleUpdateBenefitCard(idx, "title", e.target.value, detected);
+                            }}
+                            placeholder={benPh.title}
+                            className="bg-secondary/40 h-9 text-xs font-semibold mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Description</Label>
+                          <textarea
+                            rows={4}
+                            value={card.description}
+                            onChange={(e) => handleUpdateBenefitCard(idx, "description", e.target.value)}
+                            placeholder={benPh.description}
+                            className="w-full bg-secondary/40 border border-border rounded-md px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary mt-1 resize-y"
+                          />
+                        </div>
                       </div>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-foreground">Benefit #{idx + 1}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <select
-                        value={card.icon}
-                        onChange={(e) => handleUpdateBenefitCard(idx, "icon", e.target.value)}
-                        className="bg-secondary/70 border border-border text-[11px] rounded px-2 py-1 text-muted-foreground"
-                      >
-                        {COMMON_ICONS.map((ic) => (
-                          <option key={ic} value={ic}>
-                            {ic}
-                          </option>
-                        ))}
-                      </select>
-                      {pageData.benefitCards.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveBenefitCard(idx)}
-                          className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                          title="Remove Benefit"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Title</Label>
-                    <Input
-                      value={card.title}
-                      onChange={(e) => {
-                        const detected = detectIconFromKeyword(e.target.value, card.icon);
-                        handleUpdateBenefitCard(idx, "title", e.target.value, detected);
-                      }}
-                      placeholder={benPh.title}
-                      className="bg-secondary/40 h-9 text-xs font-semibold mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Description</Label>
-                    <textarea
-                      rows={4}
-                      value={card.description}
-                      onChange={(e) => handleUpdateBenefitCard(idx, "description", e.target.value)}
-                      placeholder={benPh.description}
-                      className="w-full bg-secondary/40 border border-border rounded-md px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary mt-1 resize-y"
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                    </SortableArrayItem>
+                  );
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
         </section>
 
-        {/* SECTION 7: GALLERY */}
-        <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        {/* ---------------------------------------------------------------- */}
+        {/* SECTION 7: GALLERY                                               */}
+        {/* ---------------------------------------------------------------- */}
+        <section id="sec-gallery" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
           <div className="border-b border-border/70 pb-3 mb-5">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <ImageIcon className="h-3.5 w-3.5" />
@@ -868,14 +1100,18 @@ export const AdminFranchiseForm: React.FC = () => {
             </span>
           </div>
           <div className="mb-6">
-            <label className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-border rounded-xl bg-secondary/10 hover:bg-secondary/20 cursor-pointer transition-colors">
+            <label
+              className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-border rounded-xl bg-secondary/10 hover:bg-secondary/20 cursor-pointer transition-colors"
+              onDragOver={handleGalleryDragOver}
+              onDrop={handleGalleryDrop}
+            >
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-3">
                 <Upload className="h-6 w-6" />
               </div>
               <p className="text-sm font-semibold text-foreground">
-                {uploadingGallery ? "Uploading..." : "Click or drag to upload gallery images"}
+                {uploadingGallery ? "Uploading..." : "Click or drag-and-drop to upload gallery images"}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">PNG, JPG, WEBP up to 20MB. Multiple files supported.</p>
+              <p className="text-xs text-muted-foreground mt-1">PNG, JPG, WEBP up to 2MB each. Multiple files supported.</p>
               <input
                 type="file"
                 multiple
@@ -895,12 +1131,15 @@ export const AdminFranchiseForm: React.FC = () => {
               {pageData.galleryImages.map((img, idx) => {
                 const isHero = Boolean(img.isHero || (pageData.heroImage && pageData.heroImage === img.url));
                 return (
-                  <div key={img.id || idx} className={`rounded-lg border bg-secondary/20 overflow-hidden flex flex-col transition-all ${isHero ? 'border-primary shadow-sm shadow-primary/20 ring-1 ring-primary' : 'border-border'}`}>
+                  <div
+                    key={img.id || idx}
+                    className={`rounded-lg border bg-secondary/20 overflow-hidden flex flex-col transition-all ${isHero ? "border-primary shadow-sm shadow-primary/20 ring-1 ring-primary" : "border-border"}`}
+                  >
                     <div className="relative aspect-video bg-black/40 overflow-hidden">
                       <img src={img.url} alt={img.caption} className="w-full h-full object-cover" />
                       {isHero && (
                         <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-primary/95 text-primary-foreground text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-md">
-                          <Star className="h-3 w-3 fill-current text-gold-accent" />
+                          <Star className="h-3 w-3 fill-current" />
                           <span>Hero Image</span>
                         </div>
                       )}
@@ -941,8 +1180,8 @@ export const AdminFranchiseForm: React.FC = () => {
                           onChange={() => handleToggleHeroImage(idx)}
                           className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
                         />
-                        <span className={`flex items-center gap-1 text-[11px] ${isHero ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
-                          <Star className={`h-3 w-3 ${isHero ? 'fill-primary text-primary' : ''}`} />
+                        <span className={`flex items-center gap-1 text-[11px] ${isHero ? "text-primary font-semibold" : "text-muted-foreground"}`}>
+                          <Star className={`h-3 w-3 ${isHero ? "fill-primary text-primary" : ""}`} />
                           <span>Show as Hero Image</span>
                         </span>
                       </label>

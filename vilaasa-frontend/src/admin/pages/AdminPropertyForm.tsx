@@ -2,6 +2,21 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import {
   Building2,
   MapPin,
   Image as ImageIcon,
@@ -22,6 +37,8 @@ import {
   DollarSign,
   Compass,
   BookOpen,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -38,7 +55,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { autoFormatCurrencySymbol } from "../lib/franchisePageHelpers";
+import {
+  autoFormatCurrencySymbol,
+  formatCurrencyInput,
+  SPEC_PRESETS,
+  FINANCIAL_METRIC_PRESETS,
+  UNIT_TYPE_PRESETS,
+  AMENITY_PRESETS,
+  NEARBY_CATEGORY_PRESETS,
+} from "../lib/franchisePageHelpers";
+import { SortableArrayItem } from "../components/SortableArrayItem";
+import { PresetDropdown } from "../components/PresetDropdown";
+import { DraftSaveBar } from "../components/DraftSaveBar";
 
 /* -------------------------------------------------------------------------- */
 /*                                CONSTANTS & HELPERS                         */
@@ -52,21 +80,42 @@ interface GalleryItemState {
   isHero?: boolean;
 }
 
+const COMMON_FINANCIAL_ICONS = [
+  { label: "Trending Up (IRR)", icon: "trending_up" },
+  { label: "Monitoring (Market Size)", icon: "monitoring" },
+  { label: "Timelapse (Growth)", icon: "timelapse" },
+  { label: "Payments (Rental Yield)", icon: "payments" },
+  { label: "Savings (Capital Gains)", icon: "savings" },
+  { label: "Real Estate (Development)", icon: "real_estate_agent" },
+  { label: "Schedule (Timeline)", icon: "schedule" },
+  { label: "Receipt (Stamp Duty)", icon: "receipt_long" },
+  { label: "Account Balance (Escrow)", icon: "account_balance" },
+];
+
+const detectFinancialIcon = (label: string, currentIcon?: string): string => {
+  const lower = (label || "").toLowerCase();
+  if (lower.includes("irr") || lower.includes("yield") || lower.includes("return")) return "trending_up";
+  if (lower.includes("market") || lower.includes("size") || lower.includes("tam") || lower.includes("gdv") || lower.includes("valuation")) return "monitoring";
+  if (lower.includes("growth") || lower.includes("timeline") || lower.includes("cagr") || lower.includes("appreciation") || lower.includes("breakeven")) return "timelapse";
+  return currentIcon || "trending_up";
+};
+
 const detectAmenityIcon = (name: string): string => {
   const lower = (name || "").toLowerCase();
-  if (lower.includes("panchakarma") || lower.includes("wellness") || lower.includes("ayurved")) return "spa";
-  if (lower.includes("boat") || lower.includes("yacht") || lower.includes("marina") || lower.includes("sailing") || lower.includes("lake") || lower.includes("kayak")) return "directions_boat";
+  if (lower.includes("spa") || lower.includes("panchakarma") || lower.includes("wellness") || lower.includes("ayurved") || lower.includes("sauna") || lower.includes("steam") || lower.includes("massage")) return "spa";
+  if (lower.includes("water") || lower.includes("lake") || lower.includes("river") || lower.includes("fountain") || lower.includes("aquatic") || lower.includes("pond") || lower.includes("canal") || lower.includes("waterfront")) return "water";
+  if (lower.includes("eco") || lower.includes("organic") || lower.includes("green") || lower.includes("biophilic") || lower.includes("sustainab") || lower.includes("nature") || lower.includes("botanical")) return "eco";
+  if (lower.includes("dining") || lower.includes("restaurant") || lower.includes("culinary") || lower.includes("bistro") || lower.includes("cafe") || lower.includes("kitchen") || lower.includes("gourmet")) return "restaurant";
+  if (lower.includes("boat") || lower.includes("yacht") || lower.includes("marina") || lower.includes("sailing") || lower.includes("kayak")) return "directions_boat";
   if (lower.includes("clubhouse") || lower.includes("club") || lower.includes("lifestyle") || lower.includes("lounge")) return "cottage";
   if (lower.includes("helipad") || lower.includes("heli") || lower.includes("chopper") || lower.includes("aviation") || lower.includes("flight")) return "helicopter";
   if (lower.includes("pool") || lower.includes("swim") || lower.includes("jacuzzi") || lower.includes("plunge")) return "pool";
   if (lower.includes("gym") || lower.includes("fitness") || lower.includes("workout") || lower.includes("crossfit") || lower.includes("training")) return "fitness_center";
   if (lower.includes("yoga") || lower.includes("meditat") || lower.includes("zen") || lower.includes("mindful")) return "self_improvement";
-  if (lower.includes("spa") || lower.includes("sauna") || lower.includes("steam") || lower.includes("massage")) return "spa";
   if (lower.includes("tennis") || lower.includes("court") || lower.includes("racquet") || lower.includes("squash") || lower.includes("badminton")) return "sports_tennis";
   if (lower.includes("golf") || lower.includes("putting")) return "sports_golf";
   if (lower.includes("security") || lower.includes("cctv") || lower.includes("guard") || lower.includes("surveillance") || lower.includes("gated")) return "security";
-  if (lower.includes("garden") || lower.includes("park") || lower.includes("lawn") || lower.includes("nature") || lower.includes("landscape") || lower.includes("forest")) return "park";
-  if (lower.includes("dining") || lower.includes("restaurant") || lower.includes("culinary") || lower.includes("bistro") || lower.includes("cafe") || lower.includes("kitchen")) return "restaurant";
+  if (lower.includes("garden") || lower.includes("park") || lower.includes("lawn") || lower.includes("landscape") || lower.includes("forest")) return "park";
   if (lower.includes("bar") || lower.includes("wine") || lower.includes("cellar") || lower.includes("cocktail") || lower.includes("pub")) return "local_bar";
   if (lower.includes("beach") || lower.includes("coast") || lower.includes("shore") || lower.includes("sea") || lower.includes("ocean")) return "beach_access";
   if (lower.includes("theater") || lower.includes("theatre") || lower.includes("cinema") || lower.includes("movie") || lower.includes("screening")) return "theaters";
@@ -82,17 +131,18 @@ const detectAmenityIcon = (name: string): string => {
 };
 
 const COMMON_AMENITY_ICONS = [
-  { label: "Wellness / Leaf", icon: "eco" },
-  { label: "Spa / Lotus", icon: "spa" },
+  { label: "Spa / Wellness", icon: "spa" },
+  { label: "Water / Waterfront", icon: "water" },
+  { label: "Eco / Sustainable", icon: "eco" },
+  { label: "Dining / Culinary", icon: "restaurant" },
+  { label: "Pool / Swimming", icon: "pool" },
+  { label: "Fitness Center", icon: "fitness_center" },
   { label: "Yoga / Zen", icon: "self_improvement" },
   { label: "Clubhouse", icon: "cottage" },
-  { label: "Boat Club", icon: "directions_boat" },
+  { label: "Boat Club & Marina", icon: "directions_boat" },
   { label: "Helipad", icon: "helicopter" },
-  { label: "Pool", icon: "pool" },
-  { label: "Fitness Center", icon: "fitness_center" },
   { label: "Tennis Court", icon: "sports_tennis" },
   { label: "Golf Course", icon: "sports_golf" },
-  { label: "Dining / Culinary", icon: "restaurant" },
   { label: "Lounge Bar", icon: "local_bar" },
   { label: "Beach Access", icon: "beach_access" },
   { label: "Security 24/7", icon: "security" },
@@ -186,6 +236,9 @@ const SECTIONS_NAV = [
   { id: "sec-location", label: "8. Location" },
 ];
 
+// Helper to generate unique IDs for dynamic array items
+const genId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
 /* -------------------------------------------------------------------------- */
 /*                               MAIN COMPONENT                               */
 /* -------------------------------------------------------------------------- */
@@ -197,9 +250,17 @@ export const AdminPropertyForm: React.FC = () => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const draftKey = `vilaasa_property_draft_${id || "new"}`;
+
   const [loading, setLoading] = useState<boolean>(isEditMode);
   const [saving, setSaving] = useState<boolean>(false);
   const [uploadingGallery, setUploadingGallery] = useState<boolean>(false);
+
+  /* ---------------------- DnD Sensors ---------------------------------- */
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   // 1. Hero & Core Listing
   const [marketScope, setMarketScope] = useState<"DOMESTIC" | "INTERNATIONAL">("DOMESTIC");
@@ -217,12 +278,12 @@ export const AdminPropertyForm: React.FC = () => {
   const [verdictAuthor, setVerdictAuthor] = useState<string>("");
   const [verdictTitle, setVerdictTitle] = useState<string>("");
 
-  // 3. At a Glance (Dynamic Specs)
-  const [customSpecs, setCustomSpecs] = useState<{ label: string; value: string }[]>([]);
+  // 3. At a Glance (Dynamic Specs) — items get an id for dnd-kit
+  const [customSpecs, setCustomSpecs] = useState<{ id: string; label: string; value: string }[]>([]);
 
   // 4. Financial Intelligence
   const [financialMetrics, setFinancialMetrics] = useState<
-    { label: string; value: string; note: string; icon: string }[]
+    { id: string; label: string; value: string; note: string; icon: string }[]
   >([]);
 
   // 5. Pricing & Unit Configurations
@@ -232,7 +293,7 @@ export const AdminPropertyForm: React.FC = () => {
   const [rentalYieldPercent, setRentalYieldPercent] = useState<string>("");
   const [expectedIrrPercent, setExpectedIrrPercent] = useState<string>("");
   const [configurations, setConfigurations] = useState<
-    { unitType: string; areaSqFt: string; viewType: string; price: string; isAvailable: boolean }[]
+    { id: string; unitType: string; areaSqFt: string; viewType: string; price: string; isAvailable: boolean }[]
   >([]);
 
   // 6. Gallery & Media Assets
@@ -241,7 +302,7 @@ export const AdminPropertyForm: React.FC = () => {
 
   // 7. Curated Amenities
   const [amenities, setAmenities] = useState<
-    { name: string; iconKey: string; description: string }[]
+    { id: string; name: string; iconKey: string; description: string }[]
   >([]);
 
   // 8. Location & Connectivity
@@ -253,7 +314,7 @@ export const AdminPropertyForm: React.FC = () => {
   const [longitude, setLongitude] = useState<string>("");
   const [googleMapUrl, setGoogleMapUrl] = useState<string>("");
   const [nearbyPlaces, setNearbyPlaces] = useState<
-    { name: string; distance: string; travelTime: string; category: string; description: string }[]
+    { id: string; name: string; distance: string; travelTime: string; category: string; description: string }[]
   >([]);
 
   /* -------------------------- Fetch Existing Data ------------------------- */
@@ -283,13 +344,14 @@ export const AdminPropertyForm: React.FC = () => {
 
         // Specs
         if (prop.customSpecs && Array.isArray(prop.customSpecs) && prop.customSpecs.length > 0) {
-          setCustomSpecs(prop.customSpecs);
+          setCustomSpecs(prop.customSpecs.map((s: { label: string; value: string }, i: number) => ({ id: genId(`spec${i}`), ...s })));
         }
 
         // Financials
         if (prop.financialMetrics && prop.financialMetrics.length > 0) {
           setFinancialMetrics(
-            prop.financialMetrics.map((f) => ({
+            prop.financialMetrics.map((f, i) => ({
+              id: genId(`fin${i}`),
               label: f.label || "",
               value: f.value || "",
               note: f.note || "",
@@ -301,7 +363,8 @@ export const AdminPropertyForm: React.FC = () => {
         // Configurations
         if (prop.configurations && prop.configurations.length > 0) {
           setConfigurations(
-            prop.configurations.map((c) => ({
+            prop.configurations.map((c, i) => ({
+              id: genId(`cfg${i}`),
               unitType: c.unitType || "",
               areaSqFt: c.areaSqFt?.toString() || "",
               viewType: c.viewType || "",
@@ -327,7 +390,8 @@ export const AdminPropertyForm: React.FC = () => {
         // Amenities
         if (prop.amenities && prop.amenities.length > 0) {
           setAmenities(
-            prop.amenities.map((a) => ({
+            prop.amenities.map((a, i) => ({
+              id: genId(`am${i}`),
               name: a.amenity?.name || "",
               iconKey: a.amenity?.iconKey || detectAmenityIcon(a.amenity?.name || "") || "star",
               description: a.description || "",
@@ -338,7 +402,8 @@ export const AdminPropertyForm: React.FC = () => {
         // Nearby Places
         if (prop.nearbyPlaces && prop.nearbyPlaces.length > 0) {
           setNearbyPlaces(
-            prop.nearbyPlaces.map((p) => ({
+            prop.nearbyPlaces.map((p, i) => ({
+              id: genId(`np${i}`),
               name: p.name || "",
               distance: p.distance || "Nearby",
               travelTime: p.travelTime || "",
@@ -354,7 +419,7 @@ export const AdminPropertyForm: React.FC = () => {
           const gal = prop.media.map((m, idx) => ({
             id: m.id || `gal-${idx}`,
             url: m.url,
-            caption: m.caption || "",
+            caption: m.caption || m.altText || "",
             orderIndex: m.orderIndex ?? idx,
             isHero: Boolean(m.isFeatured || idx === 0),
           }));
@@ -384,155 +449,228 @@ export const AdminPropertyForm: React.FC = () => {
     }
   };
 
+  /* -------------------- Draft Restore Handler ---------------------------- */
+  const handleDraftRestore = (savedState: unknown) => {
+    try {
+      const s = savedState as {
+        name?: string; tagline?: string; description?: string; visionHeadline?: string;
+        verdictQuote?: string; verdictAuthor?: string; verdictTitle?: string;
+        propertyType?: string; price?: string; customSpecs?: typeof customSpecs;
+        financialMetrics?: typeof financialMetrics; configurations?: typeof configurations;
+        amenities?: typeof amenities; nearbyPlaces?: typeof nearbyPlaces;
+      };
+      if (s.name) setName(s.name);
+      if (s.tagline) setTagline(s.tagline);
+      if (s.description) setDescription(s.description);
+      if (s.visionHeadline) setVisionHeadline(s.visionHeadline);
+      if (s.verdictQuote) setVerdictQuote(s.verdictQuote);
+      if (s.verdictAuthor) setVerdictAuthor(s.verdictAuthor);
+      if (s.verdictTitle) setVerdictTitle(s.verdictTitle);
+      if (s.propertyType) setPropertyType(s.propertyType);
+      if (s.price) setPrice(s.price);
+      if (s.customSpecs) setCustomSpecs(s.customSpecs);
+      if (s.financialMetrics) setFinancialMetrics(s.financialMetrics);
+      if (s.configurations) setConfigurations(s.configurations);
+      if (s.amenities) setAmenities(s.amenities);
+      if (s.nearbyPlaces) setNearbyPlaces(s.nearbyPlaces);
+      toast.success("Draft restored!");
+    } catch {
+      toast.error("Failed to restore draft.");
+    }
+  };
+
+  /* -------------------- Generic DnD/Clone helpers ----------------------- */
+  const reorderById = <T extends { id: string }>(arr: T[], activeId: string, overId: string): T[] => {
+    const ai = arr.findIndex((x) => x.id === activeId);
+    const oi = arr.findIndex((x) => x.id === overId);
+    if (ai < 0 || oi < 0) return arr;
+    return arrayMove(arr, ai, oi);
+  };
+
+  const cloneById = <T extends { id: string }>(arr: T[], id: string): T[] => {
+    const idx = arr.findIndex((x) => x.id === id);
+    if (idx < 0) return arr;
+    const cloned = { ...arr[idx], id: genId("clone") };
+    const result = [...arr];
+    result.splice(idx + 1, 0, cloned);
+    return result;
+  };
+
   /* ------------------------ Array Mutator Handlers ------------------------ */
   // Specs
-  const handleAddSpec = () => {
-    setCustomSpecs((prev) => [...prev, { label: "", value: "" }]);
+  const handleAddSpec = (preset?: { label: string } | null) => {
+    setCustomSpecs((prev) => [...prev, { id: genId("spec"), label: preset?.label || "", value: "" }]);
   };
-  const handleRemoveSpec = (index: number) => {
-    setCustomSpecs((prev) => prev.filter((_, idx) => idx !== index));
+  const handleRemoveSpec = (id: string) => {
+    setCustomSpecs((prev) => prev.filter((x) => x.id !== id));
   };
-  const handleUpdateSpec = (index: number, field: "label" | "value", val: string) => {
-    setCustomSpecs((prev) => {
-      const updated = [...prev];
-      if (updated[index]) {
-        updated[index] = { ...updated[index], [field]: val };
-      }
-      return updated;
-    });
+  const handleCloneSpec = (id: string) => setCustomSpecs((prev) => cloneById(prev, id));
+  const handleDragEndSpecs = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setCustomSpecs((prev) => reorderById(prev, String(active.id), String(over.id)));
+  };
+  const handleUpdateSpec = (id: string, field: "label" | "value", val: string) => {
+    const formattedVal = field === "value" ? autoFormatCurrencySymbol(val) : val;
+    setCustomSpecs((prev) =>
+      prev.map((x) => x.id === id ? { ...x, [field]: formattedVal } : x)
+    );
   };
 
   // Financials
-  const handleAddFinancialMetric = () => {
+  const handleAddFinancialMetric = (preset?: { label: string; icon?: string } | null) => {
     setFinancialMetrics((prev) => [
       ...prev,
-      { label: "", value: "", note: "", icon: "trending_up" },
+      { id: genId("fin"), label: preset?.label || "", value: "", note: "", icon: preset?.icon || "trending_up" },
     ]);
   };
-  const handleRemoveFinancialMetric = (index: number) => {
-    setFinancialMetrics((prev) => prev.filter((_, idx) => idx !== index));
+  const handleRemoveFinancialMetric = (id: string) => {
+    setFinancialMetrics((prev) => prev.filter((x) => x.id !== id));
+  };
+  const handleCloneFinancialMetric = (id: string) => setFinancialMetrics((prev) => cloneById(prev, id));
+  const handleDragEndFinancialMetrics = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setFinancialMetrics((prev) => reorderById(prev, String(active.id), String(over.id)));
   };
   const handleUpdateFinancialMetric = (
-    index: number,
+    id: string,
     field: "label" | "value" | "note" | "icon",
     val: string
   ) => {
     const formattedVal = field === "value" ? autoFormatCurrencySymbol(val) : val;
-    setFinancialMetrics((prev) => {
-      const updated = [...prev];
-      if (updated[index]) {
-        updated[index] = { ...updated[index], [field]: formattedVal };
-      }
-      return updated;
-    });
+    setFinancialMetrics((prev) =>
+      prev.map((x) => x.id === id ? { ...x, [field]: formattedVal } : x)
+    );
   };
 
   // Configurations
-  const handleAddConfiguration = () => {
+  const handleAddConfiguration = (preset?: { label: string } | null) => {
     setConfigurations((prev) => [
       ...prev,
-      { unitType: "", areaSqFt: "", viewType: "", price: "", isAvailable: true },
+      { id: genId("cfg"), unitType: preset?.label || "", areaSqFt: "", viewType: "", price: "", isAvailable: true },
     ]);
   };
-  const handleRemoveConfiguration = (index: number) => {
-    setConfigurations((prev) => prev.filter((_, idx) => idx !== index));
+  const handleRemoveConfiguration = (id: string) => {
+    setConfigurations((prev) => prev.filter((x) => x.id !== id));
+  };
+  const handleCloneConfiguration = (id: string) => setConfigurations((prev) => cloneById(prev, id));
+  const handleDragEndConfigurations = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setConfigurations((prev) => reorderById(prev, String(active.id), String(over.id)));
   };
   const handleUpdateConfiguration = (
-    index: number,
+    id: string,
     field: "unitType" | "areaSqFt" | "viewType" | "price" | "isAvailable",
     val: string | boolean
   ) => {
     const formattedVal = field === "price" && typeof val === "string" ? autoFormatCurrencySymbol(val) : val;
-    setConfigurations((prev) => {
-      const updated = [...prev];
-      if (updated[index]) {
-        updated[index] = { ...updated[index], [field]: formattedVal };
-      }
-      return updated;
-    });
+    setConfigurations((prev) =>
+      prev.map((x) => x.id === id ? { ...x, [field]: formattedVal } : x)
+    );
   };
 
   // Amenities
-  const handleAddAmenity = () => {
-    setAmenities((prev) => [...prev, { name: "", iconKey: "star", description: "" }]);
+  const handleAddAmenity = (preset?: { label: string; icon?: string } | null) => {
+    setAmenities((prev) => [...prev, { id: genId("am"), name: preset?.label || "", iconKey: preset?.icon || "star", description: "" }]);
   };
-  const handleRemoveAmenity = (index: number) => {
-    setAmenities((prev) => prev.filter((_, idx) => idx !== index));
+  const handleRemoveAmenity = (id: string) => {
+    setAmenities((prev) => prev.filter((x) => x.id !== id));
+  };
+  const handleCloneAmenity = (id: string) => setAmenities((prev) => cloneById(prev, id));
+  const handleDragEndAmenities = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setAmenities((prev) => reorderById(prev, String(active.id), String(over.id)));
   };
   const handleUpdateAmenity = (
-    index: number,
+    id: string,
     field: "name" | "iconKey" | "description",
     val: string
   ) => {
-    setAmenities((prev) => {
-      const updated = [...prev];
-      if (updated[index]) {
-        let newIcon = updated[index].iconKey;
-        if (field === "name") {
-          const detected = detectAmenityIcon(val);
-          if (detected) newIcon = detected;
-        }
-        updated[index] = {
-          ...updated[index],
-          [field]: val,
-          ...(field === "name" ? { iconKey: newIcon } : {}),
-        };
-      }
-      return updated;
-    });
+    setAmenities((prev) =>
+      prev.map((x) => {
+        if (x.id !== id) return x;
+        const newIcon = field === "name" ? (detectAmenityIcon(val) || x.iconKey) : x.iconKey;
+        return { ...x, [field]: val, ...(field === "name" ? { iconKey: newIcon } : {}) };
+      })
+    );
   };
 
   // Nearby Places
-  const handleAddNearbyPlace = () => {
+  const handleAddNearbyPlace = (category?: string) => {
     setNearbyPlaces((prev) => [
       ...prev,
-      { name: "", distance: "", travelTime: "", category: "Transit", description: "" },
+      { id: genId("np"), name: "", distance: "", travelTime: "", category: category || "Transit", description: "" },
     ]);
   };
-  const handleRemoveNearbyPlace = (index: number) => {
-    setNearbyPlaces((prev) => prev.filter((_, idx) => idx !== index));
+  const handleRemoveNearbyPlace = (id: string) => {
+    setNearbyPlaces((prev) => prev.filter((x) => x.id !== id));
+  };
+  const handleCloneNearbyPlace = (id: string) => setNearbyPlaces((prev) => cloneById(prev, id));
+  const handleDragEndNearbyPlaces = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setNearbyPlaces((prev) => reorderById(prev, String(active.id), String(over.id)));
   };
   const handleUpdateNearbyPlace = (
-    index: number,
+    id: string,
     field: "name" | "distance" | "travelTime" | "category" | "description",
     val: string
   ) => {
-    setNearbyPlaces((prev) => {
-      const updated = [...prev];
-      if (updated[index]) {
-        updated[index] = { ...updated[index], [field]: val };
-      }
-      return updated;
-    });
+    setNearbyPlaces((prev) =>
+      prev.map((x) => x.id === id ? { ...x, [field]: val } : x)
+    );
   };
 
-  // Gallery
-  const handleUploadGalleryImage = async (file: File) => {
-    if (!file) return;
+  // Gallery — batch upload
+  const handleUploadGalleryImages = async (files: FileList | File[]) => {
+    const fileArr = Array.from(files);
+    if (fileArr.length === 0) return;
+    const MAX_GALLERY_SIZE = 2 * 1024 * 1024; // 2MB
+    const oversized = fileArr.filter((f) => f.size > MAX_GALLERY_SIZE);
+    if (oversized.length > 0) {
+      toast.error(
+        `Image(s) exceed 2MB limit: ${oversized.map((f) => f.name).join(", ")}. Please upload images under 2MB.`
+      );
+      return;
+    }
     setUploadingGallery(true);
+    const toastId = toast.loading(`Uploading ${fileArr.length} image(s)...`);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("folder", "properties/gallery");
-      const res = await api.post<ApiResponse<{ url: string }>>("/media/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      if (res.data.success && res.data.data?.url) {
-        const newImg: GalleryItemState = {
-          id: `gal-${Date.now()}`,
-          url: res.data.data.url,
-          caption: file.name.replace(/\.[^/.]+$/, ""),
-          orderIndex: galleryImages.length,
-          isHero: galleryImages.length === 0,
-        };
-        setGalleryImages((prev) => [...prev, newImg]);
-        toast.success("Image uploaded!");
+      const newImgs: GalleryItemState[] = [];
+      for (let i = 0; i < fileArr.length; i++) {
+        const file = fileArr[i];
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("folder", "properties/gallery");
+        const res = await api.post<ApiResponse<{ url: string }>>("/media/upload", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        if (res.data.success && res.data.data?.url) {
+          newImgs.push({
+            id: `gal-${Date.now()}-${i}`,
+            url: res.data.data.url,
+            caption: file.name.replace(/\.[^/.]+$/, ""),
+            orderIndex: galleryImages.length + i,
+            isHero: galleryImages.length === 0 && i === 0,
+          });
+        }
       }
+      setGalleryImages((prev) => [...prev, ...newImgs]);
+      toast.success(`${newImgs.length} image(s) uploaded!`, { id: toastId });
     } catch {
-      toast.error("Failed to upload image");
+      toast.error("Failed to upload images", { id: toastId });
     } finally {
       setUploadingGallery(false);
     }
+  };
+
+  const handleGalleryDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); };
+  const handleGalleryDrop = (e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    if (e.dataTransfer.files?.length) void handleUploadGalleryImages(e.dataTransfer.files);
   };
 
   const handleToggleHeroImage = (index: number) => {
@@ -603,12 +741,15 @@ export const AdminPropertyForm: React.FC = () => {
           isAvailable: c.isAvailable ?? true,
         }));
 
+      localStorage.removeItem(draftKey);
+
       const mappedType = mapToPropertyTypeEnum(propertyType);
 
       const mediaPayload = galleryImages.map((img, idx) => ({
         url: img.url,
-        caption: img.caption || undefined,
-        mediaType: "IMAGE",
+        caption: img.caption?.trim() || undefined,
+        altText: img.caption?.trim() || undefined,
+        mediaType: idx === 0 || img.isHero ? "HERO_IMAGE" : "GALLERY",
         isFeatured: Boolean(img.isHero || idx === 0),
         orderIndex: idx,
       }));
@@ -698,8 +839,26 @@ export const AdminPropertyForm: React.FC = () => {
     );
   }
 
+  /* ---------------------- Section Validation Status -------------------- */
+  const sectionStatus: Record<string, boolean> = {
+    "sec-hero": name.trim().length > 0 && propertyType.trim().length > 0,
+    "sec-vision": description.trim().length >= 10,
+    "sec-specs": customSpecs.some((s) => s.label.trim()),
+    "sec-financials": financialMetrics.some((f) => f.label.trim()),
+    "sec-pricing": price.trim().length > 0 || priceOnApplication,
+    "sec-gallery": galleryImages.length > 0,
+    "sec-amenities": amenities.some((a) => a.name.trim()),
+    "sec-location": city.trim().length > 0,
+  };
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-16">
+      {/* Draft Save Bar */}
+      <DraftSaveBar
+        storageKey={draftKey}
+        formState={{ name, tagline, description, visionHeadline, verdictQuote, verdictAuthor, verdictTitle, propertyType, price, customSpecs, financialMetrics, configurations, amenities, nearbyPlaces }}
+        onRestore={handleDraftRestore}
+      />
       {/* ----------------- TOP HEADER BAR ----------------- */}
       <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card shadow-sm">
         <div className="flex items-center gap-3">
@@ -754,17 +913,25 @@ export const AdminPropertyForm: React.FC = () => {
         </div>
       </div>
 
-      {/* ----------------- QUICK SECTION JUMP NAV ----------------- */}
+      {/* ----------------- QUICK SECTION JUMP NAV with Validation Indicators ----------------- */}
       <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 rounded-lg border border-border bg-card shadow-sm text-xs">
-        {SECTIONS_NAV.map((s) => (
-          <a
-            key={s.id}
-            href={`#${s.id}`}
-            className="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/60 whitespace-nowrap transition-colors font-medium text-[11px]"
-          >
-            {s.label}
-          </a>
-        ))}
+        {SECTIONS_NAV.map((s) => {
+          const done = sectionStatus[s.id];
+          return (
+            <a
+              key={s.id}
+              href={`#${s.id}`}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/60 whitespace-nowrap transition-colors font-medium text-[11px]"
+            >
+              {done ? (
+                <CheckCircle className="h-3 w-3 text-emerald-400 shrink-0" />
+              ) : (
+                <AlertCircle className="h-3 w-3 text-amber-400/60 shrink-0" />
+              )}
+              <span>{s.label}</span>
+            </a>
+          );
+        })}
       </div>
 
       {/* ----------------- FORM SECTIONS CONTAINER ----------------- */}
@@ -794,7 +961,7 @@ export const AdminPropertyForm: React.FC = () => {
                       : "border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60"
                   }`}
                 >
-                  <span>🇮🇳 Domestic (India)</span>
+                  <span>🇮🇳 Domestic</span>
                 </button>
                 <button
                   type="button"
@@ -805,7 +972,7 @@ export const AdminPropertyForm: React.FC = () => {
                       : "border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60"
                   }`}
                 >
-                  <span>🇦🇪 International (UAE / Global)</span>
+                  <span>🇦🇪 International</span>
                 </button>
               </div>
             </div>
@@ -983,72 +1150,69 @@ export const AdminPropertyForm: React.FC = () => {
               <LayoutGrid className="h-3.5 w-3.5" />
               3. At a Glance (Key Specifications)
             </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddSpec}
-              className="gap-1.5 h-7 text-xs border-primary/40 text-primary hover:bg-primary/10"
-            >
-              <Plus className="h-3 w-3" />
-              <span>Add Spec</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <PresetDropdown
+                presets={SPEC_PRESETS}
+                triggerLabel="Add Preset Spec"
+                onSelect={(p) => handleAddSpec(p)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleAddSpec(null)}
+                className="gap-1.5 h-7 text-xs border-border text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="h-3 w-3" />
+                <span>Custom</span>
+              </Button>
+            </div>
           </div>
 
           {customSpecs.length === 0 ? (
             <div className="p-4 rounded-lg border border-dashed border-border text-center">
               <p className="text-xs text-muted-foreground">
-                No custom specifications added. Click &quot;Add Spec&quot; to configure key specs.
+                No custom specifications added. Use a preset or click &quot;Custom&quot; to add specs.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {customSpecs.map((spec, idx) => {
-                const specPlaceholders = [
-                  { label: "e.g. BUILT-UP AREA", value: "e.g. 6,500 Sq.Ft." },
-                  { label: "e.g. BEDROOMS", value: "e.g. 5 Master Suites" },
-                  { label: "e.g. FURNISHING", value: "e.g. Fully Furnished" },
-                  { label: "e.g. OWNERSHIP", value: "e.g. Freehold" },
-                ];
-                const ph = specPlaceholders[idx] || { label: "e.g. SPEC LABEL", value: "e.g. Value" };
-
-                return (
-                  <div key={idx} className="relative p-3.5 rounded-lg border border-border/60 bg-secondary/20 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                        Spec #{idx + 1}
-                      </Label>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSpec(idx)}
-                        className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                        title="Remove Spec"
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndSpecs}>
+              <SortableContext items={customSpecs.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
+                  {customSpecs.map((spec, idx) => {
+                    const specPlaceholders = [
+                      { label: "e.g. BUILT-UP AREA", value: "e.g. 6,500 Sq.Ft." },
+                      { label: "e.g. BEDROOMS", value: "e.g. 5 Master Suites" },
+                      { label: "e.g. STARTING PRICE", value: "e.g. ₹12 Cr (or inr 12 cr)" },
+                      { label: "e.g. OWNERSHIP", value: "e.g. Freehold" },
+                    ];
+                    const ph = specPlaceholders[idx] || { label: "e.g. SPEC LABEL", value: "e.g. Value or ₹ Amount" };
+                    return (
+                      <SortableArrayItem
+                        key={spec.id}
+                        id={spec.id}
+                        onClone={() => handleCloneSpec(spec.id)}
+                        onRemove={() => handleRemoveSpec(spec.id)}
                       >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Label</Label>
-                      <Input
-                        value={spec.label}
-                        onChange={(e) => handleUpdateSpec(idx, "label", e.target.value)}
-                        placeholder={ph.label}
-                        className="bg-secondary/40 h-8 text-xs font-semibold mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Value</Label>
-                      <Input
-                        value={spec.value}
-                        onChange={(e) => handleUpdateSpec(idx, "value", e.target.value)}
-                        placeholder={ph.value}
-                        className="bg-secondary/40 h-8 text-xs text-foreground font-bold mt-1"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                        <div className="p-3.5 rounded-lg border border-border/60 bg-secondary/20 space-y-2">
+                          <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Spec #{idx + 1}</Label>
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Label</Label>
+                            <Input value={spec.label} onChange={(e) => handleUpdateSpec(spec.id, "label", e.target.value)} placeholder={ph.label} className="bg-secondary/40 h-8 text-xs font-semibold mt-1" />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                              Value <span className="text-[9px] text-muted-foreground/60 lowercase font-normal"></span>
+                            </Label>
+                            <Input value={spec.value} onChange={(e) => handleUpdateSpec(spec.id, "value", e.target.value)} placeholder={ph.value} className="bg-secondary/40 h-8 text-xs text-foreground font-bold mt-1" />
+                          </div>
+                        </div>
+                      </SortableArrayItem>
+                    );
+                  })}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
         </section>
 
@@ -1059,81 +1223,89 @@ export const AdminPropertyForm: React.FC = () => {
               <TrendingUp className="h-3.5 w-3.5" />
               4. Financial Intelligence
             </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddFinancialMetric}
-              className="gap-1.5 h-7 text-xs border-primary/40 text-primary hover:bg-primary/10"
-            >
-              <Plus className="h-3 w-3" />
-              <span>Add Metric</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <PresetDropdown
+                presets={FINANCIAL_METRIC_PRESETS}
+                triggerLabel="Add Preset Metric"
+                onSelect={(p) => handleAddFinancialMetric(p)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleAddFinancialMetric(null)}
+                className="gap-1.5 h-7 text-xs border-border text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="h-3 w-3" />
+                <span>Custom</span>
+              </Button>
+            </div>
           </div>
 
           {financialMetrics.length === 0 ? (
             <div className="p-4 rounded-lg border border-dashed border-border text-center">
-              <p className="text-xs text-muted-foreground">
-                No financial metrics added. Click &quot;Add Metric&quot; to configure ROI metrics.
-              </p>
+              <p className="text-xs text-muted-foreground">No financial metrics added. Use a preset or &quot;Custom&quot; to add ROI metrics.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {financialMetrics.map((metric, idx) => {
-                const finPlaceholders = [
-                  { label: "e.g. PROJECTED IRR", value: "e.g. 18% - 22%", note: "e.g. 5-Year Capital Horizon" },
-                  { label: "e.g. ANNUAL APPRECIATION", value: "e.g. 14% CAGR", note: "e.g. Luxury Segment Benchmark" },
-                  { label: "e.g. BREAKEVEN TIMELINE", value: "e.g. 4.5 Years", note: "e.g. Full Capital Recovery" },
-                  { label: "e.g. NET RENTAL YIELD", value: "e.g. 8.5% p.a.", note: "e.g. Managed Villa Rental" },
-                ];
-                const ph = finPlaceholders[idx] || { label: "e.g. METRIC NAME", value: "e.g. Value", note: "e.g. Context Note" };
-
-                return (
-                  <div key={idx} className="relative p-3.5 rounded-lg border border-border/60 bg-secondary/20 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                        Metric #{idx + 1}
-                      </Label>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFinancialMetric(idx)}
-                        className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                        title="Remove Metric"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Label</Label>
-                      <Input
-                        value={metric.label}
-                        onChange={(e) => handleUpdateFinancialMetric(idx, "label", e.target.value)}
-                        placeholder={ph.label}
-                        className="bg-secondary/40 h-8 text-xs font-semibold mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Value</Label>
-                      <Input
-                        value={metric.value}
-                        onChange={(e) => handleUpdateFinancialMetric(idx, "value", e.target.value)}
-                        placeholder={ph.value}
-                        className="bg-secondary/40 h-8 text-xs text-primary font-bold mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Context Note</Label>
-                      <Input
-                        value={metric.note}
-                        onChange={(e) => handleUpdateFinancialMetric(idx, "note", e.target.value)}
-                        placeholder={ph.note}
-                        className="bg-secondary/40 h-7 text-[11px] text-muted-foreground mt-1"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndFinancialMetrics}>
+              <SortableContext items={financialMetrics.map((m) => m.id)} strategy={verticalListSortingStrategy}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
+                  {financialMetrics.map((metric, idx) => {
+                    const finPlaceholders = [
+                      { label: "e.g. PROJECTED IRR", value: "e.g. 18% - 22%", note: "e.g. 5-Year Capital Horizon" },
+                      { label: "e.g. ANNUAL APPRECIATION", value: "e.g. 14% CAGR", note: "e.g. Luxury Segment Benchmark" },
+                      { label: "e.g. BREAKEVEN TIMELINE", value: "e.g. 4.5 Years", note: "e.g. Full Capital Recovery" },
+                      { label: "e.g. NET RENTAL YIELD", value: "e.g. 8.5% p.a.", note: "e.g. Managed Villa Rental" },
+                    ];
+                    const ph = finPlaceholders[idx] || { label: "e.g. METRIC NAME", value: "e.g. Value", note: "e.g. Context Note" };
+                    return (
+                      <SortableArrayItem key={metric.id} id={metric.id} onClone={() => handleCloneFinancialMetric(metric.id)} onRemove={() => handleRemoveFinancialMetric(metric.id)}>
+                        <div className="p-3.5 rounded-lg border border-border/60 bg-secondary/20 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/30 shrink-0">
+                              <span className="material-symbols-outlined text-sm">{metric.icon || "trending_up"}</span>
+                            </div>
+                            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Metric #{idx + 1}</Label>
+                            <select
+                              value={metric.icon || "trending_up"}
+                              onChange={(e) => handleUpdateFinancialMetric(metric.id, "icon", e.target.value)}
+                              className="ml-auto bg-secondary/70 border border-border text-[10px] rounded px-1.5 h-6 text-muted-foreground max-w-[130px]"
+                            >
+                              {COMMON_FINANCIAL_ICONS.map((ic) => (
+                                <option key={ic.icon} value={ic.icon}>{ic.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Label</Label>
+                            <Input
+                              value={metric.label}
+                              onChange={(e) => {
+                                handleUpdateFinancialMetric(metric.id, "label", e.target.value);
+                                const detected = detectFinancialIcon(e.target.value, metric.icon);
+                                if (detected !== metric.icon) {
+                                  handleUpdateFinancialMetric(metric.id, "icon", detected);
+                                }
+                              }}
+                              placeholder={ph.label}
+                              className="bg-secondary/40 h-8 text-xs font-semibold mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Value</Label>
+                            <Input value={metric.value} onChange={(e) => handleUpdateFinancialMetric(metric.id, "value", e.target.value)} placeholder={ph.value} className="bg-secondary/40 h-8 text-xs text-primary font-bold mt-1" />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Context Note</Label>
+                            <Input value={metric.note} onChange={(e) => handleUpdateFinancialMetric(metric.id, "note", e.target.value)} placeholder={ph.note} className="bg-secondary/40 h-7 text-[11px] text-muted-foreground mt-1" />
+                          </div>
+                        </div>
+                      </SortableArrayItem>
+                    );
+                  })}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
         </section>
 
@@ -1167,9 +1339,12 @@ export const AdminPropertyForm: React.FC = () => {
                   </select>
                   <Input
                     value={price}
-                    onChange={(e) => setPrice(autoFormatCurrencySymbol(e.target.value))}
+                    onChange={(e) => {
+                      const symbolFormatted = autoFormatCurrencySymbol(e.target.value);
+                      setPrice(formatCurrencyInput(symbolFormatted));
+                    }}
                     disabled={priceOnApplication}
-                    placeholder="e.g. ₹15 Cr or 150000000"
+                    placeholder="e.g. ₹15 Cr or 15,000,000"
                     className="bg-secondary/40 h-10 text-sm font-semibold flex-1"
                   />
                 </div>
@@ -1214,90 +1389,66 @@ export const AdminPropertyForm: React.FC = () => {
                     Specify 3 BHK, 4 BHK, or custom penthouse floor plans and pricing.
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddConfiguration}
-                  className="gap-1.5 h-7 text-xs border-primary/40 text-primary hover:bg-primary/10"
-                >
-                  <Plus className="h-3 w-3" />
-                  <span>Add Unit Layout</span>
-                </Button>
+                <div className="flex items-center gap-2">
+                  <PresetDropdown
+                    presets={UNIT_TYPE_PRESETS}
+                    triggerLabel="Add Preset Unit"
+                    onSelect={(p) => handleAddConfiguration(p)}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAddConfiguration(null)}
+                    className="gap-1.5 h-7 text-xs border-border text-muted-foreground hover:text-foreground"
+                  >
+                    <Plus className="h-3 w-3" />
+                    <span>Custom</span>
+                  </Button>
+                </div>
               </div>
 
               {configurations.length === 0 ? (
                 <div className="p-6 text-center border border-dashed border-border rounded-xl bg-secondary/10">
-                  <p className="text-xs text-muted-foreground">
-                    No unit layouts defined. Click &quot;Add Unit Layout&quot; to specify BHK suites.
-                  </p>
+                  <p className="text-xs text-muted-foreground">No unit layouts defined. Use a preset or click &quot;Custom&quot;.</p>
                 </div>
               ) : (
-                <div className="space-y-2.5">
-                  {configurations.map((config, idx) => (
-                    <div
-                      key={idx}
-                      className="grid grid-cols-1 sm:grid-cols-5 gap-2.5 p-3 rounded-lg border border-border bg-secondary/20 items-end"
-                    >
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground uppercase">Unit Type</Label>
-                        <Input
-                          placeholder="e.g. 4 BHK Royal Villa"
-                          value={config.unitType}
-                          onChange={(e) => handleUpdateConfiguration(idx, "unitType", e.target.value)}
-                          className="bg-secondary/40 h-8 text-xs font-semibold mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground uppercase">Area (Sq.Ft.)</Label>
-                        <Input
-                          type="number"
-                          placeholder="e.g. 4500"
-                          value={config.areaSqFt}
-                          onChange={(e) => handleUpdateConfiguration(idx, "areaSqFt", e.target.value)}
-                          className="bg-secondary/40 h-8 text-xs font-mono mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground uppercase">View Type</Label>
-                        <Input
-                          placeholder="e.g. Sea View / Private Garden"
-                          value={config.viewType}
-                          onChange={(e) => handleUpdateConfiguration(idx, "viewType", e.target.value)}
-                          className="bg-secondary/40 h-8 text-xs mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground uppercase">Price ({currency})</Label>
-                        <Input
-                          placeholder="e.g. ₹5.5 Cr"
-                          value={config.price}
-                          onChange={(e) => handleUpdateConfiguration(idx, "price", e.target.value)}
-                          className="bg-secondary/40 h-8 text-xs font-semibold text-primary mt-1"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between gap-2 h-8">
-                        <label className="flex items-center gap-1.5 text-[11px] cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={config.isAvailable}
-                            onChange={(e) => handleUpdateConfiguration(idx, "isAvailable", e.target.checked)}
-                            className="h-3.5 w-3.5 rounded border-border text-primary"
-                          />
-                          <span>Available</span>
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveConfiguration(idx)}
-                          className="text-muted-foreground hover:text-red-400 hover:bg-red-500/10 p-1.5 rounded transition-colors"
-                          title="Remove Layout"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndConfigurations}>
+                  <SortableContext items={configurations.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-4 pt-2">
+                      {configurations.map((config, idx) => (
+                        <SortableArrayItem key={config.id} id={config.id} onClone={() => handleCloneConfiguration(config.id)} onRemove={() => handleRemoveConfiguration(config.id)}>
+                          <div className={`grid grid-cols-1 ${isEditMode ? "sm:grid-cols-5" : "sm:grid-cols-4"} gap-2.5 p-3 rounded-lg border border-border bg-secondary/20 items-end`}>
+                            <div>
+                              <Label className="text-[10px] text-muted-foreground uppercase">Unit Type</Label>
+                              <Input placeholder="e.g. 4 BHK Royal Villa" value={config.unitType} onChange={(e) => handleUpdateConfiguration(config.id, "unitType", e.target.value)} className="bg-secondary/40 h-8 text-xs font-semibold mt-1" />
+                            </div>
+                            <div>
+                              <Label className="text-[10px] text-muted-foreground uppercase">Area (Sq.Ft.)</Label>
+                              <Input type="number" placeholder="e.g. 4500" value={config.areaSqFt} onChange={(e) => handleUpdateConfiguration(config.id, "areaSqFt", e.target.value)} className="bg-secondary/40 h-8 text-xs font-mono mt-1" />
+                            </div>
+                            <div>
+                              <Label className="text-[10px] text-muted-foreground uppercase">View Type</Label>
+                              <Input placeholder="e.g. Sea View / Private Garden" value={config.viewType} onChange={(e) => handleUpdateConfiguration(config.id, "viewType", e.target.value)} className="bg-secondary/40 h-8 text-xs mt-1" />
+                            </div>
+                            <div>
+                              <Label className="text-[10px] text-muted-foreground uppercase">Price ({currency})</Label>
+                              <Input placeholder="e.g. ₹5.5 Cr" value={config.price} onChange={(e) => handleUpdateConfiguration(config.id, "price", e.target.value)} className="bg-secondary/40 h-8 text-xs font-semibold text-primary mt-1" />
+                            </div>
+                            {isEditMode && (
+                              <div className="flex items-center gap-2 h-8">
+                                <label className="flex items-center gap-1.5 text-[11px] cursor-pointer flex-1">
+                                  <input type="checkbox" checked={config.isAvailable} onChange={(e) => handleUpdateConfiguration(config.id, "isAvailable", e.target.checked)} className="h-3.5 w-3.5 rounded border-border text-primary" />
+                                  <span>Available</span>
+                                </label>
+                              </div>
+                            )}
+                          </div>
+                        </SortableArrayItem>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </SortableContext>
+                </DndContext>
               )}
             </div>
           </div>
@@ -1305,56 +1456,45 @@ export const AdminPropertyForm: React.FC = () => {
 
         {/* SECTION 6: VISUAL SHOWCASE & GALLERY */}
         <section id="sec-gallery" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
-          <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-5">
-            <div>
-              <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
-                <ImageIcon className="h-3.5 w-3.5" />
-                6. Visual Showcase &amp; Architectural Gallery
-              </span>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Upload luxury architectural photography, layouts, and mark your primary Hero Image.
+          <div className="border-b border-border/70 pb-3 mb-5">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
+              <ImageIcon className="h-3.5 w-3.5" />
+              6. Visual Showcase &amp; Architectural Gallery
+            </span>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Upload luxury architectural photography, layouts, and mark your primary Hero Image.
+            </p>
+          </div>
+
+          {/* Batch drag-and-drop upload zone */}
+          <div className="mb-6">
+            <label
+              className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-border rounded-xl bg-secondary/10 hover:bg-secondary/20 cursor-pointer transition-colors"
+              onDragOver={handleGalleryDragOver}
+              onDrop={handleGalleryDrop}
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-3">
+                <Upload className="h-6 w-6" />
+              </div>
+              <p className="text-sm font-semibold text-foreground">
+                {uploadingGallery ? "Uploading..." : "Click or drag-and-drop to upload gallery images"}
               </p>
-            </div>
-            <div>
+              <p className="text-xs text-muted-foreground mt-1">PNG, JPG, WEBP up to 2MB each. Multiple files supported.</p>
               <input
                 ref={fileInputRef}
                 type="file"
+                multiple
                 accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void handleUploadGalleryImage(file);
-                }}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
                 disabled={uploadingGallery}
-                onClick={() => fileInputRef.current?.click()}
-                className="gap-1.5 h-8 text-xs border-primary/40 text-primary hover:bg-primary/10"
-              >
-                {uploadingGallery ? (
-                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                ) : (
-                  <Upload className="h-3.5 w-3.5" />
-                )}
-                <span>Upload Image</span>
-              </Button>
-            </div>
+                onChange={(e) => { if (e.target.files) void handleUploadGalleryImages(e.target.files); }}
+                className="hidden"
+              />
+            </label>
           </div>
 
           {galleryImages.length === 0 ? (
-            <div className="p-8 text-center border border-dashed border-border rounded-xl bg-secondary/10 space-y-3">
-              <div className="flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-primary/10 text-primary">
-                <ImageIcon className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">No gallery images uploaded</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Click &quot;Upload Image&quot; to add photos, floor plans, and select your Hero Showcase image.
-                </p>
-              </div>
+            <div className="text-center py-4 text-muted-foreground text-xs border border-border/40 rounded-lg bg-secondary/10">
+              No gallery images yet.
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -1419,69 +1559,68 @@ export const AdminPropertyForm: React.FC = () => {
               <Layers className="h-3.5 w-3.5" />
               7. Signature Amenities
             </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddAmenity}
-              className="gap-1.5 h-7 text-xs border-primary/40 text-primary hover:bg-primary/10"
-            >
-              <Plus className="h-3 w-3" />
-              <span>Add Amenity</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <PresetDropdown
+                presets={AMENITY_PRESETS}
+                triggerLabel="Add Preset Amenity"
+                onSelect={(p) => handleAddAmenity(p)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleAddAmenity(null)}
+                className="gap-1.5 h-7 text-xs border-border text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="h-3 w-3" />
+                <span>Custom</span>
+              </Button>
+            </div>
           </div>
 
           {amenities.length === 0 ? (
             <div className="p-6 text-center border border-dashed border-border rounded-xl bg-secondary/10">
-              <p className="text-xs text-muted-foreground">
-                No amenities added yet. Click &quot;Add Amenity&quot; to configure luxury features.
-              </p>
+              <p className="text-xs text-muted-foreground">No amenities added yet. Use a preset or &quot;Custom&quot;.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {amenities.map((amenity, idx) => (
-                <div key={idx} className="p-3.5 rounded-lg border border-border bg-secondary/20 space-y-2.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-1">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/30 shrink-0">
-                        <span className="material-symbols-outlined text-lg">{amenity.iconKey || "star"}</span>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndAmenities}>
+              <SortableContext items={amenities.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                  {amenities.map((amenity) => (
+                    <SortableArrayItem key={amenity.id} id={amenity.id} onClone={() => handleCloneAmenity(amenity.id)} onRemove={() => handleRemoveAmenity(amenity.id)}>
+                      <div className="p-3.5 rounded-lg border border-border bg-secondary/20 space-y-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/30 shrink-0">
+                            <span className="material-symbols-outlined text-lg">{amenity.iconKey || "star"}</span>
+                          </div>
+                          <Input
+                            placeholder="Amenity Name (e.g. Private Marina & Yacht Berth)"
+                            value={amenity.name}
+                            onChange={(e) => handleUpdateAmenity(amenity.id, "name", e.target.value)}
+                            className="bg-secondary/40 h-8 text-xs font-semibold flex-1"
+                          />
+                          <select
+                            value={amenity.iconKey || "star"}
+                            onChange={(e) => handleUpdateAmenity(amenity.id, "iconKey", e.target.value)}
+                            className="bg-secondary/70 border border-border text-[11px] rounded px-2 h-8 text-muted-foreground max-w-[130px]"
+                          >
+                            {COMMON_AMENITY_ICONS.map((p) => (
+                              <option key={p.icon} value={p.icon}>{p.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <Input
+                          placeholder="Context / Details (e.g. 24/7 dedicated concierge and yacht mooring privileges)"
+                          value={amenity.description}
+                          onChange={(e) => handleUpdateAmenity(amenity.id, "description", e.target.value)}
+                          className="bg-secondary/40 h-7 text-[11px] text-muted-foreground"
+                        />
                       </div>
-                      <Input
-                        placeholder="Amenity Name (e.g. Private Marina & Yacht Berth)"
-                        value={amenity.name}
-                        onChange={(e) => handleUpdateAmenity(idx, "name", e.target.value)}
-                        className="bg-secondary/40 h-8 text-xs font-semibold flex-1"
-                      />
-                    </div>
-                    <select
-                      value={amenity.iconKey || "star"}
-                      onChange={(e) => handleUpdateAmenity(idx, "iconKey", e.target.value)}
-                      className="bg-secondary/70 border border-border text-[11px] rounded px-2 h-8 text-muted-foreground max-w-[130px]"
-                    >
-                      {COMMON_AMENITY_ICONS.map((p) => (
-                        <option key={p.icon} value={p.icon}>
-                          {p.label}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveAmenity(idx)}
-                      className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                      title="Remove Amenity"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  <Input
-                    placeholder="Context / Details (e.g. 24/7 dedicated concierge and yacht mooring privileges)"
-                    value={amenity.description}
-                    onChange={(e) => handleUpdateAmenity(idx, "description", e.target.value)}
-                    className="bg-secondary/40 h-7 text-[11px] text-muted-foreground"
-                  />
+                    </SortableArrayItem>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           )}
         </section>
 
@@ -1588,68 +1727,48 @@ export const AdminPropertyForm: React.FC = () => {
                     Airports, helipads, beaches, hospitals, and transit hubs.
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddNearbyPlace}
-                  className="gap-1.5 h-7 text-xs border-primary/40 text-primary hover:bg-primary/10"
-                >
-                  <Plus className="h-3 w-3" />
-                  <span>Add Place</span>
-                </Button>
+                <div className="flex items-center gap-2">
+                  <PresetDropdown
+                    presets={NEARBY_CATEGORY_PRESETS.map((cat) => ({ label: cat }))}
+                    triggerLabel="Add Preset Place"
+                    onSelect={(p) => handleAddNearbyPlace(p?.label)}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAddNearbyPlace()}
+                    className="gap-1.5 h-7 text-xs border-border text-muted-foreground hover:text-foreground"
+                  >
+                    <Plus className="h-3 w-3" />
+                    <span>Custom</span>
+                  </Button>
+                </div>
               </div>
 
               {nearbyPlaces.length === 0 ? (
                 <div className="p-6 text-center border border-dashed border-border rounded-xl bg-secondary/10">
-                  <p className="text-xs text-muted-foreground">
-                    No nearby places added. Click &quot;Add Place&quot; to list airports or beaches.
-                  </p>
+                  <p className="text-xs text-muted-foreground">No nearby places added. Use a preset or click &quot;Custom&quot;.</p>
                 </div>
               ) : (
-                <div className="space-y-2.5">
-                  {nearbyPlaces.map((place, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 rounded-lg border border-border bg-secondary/20 space-y-2"
-                    >
-                      <div className="flex gap-2 items-center">
-                        <Input
-                          placeholder="Landmark (e.g. MOPA International Airport)"
-                          value={place.name}
-                          onChange={(e) => handleUpdateNearbyPlace(idx, "name", e.target.value)}
-                          className="bg-secondary/40 h-8 text-xs font-semibold flex-1"
-                        />
-                        <Input
-                          placeholder="Distance (e.g. 24 km)"
-                          value={place.distance}
-                          onChange={(e) => handleUpdateNearbyPlace(idx, "distance", e.target.value)}
-                          className="bg-secondary/40 h-8 text-xs w-28"
-                        />
-                        <Input
-                          placeholder="Travel (e.g. 35 Mins)"
-                          value={place.travelTime}
-                          onChange={(e) => handleUpdateNearbyPlace(idx, "travelTime", e.target.value)}
-                          className="bg-secondary/40 h-8 text-xs w-32"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveNearbyPlace(idx)}
-                          className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                          title="Remove Place"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                      <Input
-                        placeholder="Context (e.g. Direct expressway access from main gates)"
-                        value={place.description}
-                        onChange={(e) => handleUpdateNearbyPlace(idx, "description", e.target.value)}
-                        className="bg-secondary/40 h-7 text-[11px] text-muted-foreground"
-                      />
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndNearbyPlaces}>
+                  <SortableContext items={nearbyPlaces.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-4 pt-2">
+                      {nearbyPlaces.map((place) => (
+                        <SortableArrayItem key={place.id} id={place.id} onClone={() => handleCloneNearbyPlace(place.id)} onRemove={() => handleRemoveNearbyPlace(place.id)}>
+                          <div className="p-3 rounded-lg border border-border bg-secondary/20 space-y-2">
+                            <div className="flex gap-2 items-center">
+                              <Input placeholder="Landmark (e.g. MOPA International Airport)" value={place.name} onChange={(e) => handleUpdateNearbyPlace(place.id, "name", e.target.value)} className="bg-secondary/40 h-8 text-xs font-semibold flex-1" />
+                              <Input placeholder="Distance (e.g. 24 km)" value={place.distance} onChange={(e) => handleUpdateNearbyPlace(place.id, "distance", e.target.value)} className="bg-secondary/40 h-8 text-xs w-28" />
+                              <Input placeholder="Travel (e.g. 35 Mins)" value={place.travelTime} onChange={(e) => handleUpdateNearbyPlace(place.id, "travelTime", e.target.value)} className="bg-secondary/40 h-8 text-xs w-32" />
+                            </div>
+                            <Input placeholder="Context (e.g. Direct expressway access from main gates)" value={place.description} onChange={(e) => handleUpdateNearbyPlace(place.id, "description", e.target.value)} className="bg-secondary/40 h-7 text-[11px] text-muted-foreground" />
+                          </div>
+                        </SortableArrayItem>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </SortableContext>
+                </DndContext>
               )}
             </div>
           </div>

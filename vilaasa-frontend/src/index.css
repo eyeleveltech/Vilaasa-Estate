@@ -77,6 +77,11 @@
     @apply border-border;
   }
 
+  input::placeholder,
+  textarea::placeholder {
+    opacity: 0.6;
+  }
+
   body {
     @apply bg-background text-foreground font-display antialiased;
   }

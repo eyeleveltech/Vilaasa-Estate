@@ -431,3 +431,186 @@ export const prepareFranchisePagePayload = (data: FranchisePageData): FranchiseP
 
   return payload;
 };
+
+/* -------------------------------------------------------------------------- */
+/*                           SMART PRESET ARRAYS                              */
+/* -------------------------------------------------------------------------- */
+
+export interface Preset {
+  label: string;
+  value?: string;
+  icon?: string;
+}
+
+/** Hero metric badge presets (Section 2 — Franchise) */
+export const FRANCHISE_BADGE_PRESETS: Preset[] = [
+  { label: 'MIN. INVESTMENT' },
+  { label: 'ANNUAL ROI' },
+  { label: 'PAYBACK PERIOD' },
+  { label: 'FRANCHISE MODEL' },
+  { label: 'PROJECTED IRR' },
+  { label: 'LOCK-IN PERIOD' },
+  { label: 'YIELD PAYOUT' },
+  { label: 'OCCUPANCY RATE' },
+  { label: 'NO. OF UNITS' },
+  { label: 'LAUNCH YEAR' },
+];
+
+/** Blueprint metric presets (Section 4 — Franchise) */
+export const BLUEPRINT_PRESETS: Preset[] = [
+  { label: 'TOTAL PROJECT COST' },
+  { label: 'MIN. TICKET SIZE' },
+  { label: 'LOCK-IN PERIOD' },
+  { label: 'YIELD PAYOUT FREQUENCY' },
+  { label: 'CONSTRUCTION TIMELINE' },
+  { label: 'BREAKEVEN PERIOD' },
+  { label: 'MANAGEMENT FEE' },
+  { label: 'REVENUE SHARE' },
+];
+
+/** Ecosystem support card presets (Section 5 — Franchise) */
+export const ECOSYSTEM_CARD_PRESETS: Preset[] = [
+  { label: 'Location Scouting', icon: 'storefront' },
+  { label: 'Architecture & Interior Design', icon: 'design_services' },
+  { label: 'Staff & Therapist Training', icon: 'school' },
+  { label: 'Global Marketing & PR', icon: 'campaign' },
+  { label: 'Legal & Compliance', icon: 'shield' },
+  { label: 'Technology & POS', icon: 'devices' },
+  { label: 'Supply Chain Management', icon: 'local_shipping' },
+  { label: 'Revenue Management', icon: 'trending_up' },
+  { label: 'Guest Experience Standards', icon: 'spa' },
+  { label: 'Quality Assurance', icon: 'verified' },
+];
+
+/** Benefit card presets (Section 6 — Franchise) */
+export const BENEFIT_CARD_PRESETS: Preset[] = [
+  { label: '100% Hands-Off Operations', icon: 'volunteer_activism' },
+  { label: 'Institutional Brand Power', icon: 'verified' },
+  { label: 'Capital Protection & Escrow', icon: 'shield' },
+  { label: 'Quarterly Yield Disbursements', icon: 'payments' },
+  { label: 'Global Investor Network', icon: 'groups' },
+  { label: 'RERA Registered Leases', icon: 'gavel' },
+  { label: 'Transparent Quarterly Audit', icon: 'receipt_long' },
+  { label: 'Exit Liquidity Options', icon: 'trending_up' },
+];
+
+/** At-a-Glance spec presets (Section 3 — Property) */
+export const SPEC_PRESETS: Preset[] = [
+  { label: 'BUILT-UP AREA' },
+  { label: 'PLOT AREA' },
+  { label: 'BEDROOMS' },
+  { label: 'BATHROOMS' },
+  { label: 'FURNISHING' },
+  { label: 'OWNERSHIP TYPE' },
+  { label: 'STARTING PRICE' },
+  { label: 'PRICE PER SQ.FT.' },
+  { label: 'BOOKING AMOUNT' },
+  { label: 'MAINTENANCE CHARGES' },
+  { label: 'FLOOR' },
+  { label: 'PARKING' },
+  { label: 'FACING DIRECTION' },
+  { label: 'CARPET AREA' },
+  { label: 'BALCONIES' },
+  { label: 'POSSESSION DATE' },
+];
+
+/** Financial intelligence metric presets (Section 4 — Property) */
+export const FINANCIAL_METRIC_PRESETS: Preset[] = [
+  { label: 'PROJECTED IRR', icon: 'trending_up' },
+  { label: 'MARKET SIZE / GDV', icon: 'monitoring' },
+  { label: 'CAPITAL GROWTH TIMELINE', icon: 'timelapse' },
+  { label: 'ANNUAL APPRECIATION', icon: 'trending_up' },
+  { label: 'NET RENTAL YIELD', icon: 'payments' },
+  { label: 'BREAKEVEN TIMELINE', icon: 'timelapse' },
+  { label: 'CAPITAL GAINS OUTLOOK', icon: 'savings' },
+  { label: 'GROSS RENTAL INCOME', icon: 'payments' },
+  { label: 'STAMP DUTY SAVINGS', icon: 'receipt_long' },
+];
+
+/** Unit configuration type presets (Section 5 — Property) */
+export const UNIT_TYPE_PRESETS: Preset[] = [
+  { label: 'Studio' },
+  { label: '1 BHK' },
+  { label: '2 BHK' },
+  { label: '3 BHK' },
+  { label: '4 BHK' },
+  { label: '5 BHK' },
+  { label: 'Penthouse' },
+  { label: 'Duplex' },
+  { label: 'Triplex' },
+  { label: 'Villa' },
+  { label: 'Plot' },
+  { label: 'Farmhouse' },
+];
+
+/** Amenity presets (Section 7 — Property) */
+export const AMENITY_PRESETS: Preset[] = [
+  { label: 'Spa & Wellness Sanctuary', icon: 'spa' },
+  { label: 'Waterfront Living & Water Body', icon: 'water' },
+  { label: 'Eco & Biophilic Green Sanctuary', icon: 'eco' },
+  { label: 'Fine Dining & Organic Restaurant', icon: 'restaurant' },
+  { label: 'Swimming Pool', icon: 'pool' },
+  { label: 'Gymnasium / Fitness Center', icon: 'fitness_center' },
+  { label: 'Yoga & Meditation Studio', icon: 'self_improvement' },
+  { label: 'Clubhouse & Lounge', icon: 'cottage' },
+  { label: 'Private Beach Access', icon: 'beach_access' },
+  { label: 'Boat Club & Marina', icon: 'directions_boat' },
+  { label: 'Helipad', icon: 'helicopter' },
+  { label: 'Tennis Court', icon: 'sports_tennis' },
+  { label: 'Golf Course', icon: 'sports_golf' },
+  { label: 'Concierge & Butler Service', icon: 'room_service' },
+  { label: 'Valet Parking', icon: 'local_parking' },
+  { label: 'High-Speed WiFi', icon: 'wifi' },
+  { label: '24/7 Security & CCTV', icon: 'security' },
+  { label: 'Kids Play Area', icon: 'child_care' },
+  { label: 'Private Garden & Landscape', icon: 'park' },
+  { label: 'Rooftop Terrace', icon: 'deck' },
+  { label: 'In-house Cinema / Screening', icon: 'theaters' },
+  { label: 'Pet-Friendly Zones', icon: 'pets' },
+];
+
+/** Nearby place category presets (Section 8 — Property) */
+export const NEARBY_CATEGORY_PRESETS = [
+  'Airport',
+  'Hospital / Medical Centre',
+  'International School',
+  'Shopping Mall',
+  'Beach / Waterfront',
+  'Golf Course',
+  'Metro / Transit Hub',
+  'Business District',
+  'National Park / Nature Reserve',
+  'Heritage Site',
+];
+
+/* -------------------------------------------------------------------------- */
+/*                         CURRENCY INPUT FORMATTER                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Formats a raw numeric string with commas for thousand separators.
+ * e.g. "15000000" → "15,000,000"
+ * Preserves decimal places, non-numeric prefixes like "₹", and units like "Cr" or "Lakh".
+ */
+export const formatCurrencyInput = (raw: string): string => {
+  if (!raw) return '';
+
+  // Extract leading non-numeric prefix characters (e.g. "₹", "$", "AED ", "£", "€")
+  const prefixMatch = raw.match(/^[^0-9]*/);
+  const prefix = prefixMatch ? prefixMatch[0] : '';
+  const rest = raw.slice(prefix.length);
+
+  // If user typed shorthand with letters like 'Cr' or 'Lakh' or 'L'
+  if (/[a-zA-Z]/.test(rest)) {
+    return raw;
+  }
+
+  // Remove all existing commas from the numeric portion before re-formatting
+  const cleanNumber = rest.replace(/,/g, '');
+
+  // Split on decimal if present
+  const [intPart, decPart] = cleanNumber.split('.');
+  const formatted = (intPart || '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+  return prefix + formatted + (decPart !== undefined ? '.' + decPart : '');
+};

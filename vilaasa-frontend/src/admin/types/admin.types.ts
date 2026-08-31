@@ -88,6 +88,7 @@ export interface PropertyMedia {
   url: string;
   thumbnailUrl?: string | null;
   altText?: string | null;
+  caption?: string | null;
   orderIndex: number;
   isFeatured: boolean;
   createdAt?: string;

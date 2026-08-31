@@ -52,7 +52,7 @@ const Domestic = () => {
             className="flex flex-col items-center gap-4 md:gap-6"
           >
             <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.22em] text-primary md:mb-2 md:text-sm md:tracking-[0.3em]">
-              Domestic Collection (India)
+              Domestic Collection
             </h2>
 
             <h1 className="max-w-4xl font-luxia text-4xl font-light italic leading-[1.1] tracking-[-0.02em] text-foreground sm:text-5xl md:text-7xl lg:text-8xl">

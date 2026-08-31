@@ -63,12 +63,15 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
     DEFAULT_PROPERTY_IMAGE;
 
   const galleryImages = (prop.media || [])
-    .filter((m) => m.mediaType === "GALLERY" || m.mediaType === "HERO_IMAGE")
-    .map((m, idx) => ({
-      name: m.altText || `${prop.name} - View ${idx + 1}`,
-      description: m.altText || "",
-      image: m.url,
-    }));
+    .filter((m) => m.mediaType === "GALLERY" || m.mediaType === "HERO_IMAGE" || m.mediaType === "IMAGE" || !m.mediaType)
+    .map((m, idx) => {
+      const caption = m.altText || m.caption || "";
+      return {
+        name: caption || `${prop.name} - View ${idx + 1}`,
+        description: caption,
+        image: m.url,
+      };
+    });
 
   const specs: { label: string; value: string }[] = [];
   

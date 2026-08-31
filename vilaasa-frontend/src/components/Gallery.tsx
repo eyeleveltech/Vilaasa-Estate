@@ -108,40 +108,42 @@ const Gallery = ({
                 animate={{ x: `-${index * 100}%` }}
                 transition={{ type: "spring", stiffness: 140, damping: 22 }}
               >
-                {images.map((plan: GalleryImage, idx: number) => (
-                  <div key={idx} className="w-full shrink-0 px-2 md:w-1/2">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      className="group"
-                    >
-                      <div className="relative mb-3 aspect-[4/3] overflow-hidden rounded-lg md:mb-4">
-                        <img
-                          src={plan.image}
-                          alt={plan.name}
-                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        />
-                        <button
-                          onClick={() => setFullscreenIndex(idx)}
-                          className="absolute bottom-3 right-3 flex items-center gap-1 rounded bg-background/90 px-3 py-1.5 text-xs text-foreground backdrop-blur-sm transition-colors hover:bg-primary hover:text-primary-foreground md:bottom-4 md:right-4 md:gap-2 md:px-4 md:py-2 md:text-sm"
-                        >
-                          <span className="material-symbols-outlined text-base md:text-lg">
-                            open_in_full
-                          </span>
-                          Fullscreen
-                        </button>
-                      </div>
+                {images.map((plan: GalleryImage, idx: number) => {
+                  const captionText = plan.description?.trim() || plan.name?.trim() || "";
+                  return (
+                    <div key={idx} className={`w-full shrink-0 px-2 ${images.length === 1 ? 'md:w-3/4 lg:w-2/3 mx-auto' : 'md:w-1/2'}`}>
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="group"
+                      >
+                        <div className="relative mb-3 aspect-[4/3] overflow-hidden rounded-lg md:mb-4">
+                          <img
+                            src={plan.image}
+                            alt={captionText || `Gallery image ${idx + 1}`}
+                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          />
+                          <button
+                            onClick={() => setFullscreenIndex(idx)}
+                            className="absolute bottom-3 right-3 flex items-center gap-1 rounded bg-background/90 px-3 py-1.5 text-xs text-foreground backdrop-blur-sm transition-colors hover:bg-primary hover:text-primary-foreground md:bottom-4 md:right-4 md:gap-2 md:px-4 md:py-2 md:text-sm"
+                          >
+                            <span className="material-symbols-outlined text-base md:text-lg">
+                              open_in_full
+                            </span>
+                            Fullscreen
+                          </button>
+                        </div>
 
-                      {plan.description && plan.description.trim() !== "" && (
-                        <p className="text-sm text-foreground/90 md:text-lg">
-                          {plan.description.charAt(0).toUpperCase() +
-                            plan.description.slice(1)}
-                        </p>
-                      )}
-                    </motion.div>
-                  </div>
-                ))}
+                        {captionText !== "" && (
+                          <p className="text-sm font-medium text-foreground/90 md:text-base">
+                            {captionText.charAt(0).toUpperCase() + captionText.slice(1)}
+                          </p>
+                        )}
+                      </motion.div>
+                    </div>
+                  );
+                })}
               </motion.div>
             </div>
 
@@ -220,8 +222,15 @@ const Gallery = ({
               </button>
             )}
 
-            <div className="absolute bottom-4 rounded bg-black/50 px-3 py-1 text-xs text-white/90">
-              {fullscreenIndex + 1} / {images.length}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg text-center max-w-xl">
+              {(images[fullscreenIndex].description || images[fullscreenIndex].name) && (
+                <p className="text-sm text-white font-medium">
+                  {images[fullscreenIndex].description || images[fullscreenIndex].name}
+                </p>
+              )}
+              <span className="text-xs text-white/60">
+                {fullscreenIndex + 1} / {images.length}
+              </span>
             </div>
           </motion.div>
         )}

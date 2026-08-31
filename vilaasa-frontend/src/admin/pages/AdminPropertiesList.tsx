@@ -213,8 +213,8 @@ export const AdminPropertiesList: React.FC = () => {
             className="rounded-md border border-input bg-secondary/40 px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
           >
             <option value="">All Markets</option>
-            <option value="DOMESTIC">Domestic (India)</option>
-            <option value="INTERNATIONAL">International (UAE & Global)</option>
+            <option value="DOMESTIC">Domestic</option>
+            <option value="INTERNATIONAL">International</option>
           </select>
 
           {/* Sort By */}
@@ -306,7 +306,7 @@ export const AdminPropertiesList: React.FC = () => {
                         <div className="mt-1">
                           {prop.location?.country?.trim().toLowerCase() === "india" ? (
                             <span className="inline-flex items-center rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-400">
-                              Domestic (India)
+                              Domestic
                             </span>
                           ) : (
                             <span className="inline-flex items-center rounded border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.5 text-[9px] font-medium text-sky-400">

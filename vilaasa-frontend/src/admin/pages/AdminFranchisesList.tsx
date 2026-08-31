@@ -238,8 +238,8 @@ export const AdminFranchisesList: React.FC = () => {
             className="rounded-md border border-input bg-secondary/40 px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
           >
             <option value="">All Markets</option>
-            <option value="DOMESTIC">Domestic (India)</option>
-            <option value="INTERNATIONAL">International (UAE & Global)</option>
+            <option value="DOMESTIC">Domestic</option>
+            <option value="INTERNATIONAL">International</option>
           </select>
 
           {/* Model Filter */}
