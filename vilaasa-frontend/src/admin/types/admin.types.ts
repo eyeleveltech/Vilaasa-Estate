@@ -422,13 +422,6 @@ export interface VaultAdminInvestor {
   monthlyRental: number;
 }
 
-export interface GalleryItem {
-  id: string;
-  url: string;
-  caption: string;
-  orderIndex: number;
-}
-
 export type {
   FranchisePageData,
   MetricBadge,
