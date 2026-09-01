@@ -83,10 +83,33 @@ export const DraftSaveBar: React.FC<DraftSaveBarProps> = ({
     return () => clearTimeout(timer);
   }, [formState, storageKey, debounceMs]);
 
+  const previousFormStateRef = React.useRef<string | null>(null);
+
   useEffect(() => {
-    const cleanup = saveDebounced();
-    return cleanup;
-  }, [saveDebounced]);
+    try {
+      const serialized = JSON.stringify(formState);
+      
+      if (previousFormStateRef.current === null) {
+        // First render, just store it, do not save
+        previousFormStateRef.current = serialized;
+        return;
+      }
+      
+      if (previousFormStateRef.current === serialized) {
+        // No actual data change, skip save
+        return;
+      }
+      
+      // Data changed!
+      previousFormStateRef.current = serialized;
+      const cleanup = saveDebounced();
+      return cleanup;
+    } catch {
+      // If circular structure or error in stringify, fallback to saving
+      const cleanup = saveDebounced();
+      return cleanup;
+    }
+  }, [formState, saveDebounced]);
 
   const handleRestore = () => {
     try {

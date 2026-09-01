@@ -241,8 +241,8 @@ export const AdminPropertiesList: React.FC = () => {
         </form>
       </div>
 
-      {/* Properties Table */}
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+      {/* Properties Table (desktop) */}
+      <div className="hidden md:block overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="border-b border-border bg-secondary/40 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
@@ -426,6 +426,122 @@ export const AdminPropertiesList: React.FC = () => {
                 className="gap-1 text-xs"
               >
                 <span>Next</span>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Properties Card Grid (mobile) */}
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12 space-y-2 text-muted-foreground">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <span className="text-xs">Loading properties...</span>
+          </div>
+        ) : properties && properties.filter((p) => p.type !== "FRANCHISE" && p.customType?.toLowerCase() !== "franchise").length > 0 ? (
+          properties.filter((p) => p.type !== "FRANCHISE" && p.customType?.toLowerCase() !== "franchise").map((prop) => (
+            <div
+              key={prop.id}
+              className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-3"
+            >
+              {/* Card Header */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <Link
+                    to={`/admin/properties/${prop.id}`}
+                    className="font-semibold text-sm text-foreground hover:text-primary transition-colors line-clamp-1"
+                  >
+                    {prop.name}
+                  </Link>
+                  {prop.tagline && (
+                    <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{prop.tagline}</p>
+                  )}
+                </div>
+                <span
+                  className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getStatusBadge(prop.status)}`}
+                >
+                  {prop.status.replace(/_/g, " ")}
+                </span>
+              </div>
+
+              {/* Card Meta */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-muted-foreground text-[10px] uppercase tracking-wider">Type</span>
+                  <p className="font-medium text-foreground mt-0.5">{prop.customType || prop.type.replace(/_/g, " ")}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-[10px] uppercase tracking-wider">Price</span>
+                  <p className="font-bold text-primary mt-0.5">
+                    {prop.priceOnApplication ? "POA" : `${prop.currency} ${Number(prop.price).toLocaleString()}`}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-[10px] uppercase tracking-wider">Location</span>
+                  <p className="font-medium text-foreground mt-0.5">{prop.location?.city || "Unknown"}, {prop.location?.country || "UAE"}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-[10px] uppercase tracking-wider">Beds / Baths</span>
+                  <p className="font-medium text-foreground mt-0.5">{prop.bedrooms ?? "-"} / {prop.bathrooms ?? "-"}</p>
+                </div>
+              </div>
+
+              {/* Card Actions */}
+              <div className="flex items-center justify-end gap-1 pt-1 border-t border-border/60">
+                <Link
+                  to={`/admin/properties/${prop.id}`}
+                  title="View Details"
+                  className="rounded p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                >
+                  <Eye className="h-4 w-4" />
+                </Link>
+                <Link
+                  to={`/admin/properties/${prop.id}/edit`}
+                  title="Edit Property"
+                  className="rounded p-2 text-muted-foreground hover:bg-secondary hover:text-primary transition-colors"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Link>
+                <button
+                  onClick={() => { setSelectedPropertyId(prop.id); setDeleteModalOpen(true); }}
+                  title="Delete Property"
+                  className="rounded p-2 text-muted-foreground hover:bg-secondary hover:text-destructive transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 space-y-2 text-muted-foreground">
+            <Filter className="h-8 w-8 text-muted-foreground/40" />
+            <p className="text-sm font-medium">No properties match your filter criteria.</p>
+            <button
+              onClick={() => setFilters({ status: "", type: "", country: "", search: "", page: 1, limit: 10, sortBy: "newest" })}
+              className="text-xs text-primary underline uppercase tracking-wider"
+            >
+              Reset all filters
+            </button>
+          </div>
+        )}
+
+        {/* Mobile Pagination */}
+        {meta.totalPages > 1 && (
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-xs text-muted-foreground">Page {meta.page} of {meta.totalPages}</span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled={!meta.hasPrevPage}
+                onClick={() => setFilters((prev) => ({ ...prev, page: Math.max(1, (prev.page || 1) - 1) }))}
+                className="gap-1 text-xs h-8"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="outline" size="sm" disabled={!meta.hasNextPage}
+                onClick={() => setFilters((prev) => ({ ...prev, page: (prev.page || 1) + 1 }))}
+                className="gap-1 text-xs h-8"
+              >
                 <ChevronRight className="h-3.5 w-3.5" />
               </Button>
             </div>

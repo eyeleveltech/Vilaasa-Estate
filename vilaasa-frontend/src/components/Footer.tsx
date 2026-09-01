@@ -39,7 +39,7 @@ export const Footer = () => {
 
   return (
     <>
-      <footer className="bg-[hsl(150_30%_3%)] text-foreground pt-20 pb-10 border-t border-border">
+      <footer className="bg-[hsl(150_30%_3%)] text-foreground pt-20 pb-24 md:pb-10 border-t border-border">
         <div className="px-4 md:px-10 max-w-[1280px] mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
             {/* Brand */}

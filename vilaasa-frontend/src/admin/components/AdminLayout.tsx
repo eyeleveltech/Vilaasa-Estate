@@ -19,6 +19,8 @@ import {
 import { useAdminAuth } from "../hooks/useAdminAuth";
 import vilaasaLogo from "@/assets/vilaasa-logo.svg";
 
+import { ErrorBoundary } from "../../components/ErrorBoundary";
+
 export const AdminLayout: React.FC = () => {
   const location = useLocation();
   const { user, logout } = useAdminAuth();
@@ -214,7 +216,7 @@ export const AdminLayout: React.FC = () => {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex flex-1 flex-col lg:pl-[260px]">
+      <div className="flex flex-1 flex-col min-w-0 lg:pl-[260px]">
         {/* Top Bar */}
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/90 px-6 backdrop-blur-md">
           <div className="flex items-center space-x-4">
@@ -226,7 +228,7 @@ export const AdminLayout: React.FC = () => {
             </button>
             <div className="flex items-center gap-3">
               <span className="hidden sm:inline-block h-px w-6 bg-primary/60" />
-              <h1 className="text-base font-light tracking-tight text-foreground sm:text-lg">
+              <h1 className="text-sm sm:text-base font-light tracking-tight text-foreground truncate max-w-[160px] sm:max-w-xs md:max-w-none">
                 {getPageTitle()}
               </h1>
             </div>
@@ -241,10 +243,13 @@ export const AdminLayout: React.FC = () => {
         </header>
 
         {/* Page Content View */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 w-full max-w-[1600px] mx-auto">
-          <Outlet />
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 w-full max-w-[1600px] mx-auto min-w-0 overflow-x-hidden">
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>
   );
 };
+

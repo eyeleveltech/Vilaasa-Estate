@@ -129,9 +129,9 @@ export const Navbar = () => {
                 aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
                 aria-expanded={isMobileMenuOpen}
                 aria-controls="mobile-menu"
-                className="rounded border border-border/40 p-1.5 text-foreground transition-colors hover:border-primary/50 lg:hidden"
+                className="p-2 -mr-2 text-foreground transition-colors hover:text-primary lg:hidden"
               >
-                <span className="material-symbols-outlined">
+                <span className="material-symbols-outlined text-[28px]">
                   {isMobileMenuOpen ? "close" : "menu"}
                 </span>
               </button>
@@ -147,20 +147,20 @@ export const Navbar = () => {
             animate={{ opacity: 1, y: 0 }}
             className="border-t border-border bg-background/95 backdrop-blur-md lg:hidden"
           >
-            <div className="max-h-[calc(100vh-76px)] overflow-y-auto px-5 py-5 md:px-6 md:py-6">
+            <div className="max-h-[calc(100vh-76px)] overflow-y-auto px-4 py-6 md:px-6">
               {/* Mobile Currency Toggle */}
-              <div className="flex items-center justify-between border-b border-border pb-4">
-                <span className="text-sm text-muted-foreground">Currency</span>
+              <div className="flex items-center justify-between border-b border-border pb-5">
+                <span className="text-sm font-medium text-muted-foreground">Currency</span>
                 <CurrencyToggle />
               </div>
 
-              <div className="mt-4 flex flex-col gap-1">
+              <div className="mt-6 flex flex-col gap-2">
                 {navLinks.map((link) => (
                   <Link
                     key={link.label}
                     to={link.href}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className={`rounded px-2 py-2 text-sm font-medium uppercase tracking-[0.1em] transition-colors ${
+                    className={`py-3 text-sm font-medium uppercase tracking-[0.1em] transition-colors ${
                       isActivePath(link.href)
                         ? "text-primary"
                         : "text-foreground/80 hover:text-foreground"
@@ -174,7 +174,7 @@ export const Navbar = () => {
               <Link
                 to="/vault"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="mt-1 rounded px-2 py-2 text-sm font-medium uppercase tracking-[0.1em] text-gold transition-colors hover:text-gold/80"
+                className="mt-2 block py-3 text-sm font-medium uppercase tracking-[0.1em] text-gold transition-colors hover:text-gold/80"
               >
                 The Vault
               </Link>

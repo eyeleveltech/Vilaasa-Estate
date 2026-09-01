@@ -481,8 +481,8 @@ export const AdminPropertyViewingsList: React.FC = () => {
         )}
       </div>
 
-      {/* Main Table */}
-      <div className="rounded-xl border border-border/50 bg-card/20 backdrop-blur-md overflow-hidden font-sans">
+      {/* Main Table (desktop) */}
+      <div className="hidden md:block rounded-xl border border-border/50 bg-card/20 backdrop-blur-md overflow-hidden font-sans">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border/60 bg-muted/20 text-xs uppercase tracking-wider text-muted-foreground font-medium">
@@ -632,6 +632,75 @@ export const AdminPropertyViewingsList: React.FC = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Card View (viewing records) */}
+      <div className="md:hidden space-y-3 font-sans">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-10 space-y-2 text-muted-foreground">
+            <RefreshCw className="h-6 w-6 animate-spin text-emerald-400" />
+            <span className="text-xs">Loading viewing records...</span>
+          </div>
+        ) : viewings.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 space-y-2 text-muted-foreground">
+            <Eye className="h-8 w-8 opacity-30" />
+            <p className="text-sm">No property viewing records found.</p>
+          </div>
+        ) : (
+          viewings.map((viewing) => {
+            const statusStyle = STATUS_COLORS[viewing.status] || STATUS_COLORS.NEW;
+            const propertyThumbnail = viewing.property?.media?.[0]?.url;
+            return (
+              <div key={viewing.id} className="rounded-xl border border-border/50 bg-card/20 backdrop-blur-md p-4 space-y-3">
+                {/* Property + Client header */}
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-background border border-border/60 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                    {propertyThumbnail ? (
+                      <img src={propertyThumbnail} alt={viewing.property?.name || "Estate"} className="h-full w-full object-cover" />
+                    ) : (
+                      <Building2 className="h-5 w-5 text-emerald-400/60" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-foreground text-sm truncate">{viewing.property?.name || "Vilaasa Estate Portfolio"}</p>
+                    {viewing.property?.location && (
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />{viewing.property.location.city}, {viewing.property.location.country}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedViewing(viewing);
+                      setModalStatus(viewing.status);
+                      setModalNote("");
+                      setModalFollowUpDate(viewing.followUpDate ? viewing.followUpDate.split("T")[0] : "");
+                      setModalFollowUpNotes(viewing.followUpNotes || "");
+                    }}
+                    className={`shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium border ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border} hover:opacity-80`}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                    {viewing.status.replace(/_/g, " ")}
+                  </button>
+                </div>
+
+                {/* Client + Meta */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Client</p>
+                    <p className="font-medium text-foreground mt-0.5">{viewing.name}</p>
+                    <p className="text-muted-foreground text-[10px]">{viewing.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Budget</p>
+                    <p className="font-medium text-foreground mt-0.5">{viewing.investmentRange || "Undisclosed"}</p>
+                    <p className="text-muted-foreground text-[10px]">{new Date(viewing.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Modal 1: Update Status & Private Notes */}

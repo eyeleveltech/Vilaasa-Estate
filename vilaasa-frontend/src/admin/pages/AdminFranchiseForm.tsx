@@ -61,6 +61,7 @@ import { Label } from "@/components/ui/label";
 import { SortableArrayItem } from "../components/SortableArrayItem";
 import { PresetDropdown } from "../components/PresetDropdown";
 import { DraftSaveBar } from "../components/DraftSaveBar";
+import { BrochureUploader } from "../components/BrochureUploader";
 
 /* -------------------------------------------------------------------------- */
 /*                                HELPER UTILS                                */
@@ -106,6 +107,7 @@ export const AdminFranchiseForm: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(isEditMode);
   const [saving, setSaving] = useState<boolean>(false);
   const [uploadingGallery, setUploadingGallery] = useState<boolean>(false);
+  const [brochureUrl, setBrochureUrl] = useState<string>("");
 
   const draftKey = `vilaasa_franchise_draft_${id || "new"}`;
 
@@ -138,6 +140,7 @@ export const AdminFranchiseForm: React.FC = () => {
 
       if (propRes.data.success && propRes.data.data) {
         setProperty(propRes.data.data);
+        setBrochureUrl(propRes.data.data.brochureUrl || "");
       }
 
       if (pageRes.data.success && pageRes.data.data) {
@@ -398,6 +401,12 @@ export const AdminFranchiseForm: React.FC = () => {
       return;
     }
 
+    const invalidSections = Object.entries(sectionStatus).filter(([_, isValid]) => !isValid).map(([key]) => key);
+    if (invalidSections.length > 0) {
+      toast.error("Please complete all sections before publishing. Missing required data.");
+      return;
+    }
+
     const minTicket = parseValueToNumber(
       pageData.heroMetrics[0]?.value || pageData.blueprintMetrics[1]?.value,
       35000000
@@ -432,6 +441,7 @@ export const AdminFranchiseForm: React.FC = () => {
       paybackPeriodYears: payback,
       lockInPeriodYears: lockIn,
       yieldPayoutFrequency: "QUARTERLY" as const,
+      brochureUrl: brochureUrl.trim() || undefined,
       location: {
         city: "Wayanad",
         country: "India",
@@ -554,7 +564,7 @@ export const AdminFranchiseForm: React.FC = () => {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-20">
+    <div className="mx-auto max-w-5xl space-y-6 pb-32 min-w-0 overflow-x-hidden w-full">
 
       {/* Draft Save Bar */}
       <DraftSaveBar
@@ -574,15 +584,11 @@ export const AdminFranchiseForm: React.FC = () => {
             <span>Back to Franchises</span>
           </Link>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground truncate max-w-[240px] sm:max-w-xl">
               {isEditMode
                 ? `Edit Franchise — ${pageData.mainHeadline || pageData.pageTitle || "Opportunity"}`
                 : "Create Franchise"}
             </h1>
-            <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">
-              <Sparkles className="h-3 w-3" />
-              <span>FOCO Commercial</span>
-            </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             {isEditMode
@@ -591,7 +597,7 @@ export const AdminFranchiseForm: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-shrink-0">
           <Button
             type="button"
             variant="outline"
@@ -619,25 +625,33 @@ export const AdminFranchiseForm: React.FC = () => {
         </div>
       </div>
 
-      {/* Section Quick Nav with Validation Indicators */}
-      <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 rounded-lg border border-border bg-card shadow-sm">
-        {FRANCHISE_SECTIONS.map((sec) => {
-          const done = sectionStatus[sec.id];
-          return (
-            <a
-              key={sec.id}
-              href={`#${sec.id}`}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/60 whitespace-nowrap transition-colors font-medium text-[11px] group"
-            >
-              {done ? (
-                <CheckCircle className="h-3 w-3 text-emerald-400 shrink-0" />
-              ) : (
-                <AlertCircle className="h-3 w-3 text-amber-400/60 shrink-0" />
-              )}
-              <span>{sec.label}</span>
-            </a>
-          );
-        })}
+      {/* ── Sticky Step Nav with Validation Indicators ── */}
+      <div className="sticky top-16 z-20 bg-background/95 backdrop-blur-md py-2.5 px-3 rounded-xl border border-border/80 shadow-md">
+        <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar">
+          {FRANCHISE_SECTIONS.map((sec, idx) => {
+            const done = sectionStatus[sec.id];
+            return (
+              <a
+                key={sec.id}
+                href={`#${sec.id}`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all shrink-0 ${
+                  done
+                    ? "bg-secondary/40 text-foreground hover:bg-secondary/70 border border-emerald-500/30"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40 border border-border/50"
+                }`}
+              >
+                {done ? (
+                  <CheckCircle className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                ) : (
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground text-[10px] font-bold">
+                    {idx + 1}
+                  </span>
+                )}
+                <span>{sec.label}</span>
+              </a>
+            );
+          })}
+        </div>
       </div>
 
       {/* 7-Section Page Content Body */}
@@ -691,12 +705,12 @@ export const AdminFranchiseForm: React.FC = () => {
         {/* SECTION 2: HERO FINANCIAL METRICS                                */}
         {/* ---------------------------------------------------------------- */}
         <section id="sec-hero-metrics" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
-          <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/70 pb-3 mb-5">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <DollarSign className="h-3.5 w-3.5" />
               2. Hero Financial Metrics
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <PresetDropdown
                 presets={FRANCHISE_BADGE_PRESETS}
                 triggerLabel="Add Preset Badge"
@@ -716,7 +730,7 @@ export const AdminFranchiseForm: React.FC = () => {
           </div>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndHeroMetrics}>
             <SortableContext items={pageData.heroMetrics.map((m) => m.id)} strategy={verticalListSortingStrategy}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
                 {pageData.heroMetrics.map((metric, idx) => {
                   const heroPh = HERO_PLACEHOLDERS[idx] || { label: "e.g. METRIC NAME", value: "e.g. ₹1.5 Cr / 18%" };
                   return (
@@ -795,12 +809,12 @@ export const AdminFranchiseForm: React.FC = () => {
         {/* SECTION 4: FINANCIAL BLUEPRINT                                   */}
         {/* ---------------------------------------------------------------- */}
         <section id="sec-blueprint" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
-          <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/70 pb-3 mb-3">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <DollarSign className="h-3.5 w-3.5" />
               4. Financial Blueprint
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <PresetDropdown
                 presets={BLUEPRINT_PRESETS}
                 triggerLabel="Add Preset Metric"
@@ -818,9 +832,12 @@ export const AdminFranchiseForm: React.FC = () => {
               </Button>
             </div>
           </div>
+          <p className="text-[11px] text-muted-foreground mb-4 bg-amber-500/10 border border-amber-500/20 p-2 rounded-md">
+            <strong>Note:</strong> To avoid investor confusion, please clearly distinguish between the <strong>Base Franchise Fee / Booking Amount</strong> (e.g., ₹15 Lakh) and the <strong>Total Capital Required / Ticket Size</strong> (e.g., ₹40 Lakh). Use separate metrics for each.
+          </p>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndBlueprintMetrics}>
             <SortableContext items={pageData.blueprintMetrics.map((m) => m.id)} strategy={verticalListSortingStrategy}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
                 {pageData.blueprintMetrics.map((metric, idx) => {
                   const bpPh = BLUEPRINT_PLACEHOLDERS[idx] || { label: "e.g. METRIC PARAMETER", value: "e.g. ₹5 Cr / 5 Years" };
                   return (
@@ -866,12 +883,12 @@ export const AdminFranchiseForm: React.FC = () => {
         {/* SECTION 5: SUPPORT & TRAINING (ECOSYSTEM)                        */}
         {/* ---------------------------------------------------------------- */}
         <section id="sec-ecosystem" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
-          <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/70 pb-3 mb-5">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <Layers className="h-3.5 w-3.5" />
               5. Comprehensive Ecosystem
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <PresetDropdown
                 presets={ECOSYSTEM_CARD_PRESETS}
                 triggerLabel="Add Preset Card"
@@ -935,7 +952,7 @@ export const AdminFranchiseForm: React.FC = () => {
                       canRemove={pageData.ecosystemCards.length > 1}
                     >
                       <div className="p-4 rounded-lg border border-border bg-secondary/20 space-y-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 min-w-0">
                           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/30">
                             <span className="material-symbols-outlined text-lg">{card.icon || "storefront"}</span>
                           </div>
@@ -943,7 +960,7 @@ export const AdminFranchiseForm: React.FC = () => {
                           <select
                             value={card.icon}
                             onChange={(e) => handleUpdateEcosystemCard(idx, "icon", e.target.value)}
-                            className="ml-auto bg-secondary/70 border border-border text-[11px] rounded px-2 py-1 text-muted-foreground"
+                            className="w-full sm:w-auto sm:ml-auto bg-secondary/70 border border-border text-[11px] rounded px-2 py-1 text-muted-foreground min-w-0"
                           >
                             {COMMON_ICONS.map((ic) => (
                               <option key={ic} value={ic}>{ic}</option>
@@ -985,12 +1002,12 @@ export const AdminFranchiseForm: React.FC = () => {
         {/* SECTION 6: KEY BENEFITS                                          */}
         {/* ---------------------------------------------------------------- */}
         <section id="sec-benefits" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
-          <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/70 pb-3 mb-5">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <CheckCircle2 className="h-3.5 w-3.5" />
               6. Key Benefits
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <PresetDropdown
                 presets={BENEFIT_CARD_PRESETS}
                 triggerLabel="Add Preset Benefit"
@@ -1043,7 +1060,7 @@ export const AdminFranchiseForm: React.FC = () => {
                       canRemove={pageData.benefitCards.length > 1}
                     >
                       <div className="p-4 rounded-lg border border-border bg-secondary/20 space-y-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 min-w-0">
                           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/30">
                             <span className="material-symbols-outlined text-lg">{card.icon || "volunteer_activism"}</span>
                           </div>
@@ -1051,7 +1068,7 @@ export const AdminFranchiseForm: React.FC = () => {
                           <select
                             value={card.icon}
                             onChange={(e) => handleUpdateBenefitCard(idx, "icon", e.target.value)}
-                            className="ml-auto bg-secondary/70 border border-border text-[11px] rounded px-2 py-1 text-muted-foreground"
+                            className="w-full sm:w-auto sm:ml-auto bg-secondary/70 border border-border text-[11px] rounded px-2 py-1 text-muted-foreground min-w-0"
                           >
                             {COMMON_ICONS.map((ic) => (
                               <option key={ic} value={ic}>{ic}</option>
@@ -1090,16 +1107,33 @@ export const AdminFranchiseForm: React.FC = () => {
         </section>
 
         {/* ---------------------------------------------------------------- */}
-        {/* SECTION 7: GALLERY                                               */}
+        {/* SECTION 7: MEDIA & GALLERY                                       */}
         {/* ---------------------------------------------------------------- */}
         <section id="sec-gallery" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
           <div className="border-b border-border/70 pb-3 mb-5">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <ImageIcon className="h-3.5 w-3.5" />
-              7. Gallery Images
+              7. Media & Gallery
             </span>
           </div>
+
+          <div className="mb-8">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">
+              Official Franchise Brochure (PDF)
+            </Label>
+            <BrochureUploader
+              value={brochureUrl}
+              onChange={(url) => {
+                setBrochureUrl(url);
+                toast.success("Brochure attached!");
+              }}
+            />
+          </div>
+
           <div className="mb-6">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">
+              Gallery Images
+            </Label>
             <label
               className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-border rounded-xl bg-secondary/10 hover:bg-secondary/20 cursor-pointer transition-colors"
               onDragOver={handleGalleryDragOver}
@@ -1193,14 +1227,15 @@ export const AdminFranchiseForm: React.FC = () => {
           )}
         </section>
 
-        {/* Bottom Actions */}
-        <div className="flex items-center justify-end gap-3 pt-6 border-t border-border">
+      {/* ── Sticky Bottom Actions ── */}
+      <div className="sticky bottom-0 z-30 w-full border-t border-border bg-card/95 backdrop-blur-md shadow-2xl py-3.5 px-4 sm:px-6 mt-8 rounded-t-xl">
+        <div className="flex flex-col-reverse sm:flex-row w-full items-center justify-between gap-3">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => navigate(isEditMode ? `/admin/franchises/${id}` : "/admin/franchises")}
-            className="text-xs"
+            className="text-xs h-9 w-full sm:w-auto border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
           >
             Cancel
           </Button>
@@ -1209,17 +1244,18 @@ export const AdminFranchiseForm: React.FC = () => {
             type="button"
             onClick={() => handleSubmit()}
             disabled={saving}
-            size="lg"
-            className="gap-2 text-xs bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase tracking-wider px-8"
+            size="sm"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 text-xs font-semibold h-9 px-6 shadow-sm shadow-primary/20 w-full sm:w-auto"
           >
             {saving ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
             ) : (
-              <Save className="h-4 w-4" />
+              <Save className="h-3.5 w-3.5" />
             )}
             <span>{isEditMode ? "Save Changes" : "Create Franchise"}</span>
           </Button>
         </div>
+      </div>
       </div>
     </div>
   );

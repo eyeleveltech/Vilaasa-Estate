@@ -76,7 +76,7 @@ export const LiveConcierge = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-28 right-6 z-[999] w-[320px] bg-card rounded-xl shadow-2xl border border-border overflow-hidden"
+            className="fixed bottom-40 sm:bottom-28 right-4 sm:right-6 z-[999] w-[calc(100vw-2rem)] sm:w-[320px] bg-card rounded-xl shadow-2xl border border-border overflow-hidden"
           >
             <div className="p-4 bg-[#0c1a14] border-b border-border">
               <h3 className="text-white font-medium flex items-center gap-2">
@@ -117,57 +117,60 @@ export const LiveConcierge = () => {
         )}
       </AnimatePresence>
 
-      {/* Floating Button */}
-      <motion.button
-        onClick={() => setIsOpen(!isOpen)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        className="fixed bottom-6 right-6 z-[999] w-16 h-16 rounded-full bg-gradient-to-br from-gold to-[#B8860B] shadow-xl flex items-center justify-center group"
-        aria-label="Live Concierge"
-      >
-        <AnimatePresence mode="wait">
-          {isOpen ? (
-            <motion.span
-              key="close"
-              initial={{ rotate: -90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: 90, opacity: 0 }}
-              className="material-symbols-outlined text-[#0c1a14] text-2xl"
+      {/* Floating Button & Tooltip Container */}
+      <div className="fixed bottom-6 right-6 z-[999] flex items-center gap-4">
+        {/* Label tooltip */}
+        <AnimatePresence>
+          {!isOpen && (
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ delay: 2 }}
+              className="pointer-events-none hidden sm:block bg-[#0c1a14] text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap"
             >
-              close
-            </motion.span>
-          ) : (
-            <motion.span
-              key="concierge"
-              initial={{ rotate: 90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: -90, opacity: 0 }}
-              className="material-symbols-outlined text-[#0c1a14] text-2xl"
-            >
-              support_agent
-            </motion.span>
+              <span className="text-gold font-medium">Concierge</span> • Instant Connect
+            </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Pulse ring */}
-        {!isOpen && (
-          <span className="absolute inset-0 rounded-full bg-gold animate-ping opacity-30" />
-        )}
-      </motion.button>
+        <motion.button
+          onClick={() => setIsOpen(!isOpen)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-gold to-[#B8860B] shadow-xl flex items-center justify-center group relative"
+          aria-label="Live Concierge"
+        >
+          <AnimatePresence mode="wait">
+            {isOpen ? (
+              <motion.span
+                key="close"
+                initial={{ rotate: -90, opacity: 0 }}
+                animate={{ rotate: 0, opacity: 1 }}
+                exit={{ rotate: 90, opacity: 0 }}
+                className="material-symbols-outlined text-[#0c1a14] text-2xl"
+              >
+                close
+              </motion.span>
+            ) : (
+              <motion.span
+                key="concierge"
+                initial={{ rotate: 90, opacity: 0 }}
+                animate={{ rotate: 0, opacity: 1 }}
+                exit={{ rotate: -90, opacity: 0 }}
+                className="material-symbols-outlined text-[#0c1a14] text-2xl"
+              >
+                support_agent
+              </motion.span>
+            )}
+          </AnimatePresence>
 
-      {/* Label tooltip */}
-      {!isOpen && (
-        <div className="fixed bottom-[88px] right-6 z-[999] pointer-events-none">
-          <motion.div
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 2 }}
-            className="bg-[#0c1a14] text-white text-xs px-3 py-2 rounded-lg shadow-lg"
-          >
-            <span className="text-gold font-medium">Concierge</span> • Instant Connect
-          </motion.div>
-        </div>
-      )}
+          {/* Pulse ring */}
+          {!isOpen && (
+            <span className="absolute inset-0 rounded-full bg-gold animate-ping opacity-30" />
+          )}
+        </motion.button>
+      </div>
     </>
   );
 };

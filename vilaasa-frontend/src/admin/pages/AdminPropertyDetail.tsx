@@ -819,7 +819,7 @@ export const AdminPropertyDetail: React.FC = () => {
                         {config.unitType}
                       </td>
                       <td className="py-3 px-3 text-muted-foreground font-mono">
-                        {config.areaSqFt.toLocaleString()} Sq.Ft.
+                        {config.areaSqFt > 0 ? `${config.areaSqFt.toLocaleString()} Sq.Ft.` : "-"}
                       </td>
                       <td className="py-3 px-3 text-muted-foreground">
                         {config.viewType || "-"}

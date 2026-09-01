@@ -322,7 +322,7 @@ export const AdminDashboard: React.FC = () => {
             </Link>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs text-foreground">
               <thead className="border-b border-border bg-secondary/40 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                 <tr>
@@ -382,6 +382,28 @@ export const AdminDashboard: React.FC = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile View: Recent Site Inspections */}
+          <div className="md:hidden space-y-3 mt-2">
+            {recentSiteVisits.length === 0 ? (
+              <div className="py-8 text-center text-xs text-muted-foreground">No site visits booked yet.</div>
+            ) : (
+              recentSiteVisits.map((v) => (
+                <div key={v.id} className="rounded-xl border border-border/60 bg-secondary/30 p-3 flex flex-col gap-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-semibold text-foreground text-xs">{v.name}</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">{v.property?.name || "General Property"}</div>
+                    </div>
+                    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold ${getStatusBadge(v.status)}`}>{v.status}</span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground font-mono flex items-center justify-between border-t border-border/40 pt-2">
+                    <span>{new Date(v.scheduledDate).toLocaleDateString()} at {v.scheduledTime}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         {/* Table 2: Super Admin (Pending Partners) OR Channel Partner (Featured Inventory) */}
@@ -406,7 +428,7 @@ export const AdminDashboard: React.FC = () => {
               </Link>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs text-foreground">
                 <thead className="border-b border-border bg-secondary/40 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                   <tr>
@@ -476,6 +498,29 @@ export const AdminDashboard: React.FC = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile View: Pending Partners */}
+            <div className="md:hidden space-y-3 mt-2">
+              {pendingPartners.length === 0 ? (
+                <div className="py-8 text-center text-xs text-muted-foreground">No pending channel partner applications.</div>
+              ) : (
+                pendingPartners.map((p) => (
+                  <div key={p.id} className="rounded-xl border border-border/60 bg-secondary/30 p-3 space-y-2 flex flex-col">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-semibold text-foreground text-xs">{p.name}</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">{p.company || "Independent"} • {p.city || "Dubai / Mumbai"}</div>
+                      </div>
+                      <div className="text-[9px] text-muted-foreground font-mono">{new Date(p.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    <div className="flex items-center gap-2 pt-2 border-t border-border/40 mt-auto">
+                      <button onClick={() => handlePartnerAction(p.id, "APPROVED")} className="flex-1 rounded border border-emerald-500/30 bg-emerald-500/10 py-1.5 text-[10px] font-bold text-emerald-400 hover:bg-emerald-500 hover:text-black">Approve</button>
+                      <button onClick={() => handlePartnerAction(p.id, "REJECTED")} className="flex-1 rounded border border-red-500/30 bg-red-500/10 py-1.5 text-[10px] font-bold text-red-400 hover:bg-red-500 hover:text-white">Reject</button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         ) : (

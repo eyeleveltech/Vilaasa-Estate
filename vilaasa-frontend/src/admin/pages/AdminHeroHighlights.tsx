@@ -429,7 +429,7 @@ export const AdminHeroHighlights: React.FC = () => {
                 }`}
               >
                 <div>
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                     <div className="flex items-center space-x-2">
                       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-[11px] font-bold font-mono text-foreground border border-border">
                         #{item.order}
@@ -497,13 +497,13 @@ export const AdminHeroHighlights: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-border mt-4">
                   <button
                     onClick={() => handleToggleActive(item)}
-                    className={`text-xs font-medium flex items-center gap-1.5 ${
+                    className={`text-xs font-medium flex items-center justify-center sm:justify-start gap-1.5 w-full sm:w-auto py-1.5 rounded-md border sm:border-transparent ${
                       item.isActive
-                        ? "text-amber-400 hover:text-amber-300"
-                        : "text-emerald-400 hover:text-emerald-300"
+                        ? "text-amber-400 hover:text-amber-300 border-amber-500/20 bg-amber-500/5 sm:bg-transparent"
+                        : "text-emerald-400 hover:text-emerald-300 border-emerald-500/20 bg-emerald-500/5 sm:bg-transparent"
                     }`}
                   >
                     {item.isActive ? (
@@ -519,7 +519,7 @@ export const AdminHeroHighlights: React.FC = () => {
                     )}
                   </button>
 
-                  <div className="flex items-center space-x-1.5">
+                  <div className="flex items-center justify-end w-full sm:w-auto space-x-1.5">
                     <Button
                       variant="outline"
                       size="sm"
@@ -646,7 +646,7 @@ export const AdminHeroHighlights: React.FC = () => {
                     <p className="text-[10px] text-muted-foreground mb-1.5 font-medium">
                       Select Icon Style:
                     </p>
-                    <div className="grid grid-cols-6 gap-1.5">
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
                       {AVAILABLE_ICONS.slice(0, 6).map((ic) => (
                         <button
                           key={ic.name}

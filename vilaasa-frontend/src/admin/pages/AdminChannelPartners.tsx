@@ -379,8 +379,8 @@ export const AdminChannelPartners: React.FC = () => {
         </div>
       </div>
 
-      {/* Partners Table */}
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+      {/* Partners Table (desktop) */}
+      <div className="hidden md:block overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-foreground">
             <thead className="border-b border-border bg-secondary/40 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
@@ -541,6 +541,81 @@ export const AdminChannelPartners: React.FC = () => {
               <span>Next</span>
               <ChevronRight className="h-3.5 w-3.5" />
             </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Card View (partners) */}
+      <div className="md:hidden space-y-3">
+        {loading && partners.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 space-y-2 text-muted-foreground">
+            <RefreshCw className="mx-auto h-6 w-6 animate-spin text-primary" />
+            <p className="text-xs">Loading channel partner applications...</p>
+          </div>
+        ) : partners.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 space-y-2 text-muted-foreground">
+            <Users className="h-8 w-8 opacity-30" />
+            <p className="text-sm">No channel partner applications found under this tab.</p>
+          </div>
+        ) : (
+          partners.map((partner) => (
+            <div key={partner.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <span className="h-10 w-10 shrink-0 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-sm font-bold text-primary">
+                  {partner.name.charAt(0).toUpperCase()}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-sm text-foreground truncate">{partner.name}</p>
+                  <p className="text-[11px] text-muted-foreground flex items-center space-x-1.5 mt-0.5 truncate">
+                    <Building className="h-3 w-3 text-primary shrink-0" />
+                    <span className="truncate">{partner.company || "Independent Broker"}</span>
+                  </p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Contact</p>
+                  <p className="font-medium text-foreground mt-0.5 truncate">{partner.email}</p>
+                  <p className="text-muted-foreground text-[10px] truncate">{partner.phone}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Details</p>
+                  <div className="font-medium text-foreground mt-0.5 flex items-center space-x-1">
+                    <MapPin className="h-3 w-3 text-primary" />
+                    <span className="truncate">{partner.city || "Dubai / Mumbai"}</span>
+                  </div>
+                  <div className="text-muted-foreground text-[10px] mt-0.5 flex items-center space-x-1">
+                    <Briefcase className="h-3 w-3" />
+                    <span className="truncate">{partner.experience || "3-5 years"}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-border/60">
+                <div className="font-mono text-[11px] text-muted-foreground">
+                  Applied: {new Date(partner.createdAt).toLocaleDateString()}
+                </div>
+                {activeTab === "PENDING" && (
+                  <div className="flex gap-1.5">
+                    <button onClick={() => setActionDialog({ partner, newStatus: "APPROVED" })} className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold text-emerald-400 hover:bg-emerald-500 hover:text-black">Approve</button>
+                    <button onClick={() => setActionDialog({ partner, newStatus: "REJECTED" })} className="rounded-md border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold text-red-400 hover:bg-red-500 hover:text-white">Reject</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+
+        {/* Mobile Pagination */}
+        <div className="flex items-center justify-between border border-border rounded-xl px-4 py-3 text-xs text-muted-foreground bg-secondary/20">
+          <div className="flex flex-col">
+            <span>{partners.length} of {totalCount} partners</span>
+            <span className="font-mono">Page {page} of {totalPages}</span>
+          </div>
+          <div className="flex space-x-2">
+            <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(p - 1, 1))} disabled={page <= 1} className="px-2"><ChevronLeft className="h-3.5 w-3.5" /></Button>
+            <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(p + 1, totalPages))} disabled={page >= totalPages} className="px-2"><ChevronRight className="h-3.5 w-3.5" /></Button>
           </div>
         </div>
       </div>

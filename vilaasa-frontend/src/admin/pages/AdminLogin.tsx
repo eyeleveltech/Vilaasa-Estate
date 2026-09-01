@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label";
 import vilaasaLogo from "@/assets/vilaasa-logo.svg";
 
 export const AdminLogin: React.FC = () => {
-  const [email, setEmail] = useState<string>("superadmin@vilaasa.com");
-  const [password, setPassword] = useState<string>("SuperAdmin@Vilaasa2026");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const { login, loading } = useAdminAuth();
 
@@ -53,25 +53,13 @@ export const AdminLogin: React.FC = () => {
           </div>
         </div>
 
-        {/* Demo Credentials Box */}
-        <div className="rounded-lg border border-border bg-secondary/40 p-4 text-xs text-muted-foreground space-y-1.5">
-          <div className="flex items-center space-x-1.5 font-bold uppercase tracking-wider text-primary text-[11px]">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            <span>Pre-Configured Super Admin</span>
-          </div>
-          <p>
-            Email: <span className="text-foreground font-mono font-medium">superadmin@vilaasa.com</span>
-          </p>
-          <p>
-            Password: <span className="text-foreground font-mono font-medium">SuperAdmin@Vilaasa2026</span>
-          </p>
-        </div>
+
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email */}
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-foreground/90">
               Email Address
             </Label>
             <div className="relative">
@@ -83,14 +71,14 @@ export const AdminLogin: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@vilaasa.com"
-                className="bg-background/80 pl-9 border-input text-xs sm:text-sm h-10"
+                className="bg-background/80 pl-9 border-input text-xs sm:text-sm h-10 placeholder:text-foreground/50"
               />
             </div>
           </div>
 
           {/* Password */}
           <div className="space-y-1.5">
-            <Label htmlFor="pass" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <Label htmlFor="pass" className="text-xs font-semibold uppercase tracking-wider text-foreground/90">
               Password
             </Label>
             <div className="relative">
@@ -102,7 +90,7 @@ export const AdminLogin: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="bg-background/80 pl-9 pr-10 border-input text-xs sm:text-sm h-10 font-mono"
+                className="bg-background/80 pl-9 pr-10 border-input text-xs sm:text-sm h-10 font-mono placeholder:text-foreground/50"
               />
               <button
                 type="button"
@@ -127,9 +115,10 @@ export const AdminLogin: React.FC = () => {
             {loading ? (
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
             ) : (
-              <span className="flex items-center justify-center space-x-2">
-                <span>Access Management Console</span>
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              <span className="flex items-center justify-center space-x-1.5 sm:space-x-2">
+                <span className="hidden sm:inline">Access Management Console</span>
+                <span className="sm:hidden">Access Console</span>
+                <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1" />
               </span>
             )}
           </Button>

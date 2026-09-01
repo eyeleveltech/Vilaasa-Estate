@@ -303,8 +303,8 @@ export const AdminFranchisesList: React.FC = () => {
         </form>
       </div>
 
-      {/* Franchises Table */}
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+      {/* Franchises Table (desktop) */}
+      <div className="hidden md:block overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="border-b border-border bg-secondary/40 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
@@ -522,6 +522,114 @@ export const AdminFranchisesList: React.FC = () => {
                 }
                 className="h-8 w-8 p-0"
               >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Franchises Card Grid (mobile) */}
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12 space-y-2 text-muted-foreground">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <p className="text-xs">Loading franchise dossiers...</p>
+          </div>
+        ) : franchises.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 space-y-2 text-muted-foreground">
+            <Store className="h-8 w-8 text-muted-foreground/50 stroke-1" />
+            <p className="text-sm font-medium">No franchise assets found</p>
+          </div>
+        ) : (
+          franchises.map((item) => {
+            const heroImg = item.media?.find((m) => m.isFeatured)?.url || item.media?.[0]?.url || null;
+            const ticket = item.minTicketSize ?? item.price;
+            const roi = item.expectedAnnualRoi ?? item.rentalYieldPercent;
+            return (
+              <div key={item.id} className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-3">
+                {/* Card Header */}
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border border-border bg-secondary">
+                    {heroImg ? (
+                      <img src={heroImg} alt={item.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                        <Store className="h-5 w-5" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      to={`/admin/franchises/${item.id}`}
+                      className="font-semibold text-sm text-foreground hover:text-primary transition-colors line-clamp-1"
+                    >
+                      {item.name}
+                    </Link>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {item.location?.city}, {item.location?.country}
+                    </p>
+                  </div>
+                  <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold ${getStatusBadge(item.status)}`}>
+                    {item.status.replace(/_/g, " ")}
+                  </span>
+                </div>
+
+                {/* Card Meta */}
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <span className="text-muted-foreground text-[10px] uppercase tracking-wider">Model</span>
+                    <p className={`mt-0.5 font-bold rounded-full border px-2 py-0.5 text-[10px] text-center w-fit ${getModelBadge(item.franchiseModel)}`}>
+                      {item.franchiseModel || "FOCO"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-[10px] uppercase tracking-wider">Ticket</span>
+                    <p className="font-bold text-primary mt-0.5 text-[11px]">{formatCurrency(ticket, item.currency)}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-[10px] uppercase tracking-wider">ROI</span>
+                    <p className="font-semibold text-emerald-400 mt-0.5 text-[11px]">{roi ? `${roi}% p.a.` : "24% p.a."}</p>
+                  </div>
+                </div>
+
+                {/* Card Actions */}
+                <div className="flex items-center justify-end gap-1 pt-1 border-t border-border/60">
+                  <Link to={`/admin/franchises/${item.id}`} title="View Dossier"
+                    className="rounded p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+                    <Eye className="h-4 w-4" />
+                  </Link>
+                  <Link to={`/admin/franchises/${item.id}/edit`} title="Edit"
+                    className="rounded p-2 text-muted-foreground hover:bg-secondary hover:text-primary transition-colors">
+                    <Edit2 className="h-4 w-4" />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedFranchiseId(item.id); setDeleteModalOpen(true); }}
+                    title="Archive"
+                    className="rounded p-2 text-muted-foreground hover:bg-secondary hover:text-destructive transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+
+        {/* Mobile Pagination */}
+        {meta && meta.totalPages > 1 && (
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-xs text-muted-foreground">Page {meta.page} of {meta.totalPages}</span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled={meta.page <= 1 || loading}
+                onClick={() => setFilters((prev) => ({ ...prev, page: prev.page - 1 }))}
+                className="h-8 w-8 p-0">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" disabled={meta.page >= meta.totalPages || loading}
+                onClick={() => setFilters((prev) => ({ ...prev, page: prev.page + 1 }))}
+                className="h-8 w-8 p-0">
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>

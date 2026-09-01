@@ -33,6 +33,7 @@ import {
   Upload,
   Star,
   ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   DollarSign,
   Compass,
@@ -255,6 +256,10 @@ export const AdminPropertyForm: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(isEditMode);
   const [saving, setSaving] = useState<boolean>(false);
   const [uploadingGallery, setUploadingGallery] = useState<boolean>(false);
+  const [activeStepId, setActiveStepId] = useState<string>(SECTIONS_NAV[0].id);
+  const [isAllSectionsView, setIsAllSectionsView] = useState<boolean>(false);
+
+  const isSectionVisible = (sectionId: string) => isAllSectionsView || activeStepId === sectionId;
 
   /* ---------------------- DnD Sensors ---------------------------------- */
   const sensors = useSensors(
@@ -699,15 +704,39 @@ export const AdminPropertyForm: React.FC = () => {
   /* ---------------------------- Save Handler ------------------------------ */
   const validateForm = (): boolean => {
     if (!name.trim()) {
-      toast.error("Property name is required");
+      toast.error("Property name is required (Hero Section)");
       return false;
     }
     if (!propertyType.trim()) {
-      toast.error("Property type is required");
+      toast.error("Property type is required (Hero Section)");
       return false;
     }
-    if (description.trim().length > 0 && description.trim().length < 10) {
-      toast.error("Description should be descriptive (at least 10 characters)");
+    if (description.trim().length < 10) {
+      toast.error("Description must be at least 10 characters (Vision Section)");
+      return false;
+    }
+    if (!customSpecs.some((s) => s.label.trim())) {
+      toast.error("At least one specification is required (Specs Section)");
+      return false;
+    }
+    if (!financialMetrics.some((f) => f.label.trim())) {
+      toast.error("At least one financial metric is required (Financials Section)");
+      return false;
+    }
+    if (!price.trim() && !priceOnApplication) {
+      toast.error("Pricing must be provided or 'Price on Application' selected (Pricing Section)");
+      return false;
+    }
+    if (galleryImages.length === 0) {
+      toast.error("At least one gallery image is required (Gallery Section)");
+      return false;
+    }
+    if (!amenities.some((a) => a.name.trim())) {
+      toast.error("At least one amenity is required (Amenities Section)");
+      return false;
+    }
+    if (!city.trim()) {
+      toast.error("City is required (Location Section)");
       return false;
     }
     return true;
@@ -852,7 +881,7 @@ export const AdminPropertyForm: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-16">
+    <div className="space-y-6 max-w-6xl mx-auto pb-32 min-w-0 overflow-x-hidden w-full">
       {/* Draft Save Bar */}
       <DraftSaveBar
         storageKey={draftKey}
@@ -860,7 +889,7 @@ export const AdminPropertyForm: React.FC = () => {
         onRestore={handleDraftRestore}
       />
       {/* ----------------- TOP HEADER BAR ----------------- */}
-      <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card shadow-sm">
         <div className="flex items-center gap-3">
           <Button
             type="button"
@@ -880,13 +909,13 @@ export const AdminPropertyForm: React.FC = () => {
                 {marketScope === "DOMESTIC" ? "🇮🇳 Domestic" : "🇦🇪 International"}
               </span>
             </div>
-            <h1 className="text-base font-bold text-foreground truncate max-w-md mt-0.5">
+            <h1 className="text-base font-bold text-foreground truncate max-w-[160px] sm:max-w-md mt-0.5">
               {name || "Untitled Luxury Estate"}
             </h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Button
             type="button"
             variant="outline"
@@ -913,31 +942,62 @@ export const AdminPropertyForm: React.FC = () => {
         </div>
       </div>
 
-      {/* ----------------- QUICK SECTION JUMP NAV with Validation Indicators ----------------- */}
-      <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 rounded-lg border border-border bg-card shadow-sm text-xs">
-        {SECTIONS_NAV.map((s) => {
-          const done = sectionStatus[s.id];
-          return (
-            <a
-              key={s.id}
-              href={`#${s.id}`}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/60 whitespace-nowrap transition-colors font-medium text-[11px]"
+      {/* ----------------- STICKY SECTION STEP NAV with Validation Indicators ----------------- */}
+      <div className="sticky top-16 z-20 bg-background/95 backdrop-blur-md py-2.5 px-3 rounded-xl border border-border/80 shadow-md">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 text-xs no-scrollbar flex-1 min-w-0">
+            {SECTIONS_NAV.map((s, idx) => {
+              const done = sectionStatus[s.id];
+              const isActive = activeStepId === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveStepId(s.id);
+                    if (isAllSectionsView) {
+                      document.getElementById(s.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    } else {
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg whitespace-nowrap transition-all font-medium text-[11px] shrink-0 ${
+                    isActive
+                      ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                      : done
+                      ? "bg-secondary/40 text-foreground hover:bg-secondary/70 border border-emerald-500/30"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/40 border border-border/50"
+                  }`}
+                >
+                  {done ? (
+                    <CheckCircle className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-primary-foreground" : "text-emerald-400"}`} />
+                  ) : (
+                    <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                      {idx + 1}
+                    </span>
+                  )}
+                  <span>{s.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="hidden md:flex items-center gap-2 pl-3 border-l border-border/60 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsAllSectionsView((v) => !v)}
+              className="text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors px-2.5 py-1.5 rounded-md hover:bg-secondary/60 border border-border/60"
             >
-              {done ? (
-                <CheckCircle className="h-3 w-3 text-emerald-400 shrink-0" />
-              ) : (
-                <AlertCircle className="h-3 w-3 text-amber-400/60 shrink-0" />
-              )}
-              <span>{s.label}</span>
-            </a>
-          );
-        })}
+              {isAllSectionsView ? "⚡ Step Wizard" : "📄 View All"}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* ----------------- FORM SECTIONS CONTAINER ----------------- */}
-      <div className="space-y-8">
+      <div className="w-full min-w-0">
         {/* SECTION 1: HERO & CORE LISTING */}
-        <section id="sec-hero" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
+        <section id="sec-hero" className={isSectionVisible("sec-hero") ? "rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6" : "hidden"}>
           <div className="border-b border-border/70 pb-3 mb-5 flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <Sparkles className="h-3.5 w-3.5" />
@@ -1052,7 +1112,7 @@ export const AdminPropertyForm: React.FC = () => {
                 <Label className="text-xs text-muted-foreground uppercase tracking-wider">
                   Official Property Brochure (PDF)
                 </Label>
-                <div className="mt-1">
+                <div className="mt-1 w-full min-w-0 overflow-hidden">
                   <BrochureUploader
                     value={brochureUrl}
                     onChange={(url) => {
@@ -1067,7 +1127,7 @@ export const AdminPropertyForm: React.FC = () => {
         </section>
 
         {/* SECTION 2: THE VISION & STORY */}
-        <section id="sec-vision" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
+        <section id="sec-vision" className={isSectionVisible("sec-vision") ? "rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6" : "hidden"}>
           <div className="border-b border-border/70 pb-3 mb-5">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <BookOpen className="h-3.5 w-3.5" />
@@ -1144,13 +1204,13 @@ export const AdminPropertyForm: React.FC = () => {
         </section>
 
         {/* SECTION 3: AT A GLANCE (SPECS) */}
-        <section id="sec-specs" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
-          <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-5">
+        <section id="sec-specs" className={isSectionVisible("sec-specs") ? "rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6" : "hidden"}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/70 pb-3 mb-5">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <LayoutGrid className="h-3.5 w-3.5" />
               3. At a Glance (Key Specifications)
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <PresetDropdown
                 presets={SPEC_PRESETS}
                 triggerLabel="Add Preset Spec"
@@ -1217,13 +1277,13 @@ export const AdminPropertyForm: React.FC = () => {
         </section>
 
         {/* SECTION 4: FINANCIAL INTELLIGENCE */}
-        <section id="sec-financials" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
-          <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-5">
+        <section id="sec-financials" className={isSectionVisible("sec-financials") ? "rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6" : "hidden"}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/70 pb-3 mb-3">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <TrendingUp className="h-3.5 w-3.5" />
               4. Financial Intelligence
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <PresetDropdown
                 presets={FINANCIAL_METRIC_PRESETS}
                 triggerLabel="Add Preset Metric"
@@ -1241,6 +1301,9 @@ export const AdminPropertyForm: React.FC = () => {
               </Button>
             </div>
           </div>
+          <p className="text-[11px] text-muted-foreground mb-4 bg-amber-500/10 border border-amber-500/20 p-2 rounded-md">
+            <strong>Note:</strong> To avoid investor confusion, please clearly distinguish between the <strong>Base Franchise Fee / Booking Amount</strong> (e.g., ₹15 Lakh) and the <strong>Total Capital Required / Ticket Size</strong> (e.g., ₹40 Lakh). Use separate metrics for each.
+          </p>
 
           {financialMetrics.length === 0 ? (
             <div className="p-4 rounded-lg border border-dashed border-border text-center">
@@ -1310,7 +1373,7 @@ export const AdminPropertyForm: React.FC = () => {
         </section>
 
         {/* SECTION 5: PRICING & CONFIGURATIONS */}
-        <section id="sec-pricing" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
+        <section id="sec-pricing" className={isSectionVisible("sec-pricing") ? "rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6" : "hidden"}>
           <div className="border-b border-border/70 pb-3 mb-5 flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <Tag className="h-3.5 w-3.5" />
@@ -1350,7 +1413,7 @@ export const AdminPropertyForm: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2 pt-6">
+              <div className="flex items-center space-x-2 sm:pt-6">
                 <input
                   type="checkbox"
                   id="poa"
@@ -1380,7 +1443,7 @@ export const AdminPropertyForm: React.FC = () => {
 
             {/* Configurations Table */}
             <div className="pt-4 border-t border-border/60 space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
                     Unit Configurations &amp; Layout Breakdowns
@@ -1389,7 +1452,7 @@ export const AdminPropertyForm: React.FC = () => {
                     Specify 3 BHK, 4 BHK, or custom penthouse floor plans and pricing.
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <PresetDropdown
                     presets={UNIT_TYPE_PRESETS}
                     triggerLabel="Add Preset Unit"
@@ -1418,7 +1481,7 @@ export const AdminPropertyForm: React.FC = () => {
                     <div className="space-y-4 pt-2">
                       {configurations.map((config, idx) => (
                         <SortableArrayItem key={config.id} id={config.id} onClone={() => handleCloneConfiguration(config.id)} onRemove={() => handleRemoveConfiguration(config.id)}>
-                          <div className={`grid grid-cols-1 ${isEditMode ? "sm:grid-cols-5" : "sm:grid-cols-4"} gap-2.5 p-3 rounded-lg border border-border bg-secondary/20 items-end`}>
+                          <div className={`grid grid-cols-1 ${isEditMode ? "sm:grid-cols-2 lg:grid-cols-5" : "sm:grid-cols-2 lg:grid-cols-4"} gap-2.5 p-3 rounded-lg border border-border bg-secondary/20 items-end`}>
                             <div>
                               <Label className="text-[10px] text-muted-foreground uppercase">Unit Type</Label>
                               <Input placeholder="e.g. 4 BHK Royal Villa" value={config.unitType} onChange={(e) => handleUpdateConfiguration(config.id, "unitType", e.target.value)} className="bg-secondary/40 h-8 text-xs font-semibold mt-1" />
@@ -1455,7 +1518,7 @@ export const AdminPropertyForm: React.FC = () => {
         </section>
 
         {/* SECTION 6: VISUAL SHOWCASE & GALLERY */}
-        <section id="sec-gallery" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
+        <section id="sec-gallery" className={isSectionVisible("sec-gallery") ? "rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6" : "hidden"}>
           <div className="border-b border-border/70 pb-3 mb-5">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <ImageIcon className="h-3.5 w-3.5" />
@@ -1553,13 +1616,13 @@ export const AdminPropertyForm: React.FC = () => {
         </section>
 
         {/* SECTION 7: AMENITIES */}
-        <section id="sec-amenities" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
-          <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-5">
+        <section id="sec-amenities" className={isSectionVisible("sec-amenities") ? "rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6" : "hidden"}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/70 pb-3 mb-5">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <Layers className="h-3.5 w-3.5" />
               7. Signature Amenities
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <PresetDropdown
                 presets={AMENITY_PRESETS}
                 triggerLabel="Add Preset Amenity"
@@ -1589,7 +1652,7 @@ export const AdminPropertyForm: React.FC = () => {
                   {amenities.map((amenity) => (
                     <SortableArrayItem key={amenity.id} id={amenity.id} onClone={() => handleCloneAmenity(amenity.id)} onRemove={() => handleRemoveAmenity(amenity.id)}>
                       <div className="p-3.5 rounded-lg border border-border bg-secondary/20 space-y-2.5">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/30 shrink-0">
                             <span className="material-symbols-outlined text-lg">{amenity.iconKey || "star"}</span>
                           </div>
@@ -1597,12 +1660,12 @@ export const AdminPropertyForm: React.FC = () => {
                             placeholder="Amenity Name (e.g. Private Marina & Yacht Berth)"
                             value={amenity.name}
                             onChange={(e) => handleUpdateAmenity(amenity.id, "name", e.target.value)}
-                            className="bg-secondary/40 h-8 text-xs font-semibold flex-1"
+                            className="bg-secondary/40 h-8 text-xs font-semibold flex-1 min-w-0"
                           />
                           <select
                             value={amenity.iconKey || "star"}
                             onChange={(e) => handleUpdateAmenity(amenity.id, "iconKey", e.target.value)}
-                            className="bg-secondary/70 border border-border text-[11px] rounded px-2 h-8 text-muted-foreground max-w-[130px]"
+                            className="bg-secondary/70 border border-border text-[11px] rounded px-2 h-8 text-muted-foreground w-full sm:w-auto sm:max-w-[140px]"
                           >
                             {COMMON_AMENITY_ICONS.map((p) => (
                               <option key={p.icon} value={p.icon}>{p.label}</option>
@@ -1625,7 +1688,7 @@ export const AdminPropertyForm: React.FC = () => {
         </section>
 
         {/* SECTION 8: LOCATION & CONNECTIVITY */}
-        <section id="sec-location" className="rounded-xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
+        <section id="sec-location" className={isSectionVisible("sec-location") ? "rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6" : "hidden"}>
           <div className="border-b border-border/70 pb-3 mb-5 flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5" />
@@ -1705,7 +1768,7 @@ export const AdminPropertyForm: React.FC = () => {
                   className="bg-secondary/40 h-9 text-xs font-mono mt-1"
                 />
               </div>
-              <div>
+              <div className="w-full min-w-0 overflow-hidden">
                 <Label className="text-xs text-muted-foreground uppercase tracking-wider">Google Maps Link</Label>
                 <Input
                   placeholder="e.g. https://maps.google.com/?q=..."
@@ -1718,7 +1781,7 @@ export const AdminPropertyForm: React.FC = () => {
 
             {/* Nearby Places */}
             <div className="pt-4 border-t border-border/60 space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
                     Nearby Landmarks &amp; Commute Times
@@ -1757,10 +1820,10 @@ export const AdminPropertyForm: React.FC = () => {
                       {nearbyPlaces.map((place) => (
                         <SortableArrayItem key={place.id} id={place.id} onClone={() => handleCloneNearbyPlace(place.id)} onRemove={() => handleRemoveNearbyPlace(place.id)}>
                           <div className="p-3 rounded-lg border border-border bg-secondary/20 space-y-2">
-                            <div className="flex gap-2 items-center">
-                              <Input placeholder="Landmark (e.g. MOPA International Airport)" value={place.name} onChange={(e) => handleUpdateNearbyPlace(place.id, "name", e.target.value)} className="bg-secondary/40 h-8 text-xs font-semibold flex-1" />
-                              <Input placeholder="Distance (e.g. 24 km)" value={place.distance} onChange={(e) => handleUpdateNearbyPlace(place.id, "distance", e.target.value)} className="bg-secondary/40 h-8 text-xs w-28" />
-                              <Input placeholder="Travel (e.g. 35 Mins)" value={place.travelTime} onChange={(e) => handleUpdateNearbyPlace(place.id, "travelTime", e.target.value)} className="bg-secondary/40 h-8 text-xs w-32" />
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              <Input placeholder="Landmark (e.g. MOPA International Airport)" value={place.name} onChange={(e) => handleUpdateNearbyPlace(place.id, "name", e.target.value)} className="bg-secondary/40 h-8 text-xs font-semibold" />
+                              <Input placeholder="Distance (e.g. 24 km)" value={place.distance} onChange={(e) => handleUpdateNearbyPlace(place.id, "distance", e.target.value)} className="bg-secondary/40 h-8 text-xs" />
+                              <Input placeholder="Travel (e.g. 35 Mins)" value={place.travelTime} onChange={(e) => handleUpdateNearbyPlace(place.id, "travelTime", e.target.value)} className="bg-secondary/40 h-8 text-xs" />
                             </div>
                             <Input placeholder="Context (e.g. Direct expressway access from main gates)" value={place.description} onChange={(e) => handleUpdateNearbyPlace(place.id, "description", e.target.value)} className="bg-secondary/40 h-7 text-[11px] text-muted-foreground" />
                           </div>
@@ -1775,32 +1838,70 @@ export const AdminPropertyForm: React.FC = () => {
         </section>
       </div>
 
-      {/* ----------------- BOTTOM INLINE ACTIONS ----------------- */}
-      <div className="flex items-center justify-end gap-3 pt-6 border-t border-border">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => navigate("/admin/properties")}
-          className="text-xs"
-        >
-          Cancel
-        </Button>
+      {/* ----------------- BOTTOM STICKY ACTIONS ----------------- */}
+      <div className="sticky bottom-0 z-30 w-full border-t border-border bg-card/95 backdrop-blur-md shadow-2xl py-3.5 px-4 sm:px-6 mt-8 rounded-t-xl">
+        <div className="flex flex-col-reverse sm:flex-row w-full items-center justify-between gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/admin/properties")}
+            className="text-xs h-9 w-full sm:w-auto border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
+          >
+            Cancel
+          </Button>
 
-        <Button
-          type="button"
-          onClick={handleSaveProperty}
-          disabled={saving}
-          size="lg"
-          className="gap-2 text-xs bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase tracking-wider px-8"
-        >
-          {saving ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          <span>{isEditMode ? "Save Changes" : "Create Property"}</span>
-        </Button>
+          <div className="flex flex-wrap items-center justify-end gap-2.5 w-full sm:w-auto">
+            {!isAllSectionsView && SECTIONS_NAV.findIndex((s) => s.id === activeStepId) > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const currentIndex = SECTIONS_NAV.findIndex((s) => s.id === activeStepId);
+                  setActiveStepId(SECTIONS_NAV[currentIndex - 1].id);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="text-xs h-9 gap-1.5 border-border hover:bg-secondary text-foreground w-full sm:w-auto"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>Previous</span>
+              </Button>
+            )}
+
+            {!isAllSectionsView && SECTIONS_NAV.findIndex((s) => s.id === activeStepId) < SECTIONS_NAV.length - 1 && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  const currentIndex = SECTIONS_NAV.findIndex((s) => s.id === activeStepId);
+                  setActiveStepId(SECTIONS_NAV[currentIndex + 1].id);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                size="sm"
+                className="text-xs h-9 gap-1.5 border border-border/80 hover:border-primary/50 text-foreground font-medium bg-secondary/80 hover:bg-secondary w-full sm:w-auto"
+              >
+                <span>Next: {SECTIONS_NAV[SECTIONS_NAV.findIndex((s) => s.id === activeStepId) + 1].label.replace(/^\d+\.\s*/, "")}</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            )}
+
+            <Button
+              type="button"
+              onClick={handleSaveProperty}
+              disabled={saving}
+              size="sm"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 text-xs font-semibold h-9 px-6 shadow-sm shadow-primary/20 w-full sm:w-auto"
+            >
+              {saving ? (
+                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
+              <span>{isEditMode ? "Save Changes" : "Create Property"}</span>
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

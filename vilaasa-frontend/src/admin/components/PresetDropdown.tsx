@@ -48,7 +48,7 @@ export const PresetDropdown: React.FC<PresetDropdownProps> = ({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 z-50 min-w-[200px] rounded-lg border border-border bg-popover shadow-xl overflow-hidden">
+        <div className="absolute right-0 top-full mt-1.5 z-50 min-w-[200px] max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-popover shadow-xl overflow-hidden">
           {allowCustom && (
             <>
               <button

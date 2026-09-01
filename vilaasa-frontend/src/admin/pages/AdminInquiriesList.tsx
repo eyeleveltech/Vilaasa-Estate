@@ -504,8 +504,8 @@ export const AdminInquiriesList: React.FC = () => {
         </div>
       </div>
 
-      {/* Inquiries Table */}
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+      {/* Inquiries Table (desktop) */}
+      <div className="hidden md:block overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-foreground">
             <thead className="border-b border-border bg-secondary/40 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
@@ -759,6 +759,82 @@ export const AdminInquiriesList: React.FC = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Card View (inquiries) */}
+      <div className="md:hidden space-y-3">
+        {loading && inquiries.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 space-y-2 text-muted-foreground">
+            <RefreshCw className="mx-auto h-6 w-6 animate-spin text-primary" />
+            <p className="text-xs">Loading inquiries pipeline...</p>
+          </div>
+        ) : inquiries.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 space-y-2 text-muted-foreground">
+            <Filter className="h-8 w-8 opacity-30" />
+            <p className="text-sm">No client inquiries found.</p>
+          </div>
+        ) : (
+          inquiries.map((inquiry) => {
+            const badgeInfo = getStatusBadge(inquiry.status);
+            return (
+              <div key={inquiry.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
+                {/* Card Header */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm text-foreground truncate">{inquiry.name}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider">
+                      {(inquiry.source || "WEBSITE").replace(/_/g, " ")}
+                    </p>
+                  </div>
+                  <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${badgeInfo.className}`}>
+                    {badgeInfo.label}
+                  </span>
+                </div>
+
+                {/* Contact + Budget */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Contact</p>
+                    <p className="font-medium text-foreground mt-0.5 truncate">{inquiry.email}</p>
+                    <p className="text-muted-foreground text-[10px]">{inquiry.phone}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Budget</p>
+                    <p className="font-bold text-primary mt-0.5 text-[11px]">{inquiry.currency || "AED"} {inquiry.investmentRange || "-"}</p>
+                    <p className="text-muted-foreground text-[10px] capitalize">{(inquiry.investmentType || "").replace(/-/g, " ")}</p>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 pt-1 border-t border-border/60">
+                  <a
+                    href={`https://wa.me/${(inquiry.phone || "").replace(/[^0-9+]/g, "").replace("+", "")}?text=${encodeURIComponent(`Hello ${inquiry.name}, thank you for contacting Vilaasa Estates.`)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 text-xs font-medium"
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                  </a>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => { setSiteVisitInquiry(inquiry); setVisitPropertyId(inquiry.propertyId || (properties[0]?.id || "")); setVisitDate(""); setVisitTime("11:00 AM"); setVisitNotes(""); e.stopPropagation(); }}
+                    className="flex-1 h-8 text-[10px] border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+                  >
+                    <CalendarCheck className="h-3 w-3 mr-1" /> Book Visit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => openStatusModal(inquiry, e)}
+                    className="flex-1 h-8 text-[10px] uppercase tracking-wider"
+                  >
+                    Status
+                  </Button>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Status Update Modal */}

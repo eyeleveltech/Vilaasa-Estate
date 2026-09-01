@@ -460,12 +460,15 @@ export const FRANCHISE_BADGE_PRESETS: Preset[] = [
 export const BLUEPRINT_PRESETS: Preset[] = [
   { label: 'TOTAL PROJECT COST' },
   { label: 'MIN. TICKET SIZE' },
+  { label: 'BASE FRANCHISE FEE' },
   { label: 'LOCK-IN PERIOD' },
   { label: 'YIELD PAYOUT FREQUENCY' },
   { label: 'CONSTRUCTION TIMELINE' },
   { label: 'BREAKEVEN PERIOD' },
   { label: 'MANAGEMENT FEE' },
   { label: 'REVENUE SHARE' },
+  { label: 'NET RENTAL YIELD' },
+  { label: '2025 MARKET SIZE / GDV' },
 ];
 
 /** Ecosystem support card presets (Section 5 — Franchise) */
@@ -517,7 +520,7 @@ export const SPEC_PRESETS: Preset[] = [
 /** Financial intelligence metric presets (Section 4 — Property) */
 export const FINANCIAL_METRIC_PRESETS: Preset[] = [
   { label: 'PROJECTED IRR', icon: 'trending_up' },
-  { label: 'MARKET SIZE / GDV', icon: 'monitoring' },
+  { label: '2025 MARKET SIZE / GDV', icon: 'monitoring' },
   { label: 'CAPITAL GROWTH TIMELINE', icon: 'timelapse' },
   { label: 'ANNUAL APPRECIATION', icon: 'trending_up' },
   { label: 'NET RENTAL YIELD', icon: 'payments' },

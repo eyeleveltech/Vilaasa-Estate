@@ -37,7 +37,7 @@ export function CountryCodeSelect({ value, onChange }: Props) {
         <Button
           variant="outline"
           role="combobox"
-          className="w-full sm:w-[140px] justify-between h-full"
+          className="w-[80px] shrink-0 sm:w-[140px] justify-between h-full px-2 sm:px-4"
         >
           {/* {value ? (
               <span className="flex items-center gap-2">
@@ -47,8 +47,8 @@ export function CountryCodeSelect({ value, onChange }: Props) {
             ) : (
               "Country"
             )} */}
-          {value}
-          <ChevronDown className="h-4 w-4 opacity-50" />
+          <span className="truncate">{value}</span>
+          <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
         </Button>
       </PopoverTrigger>
 

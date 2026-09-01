@@ -126,18 +126,44 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
     price: Number(c.price) || 0,
   }));
 
+  const detectAmenityIcon = (name: string): string => {
+    const lower = (name || "").toLowerCase();
+    if (lower.includes("spa") || lower.includes("wellness") || lower.includes("massage")) return "spa";
+    if (lower.includes("water") || lower.includes("pool") || lower.includes("swim")) return "pool";
+    if (lower.includes("gym") || lower.includes("fitness")) return "fitness_center";
+    if (lower.includes("security") || lower.includes("cctv")) return "security";
+    if (lower.includes("park") || lower.includes("garden")) return "park";
+    if (lower.includes("lounge") || lower.includes("club")) return "cottage";
+    if (lower.includes("wifi") || lower.includes("smart") || lower.includes("internet")) return "wifi";
+    if (lower.includes("parking") || lower.includes("garage")) return "local_parking";
+    if (lower.includes("tennis") || lower.includes("court")) return "sports_tennis";
+    if (lower.includes("golf")) return "sports_golf";
+    if (lower.includes("dining") || lower.includes("restaurant") || lower.includes("kitchen")) return "restaurant";
+    if (lower.includes("bar")) return "local_bar";
+    if (lower.includes("yoga") || lower.includes("meditation")) return "self_improvement";
+    if (lower.includes("beach")) return "beach_access";
+    if (lower.includes("kids") || lower.includes("play")) return "child_care";
+    if (lower.includes("pet")) return "pets";
+    return "star";
+  };
+
   const amenities = (prop.amenities || []).map((a) => ({
     name: a.amenity.name,
-    icon: a.amenity.iconKey || "spa",
+    icon: a.amenity.iconKey || detectAmenityIcon(a.amenity.name),
     description: a.description || "",
   }));
 
-  const nearbyLocations = (prop.nearbyPlaces || []).map((p) => ({
-    name: p.name,
-    distance: p.distance,
-    travelTime: p.travelTime,
-    description: p.description,
-  }));
+  const nearbyLocations = Array.from(new Map(
+    (prop.nearbyPlaces || []).map((p) => [
+      p.name, 
+      {
+        name: p.name,
+        distance: p.distance,
+        travelTime: p.travelTime,
+        description: p.description,
+      }
+    ])
+  ).values());
 
   return {
     id: prop.slug || prop.id,
@@ -179,6 +205,7 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
     visionHeadline: prop.visionHeadline || undefined,
     virtualTour360Url: prop.virtualTour360Url,
     googleMapLink: prop.location?.googleMapUrl,
+    mapEmbedUrl: prop.location?.mapEmbedUrl || prop.location?.googleMapUrl,
   };
 }
 

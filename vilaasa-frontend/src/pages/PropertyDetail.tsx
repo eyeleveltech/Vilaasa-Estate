@@ -136,7 +136,7 @@ const PropertyDetail = () => {
   }
 
   return (
-    <div className="overflow-x-hidden bg-background">
+    <div className="overflow-x-hidden bg-background pb-24 sm:pb-0">
       <Navbar />
 
       {/* Hero Section */}
@@ -271,12 +271,14 @@ const PropertyDetail = () => {
                     {property.visionHeadline}
                   </h2>
                 )}
-                {property.description && property.description.map((para, idx) => (
-                  <p
-                    key={idx}
-                    dangerouslySetInnerHTML={{ __html: para }}
-                    className="text-sm leading-relaxed text-muted-foreground md:text-base whitespace-pre-line"
-                  />
+                {property.description && 
+                  (property.tagline ? property.description : property.description.slice(1))
+                    .map((para, idx) => (
+                      <p
+                        key={idx}
+                        dangerouslySetInnerHTML={{ __html: para }}
+                        className="text-sm leading-relaxed text-muted-foreground md:text-base whitespace-pre-line"
+                      />
                 ))}
               </motion.div>
             )}
@@ -585,7 +587,7 @@ const PropertyDetail = () => {
             >
               {/* Map Embed — only render if mapEmbedUrl / googleMapLink exists */}
               {(property.mapEmbedUrl || property.googleMapLink) && (
-                <div className="overflow-hidden rounded-lg border border-border bg-secondary/20 aspect-[16/10] min-h-[300px]">
+                <div className="overflow-hidden rounded-lg border border-border bg-secondary/20 aspect-[16/10] min-h-[300px] w-full min-w-0">
                   <iframe
                     src={(() => {
                       const url = property.mapEmbedUrl || property.googleMapLink || "";
@@ -658,17 +660,17 @@ const PropertyDetail = () => {
             <Button
               onClick={() => setContactPartnerOpen(true)}
               variant="outline"
-              className="flex-1 sm:flex-none border-primary/40 text-foreground hover:bg-primary/10 hover:text-primary gap-1.5 text-xs sm:text-sm font-semibold uppercase tracking-wider py-2.5 sm:py-2"
+              className="flex-1 sm:flex-none border-primary/40 text-foreground hover:bg-primary/10 hover:text-primary gap-1.5 text-[10px] sm:text-sm font-semibold uppercase tracking-wider py-2 sm:py-2 px-2 sm:px-4"
             >
-              <span className="material-symbols-outlined text-[16px] text-primary">support_agent</span>
-              <span>Contact Senior Partner</span>
+              <span className="material-symbols-outlined text-[14px] sm:text-[16px] text-primary shrink-0">support_agent</span>
+              <span className="truncate">Contact</span>
             </Button>
             <Button
               onClick={() => setOpenCalendar(true)}
               variant="hero"
-              className="flex-1 sm:flex-none text-xs sm:text-sm font-bold uppercase tracking-wider py-2.5 sm:py-2"
+              className="flex-1 sm:flex-none text-[10px] sm:text-sm font-bold uppercase tracking-wider py-2 sm:py-2 px-2 sm:px-4 truncate"
             >
-              Book Private Inspection
+              Book Inspection
             </Button>
           </div>
         </div>

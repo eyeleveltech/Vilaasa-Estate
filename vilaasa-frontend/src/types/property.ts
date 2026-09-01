@@ -81,6 +81,7 @@ export interface PropertyDetail {
   amenities: PropertyAmenity[];
   nearbyLocations: PropertyNearbyLocation[];
   googleMapLink?: string;
+  mapEmbedUrl?: string;
   virtualTour360Url?: string;
   visionHeadline?: string;
 }

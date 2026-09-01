@@ -451,7 +451,7 @@ export const InquiryFormDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md max-h-[90vh] overflow-y-auto bg-background border-border p-4 sm:p-6">
+      <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md max-h-[90vh] overflow-y-auto bg-background border-border p-4 pb-20 sm:p-6 sm:pb-6 z-[9999]">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl font-light">
             {step === "form" &&
@@ -541,7 +541,7 @@ export const InquiryFormDialog = ({
                       setFormData({ ...formData, phone: e.target.value })
                     }
                     required
-                    className="flex-1 bg-secondary/50 h-9 sm:h-10 text-xs sm:text-sm"
+                    className="flex-1 min-w-0 bg-secondary/50 h-9 sm:h-10 text-xs sm:text-sm"
                   />
                 </div>
               </div>

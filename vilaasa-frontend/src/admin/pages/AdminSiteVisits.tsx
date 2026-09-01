@@ -314,8 +314,8 @@ export const AdminSiteVisits: React.FC = () => {
         </div>
       </div>
 
-      {/* Site Visits Table */}
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+      {/* Site Visits Table (desktop) */}
+      <div className="hidden md:block overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-foreground">
             <thead className="border-b border-border bg-secondary/40 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
@@ -496,6 +496,80 @@ export const AdminSiteVisits: React.FC = () => {
               <span>Next</span>
               <ChevronRight className="h-3.5 w-3.5" />
             </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Card View (site visits) */}
+      <div className="md:hidden space-y-3">
+        {loading && visits.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 space-y-2 text-muted-foreground">
+            <RefreshCw className="mx-auto h-6 w-6 animate-spin text-primary" />
+            <p className="text-xs">Loading scheduled inspections...</p>
+          </div>
+        ) : visits.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 space-y-2 text-muted-foreground">
+            <CalendarCheck className="h-8 w-8 opacity-30" />
+            <p className="text-sm">No site visits match the specified filter criteria.</p>
+          </div>
+        ) : (
+          visits.map((visit) => (
+            <div key={visit.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm text-foreground truncate">{visit.name}</p>
+                  {visit.notes && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">Note: {visit.notes}</p>}
+                </div>
+                <span className={`shrink-0 inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${getStatusBadge(visit.status)}`}>
+                  {visit.status}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Contact</p>
+                  <p className="font-medium text-foreground mt-0.5 truncate">{visit.email}</p>
+                  <p className="text-muted-foreground text-[10px]">{visit.phone}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Property</p>
+                  <p className="font-medium text-foreground mt-0.5 truncate">{visit.property?.name || "General Dossier"}</p>
+                  {visit.property?.location && <p className="text-muted-foreground text-[10px] truncate">{visit.property.location.city}, {visit.property.location.country}</p>}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-border/60">
+                <div className="font-mono text-xs text-foreground">
+                  <div className="flex items-center space-x-1.5"><CalendarIcon className="h-3 w-3 text-primary" /><span>{new Date(visit.scheduledDate).toLocaleDateString()}</span></div>
+                  <div className="text-[11px] text-muted-foreground flex items-center space-x-1 mt-0.5"><Clock className="h-3 w-3 text-muted-foreground" /><span>{visit.scheduledTime}</span></div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground capitalize">
+                    {visit.visitType.replace(/-/g, " ")}
+                  </span>
+                  {visit.status === "CONFIRMED" ? (
+                    <div className="flex gap-1.5 mt-1">
+                      <button onClick={() => setActionDialog({ visit, newStatus: "COMPLETED" })} className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400 hover:bg-emerald-500 hover:text-black transition-all">Complete</button>
+                      <button onClick={() => setActionDialog({ visit, newStatus: "CANCELLED" })} className="rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-400 hover:bg-red-500 hover:text-white transition-all">Cancel</button>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground/60 italic mt-1">Archived</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+
+        {/* Mobile Pagination */}
+        <div className="flex items-center justify-between border border-border rounded-xl px-4 py-3 text-xs text-muted-foreground bg-secondary/20">
+          <div className="flex flex-col">
+            <span>{visits.length} of {totalCount} visits</span>
+            <span className="font-mono">Page {page} of {totalPages}</span>
+          </div>
+          <div className="flex space-x-2">
+            <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(p - 1, 1))} disabled={page <= 1} className="px-2"><ChevronLeft className="h-3.5 w-3.5" /></Button>
+            <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(p + 1, totalPages))} disabled={page >= totalPages} className="px-2"><ChevronRight className="h-3.5 w-3.5" /></Button>
           </div>
         </div>
       </div>
