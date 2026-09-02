@@ -1,0 +1,131 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T"
+  - generic [ref=e23]:
+    - complementary [ref=e24]:
+      - generic [ref=e25]:
+        - link "Vilaasa Estates Admin Executive Desk" [ref=e27] [cursor=pointer]:
+          - /url: /admin/dashboard
+          - img "Vilaasa Estates" [ref=e28]
+          - generic [ref=e29]:
+            - generic [ref=e30]: Admin
+            - generic [ref=e34]: Executive Desk
+        - navigation [ref=e35]:
+          - paragraph [ref=e36]: Management
+          - link "Dashboard" [ref=e37] [cursor=pointer]:
+            - /url: /admin/dashboard
+          - link "Properties" [ref=e44] [cursor=pointer]:
+            - /url: /admin/properties
+          - link "Viewing Records" [ref=e50] [cursor=pointer]:
+            - /url: /admin/viewing-records
+          - link "Franchises" [ref=e55] [cursor=pointer]:
+            - /url: /admin/franchises
+          - link "Inquiries" [ref=e62] [cursor=pointer]:
+            - /url: /admin/inquiries
+          - link "Site Visits" [ref=e67] [cursor=pointer]:
+            - /url: /admin/site-visits
+          - link "Partners" [ref=e72] [cursor=pointer]:
+            - /url: /admin/channel-partners
+          - link "Hero Highlights" [ref=e79] [cursor=pointer]:
+            - /url: /admin/hero-highlights
+      - generic [ref=e83]:
+        - link "Public Website" [ref=e84] [cursor=pointer]:
+          - /url: /home
+        - generic [ref=e91]:
+          - generic [ref=e92]:
+            - generic [ref=e93]: V
+            - generic [ref=e94]:
+              - paragraph [ref=e95]: Vilaasa Super Admin
+              - generic [ref=e96]: SUPER_ADMIN
+          - button "Logout" [ref=e101] [cursor=pointer]
+    - generic [ref=e105]:
+      - banner [ref=e106]:
+        - heading "Add New Property" [level=1] [ref=e356]
+        - generic [ref=e111]: Production Live
+      - main [ref=e115]:
+        - generic [ref=e357]:
+          - generic [ref=e358]:
+            - generic [ref=e359]:
+              - button [ref=e360] [cursor=pointer]
+              - generic [ref=e361]:
+                - generic [ref=e362]:
+                  - generic [ref=e363]: Add New Property
+                  - generic [ref=e364]: 🇮🇳 Domestic
+                - heading "Untitled Luxury Estate" [level=1] [ref=e365]
+            - generic [ref=e366]:
+              - button "Cancel" [ref=e367] [cursor=pointer]
+              - button "Create Property" [ref=e368] [cursor=pointer]
+          - generic [ref=e371]:
+            - generic [ref=e372]:
+              - button "1 1. Hero & Basics" [ref=e373] [cursor=pointer]:
+                - generic [ref=e374]: "1"
+                - generic [ref=e375]: 1. Hero & Basics
+              - button "2 2. Vision & Story" [ref=e376] [cursor=pointer]:
+                - generic [ref=e377]: "2"
+                - generic [ref=e378]: 2. Vision & Story
+              - button "3 3. At a Glance" [ref=e379] [cursor=pointer]:
+                - generic [ref=e380]: "3"
+                - generic [ref=e381]: 3. At a Glance
+              - button "4 4. Financials" [ref=e382] [cursor=pointer]:
+                - generic [ref=e383]: "4"
+                - generic [ref=e384]: 4. Financials
+              - button "5 5. Pricing & Units" [ref=e385] [cursor=pointer]:
+                - generic [ref=e386]: "5"
+                - generic [ref=e387]: 5. Pricing & Units
+              - button "6 6. Visual Showcase" [ref=e388] [cursor=pointer]:
+                - generic [ref=e389]: "6"
+                - generic [ref=e390]: 6. Visual Showcase
+              - button "7 7. Amenities" [ref=e391] [cursor=pointer]:
+                - generic [ref=e392]: "7"
+                - generic [ref=e393]: 7. Amenities
+              - button "8 8. Location" [ref=e394] [cursor=pointer]:
+                - generic [ref=e395]: "8"
+                - generic [ref=e396]: 8. Location
+            - button "📄 View All" [ref=e398] [cursor=pointer]
+          - generic [ref=e400]:
+            - generic [ref=e401]: 1. Hero Header & Core Listing
+            - generic [ref=e405]:
+              - generic [ref=e406]:
+                - text: Market Scope & Region
+                - generic [ref=e407]:
+                  - button "🇮🇳 Domestic" [ref=e408] [cursor=pointer]
+                  - button "🇦🇪 International" [ref=e410] [cursor=pointer]
+              - generic [ref=e412]:
+                - generic [ref=e413]:
+                  - generic [ref=e414]: Property Name *
+                  - textbox "e.g. The Glasshouse Sanctuary" [ref=e415]
+                - generic [ref=e416]:
+                  - text: Hero Subtitle / Description (Top Banner Hook)
+                  - textbox "e.g. Live or Lease - Your Villa, Your Choice. Ultra-luxury waterfront villa in North Goa..." [ref=e417]
+              - generic [ref=e418]:
+                - generic [ref=e419]:
+                  - generic [ref=e420]: Property Type *
+                  - textbox "e.g. Residential Villa, Penthouse, Farmland Estate" [ref=e421]
+                - generic [ref=e422]:
+                  - text: Listing Status
+                  - combobox [ref=e423]:
+                    - option "🟢 Available (For Sale)" [selected]
+                    - option "🟢 Ready to Move"
+                    - option "🟡 Under Construction"
+                    - option "🔵 Off-Plan Offering"
+                    - option "🟣 Reserved"
+                    - option "🔴 Sold / Closed"
+              - generic [ref=e424]:
+                - generic [ref=e425]:
+                  - text: 360° Virtual Tour URL
+                  - textbox "e.g. https://my.matterport.com/show/?m=..." [ref=e426]
+                - generic [ref=e427]:
+                  - text: Official Property Brochure (PDF)
+                  - generic [ref=e429]:
+                    - generic [ref=e430]:
+                      - generic [ref=e431]: Official Brochure PDF Document
+                      - button "Paste URL" [ref=e436] [cursor=pointer]
+                    - generic [ref=e441] [cursor=pointer]:
+                      - paragraph [ref=e446]: Click to upload or drag & drop Brochure PDF
+                      - paragraph [ref=e447]: Supports high-res PDF Dossiers (Up to 10MB)
+          - generic [ref=e449]:
+            - button "Cancel" [ref=e450] [cursor=pointer]
+            - generic [ref=e451]:
+              - 'button "Next: Vision & Story" [ref=e452] [cursor=pointer]'
+              - button "Create Property" [ref=e454] [cursor=pointer]

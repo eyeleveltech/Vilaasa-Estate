@@ -95,7 +95,7 @@ export const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground antialiased font-display">
+    <div className="flex min-h-screen w-full max-w-full overflow-x-hidden bg-background text-foreground antialiased font-display">
       {/* Mobile Backdrop */}
       {mobileOpen && (
         <div
@@ -216,26 +216,26 @@ export const AdminLayout: React.FC = () => {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex flex-1 flex-col min-w-0 lg:pl-[260px]">
+      <div className="flex flex-1 flex-col min-w-0 w-full lg:pl-[260px]">
         {/* Top Bar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/90 px-6 backdrop-blur-md">
-          <div className="flex items-center space-x-4">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/90 px-3 sm:px-6 backdrop-blur-md">
+          <div className="flex items-center space-x-2.5 sm:space-x-4 min-w-0">
             <button
               onClick={() => setMobileOpen(true)}
-              className="rounded-md border border-border p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground lg:hidden"
+              className="rounded-md border border-border p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground lg:hidden shrink-0"
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="flex items-center gap-3">
-              <span className="hidden sm:inline-block h-px w-6 bg-primary/60" />
-              <h1 className="text-sm sm:text-base font-light tracking-tight text-foreground truncate max-w-[160px] sm:max-w-xs md:max-w-none">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <span className="hidden sm:inline-block h-px w-6 bg-primary/60 shrink-0" />
+              <h1 className="text-xs sm:text-base font-light tracking-tight text-foreground truncate max-w-[170px] sm:max-w-xs md:max-w-none">
                 {getPageTitle()}
               </h1>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
-            <div className="hidden sm:flex items-center space-x-2 rounded-full border border-border bg-secondary/40 px-3.5 py-1 text-[11px] text-muted-foreground">
+          <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
+            <div className="hidden sm:flex items-center space-x-2 rounded-full border border-border bg-secondary/40 px-3 py-1 text-[11px] text-muted-foreground">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>Production Live</span>
             </div>
@@ -243,7 +243,7 @@ export const AdminLayout: React.FC = () => {
         </header>
 
         {/* Page Content View */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 w-full max-w-[1600px] mx-auto min-w-0 overflow-x-hidden">
+        <main className="flex-1 p-3 sm:p-5 lg:p-8 w-full max-w-[1600px] mx-auto min-w-0 overflow-x-hidden">
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>

@@ -584,6 +584,38 @@ export const NEARBY_CATEGORY_PRESETS = [
   'Business District',
   'National Park / Nature Reserve',
   'Heritage Site',
+  'Fine Dining / Marina',
+];
+
+export const NEARBY_PLACE_PRESETS: Preset[] = [
+  { label: 'International Airport', value: 'Airport', icon: 'flight' },
+  { label: 'Metro / Transit Hub', value: 'Metro', icon: 'train' },
+  { label: 'Super-Speciality Hospital', value: 'Hospital', icon: 'local_hospital' },
+  { label: 'International School', value: 'School', icon: 'school' },
+  { label: 'Pristine Beach / Waterfront', value: 'Beach', icon: 'beach_access' },
+  { label: 'Luxury Shopping Mall', value: 'Shopping', icon: 'shopping_bag' },
+  { label: 'Fine Dining Promenade', value: 'Dining', icon: 'restaurant' },
+  { label: 'Yacht Club & Marina', value: 'Leisure', icon: 'directions_boat' },
+  { label: 'Championship Golf Course', value: 'Golf', icon: 'sports_golf' },
+  { label: 'Central Business District (CBD)', value: 'Business', icon: 'business_center' },
+  { label: 'National Park / Wildlife Sanctuary', value: 'Nature', icon: 'forest' },
+  { label: 'Heritage Fort & Cultural Site', value: 'Heritage', icon: 'castle' },
+];
+
+export const NEARBY_CATEGORY_OPTIONS = [
+  { value: 'Airport', label: '✈️ Airport', icon: 'flight' },
+  { value: 'Metro', label: '🚆 Metro / Transit', icon: 'train' },
+  { value: 'Hospital', label: '🏥 Hospital / Medical', icon: 'local_hospital' },
+  { value: 'School', label: '🎓 School / Academy', icon: 'school' },
+  { value: 'Beach', label: '🏖️ Beach / Waterfront', icon: 'beach_access' },
+  { value: 'Shopping', label: '🛍️ Shopping Mall', icon: 'shopping_bag' },
+  { value: 'Dining', label: '🍽️ Fine Dining', icon: 'restaurant' },
+  { value: 'Leisure', label: '⛵ Yacht Club / Marina', icon: 'directions_boat' },
+  { value: 'Golf', label: '⛳ Golf Course', icon: 'sports_golf' },
+  { value: 'Business', label: '🏢 Business District', icon: 'business_center' },
+  { value: 'Nature', label: '🌲 Nature / Park', icon: 'forest' },
+  { value: 'Heritage', label: '🏛️ Heritage Site', icon: 'castle' },
+  { value: 'Transit', label: '📍 General Landmark', icon: 'near_me' },
 ];
 
 /* -------------------------------------------------------------------------- */

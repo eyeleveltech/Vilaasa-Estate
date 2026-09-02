@@ -399,19 +399,19 @@ const FranchiseDetail = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
             {pageContent?.blueprintMetrics?.length ? (
               pageContent.blueprintMetrics
                 .filter((item) => item.label)
                 .map((item, idx) => (
                   <div
                     key={item.id || idx}
-                    className="p-4 bg-background/50 rounded border border-border"
+                    className="p-3.5 sm:p-4 bg-background/50 rounded border border-border min-w-0"
                   >
-                    <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
+                    <p className="text-muted-foreground text-[11px] sm:text-xs uppercase tracking-wider mb-1 truncate">
                       {item.label}
                     </p>
-                    <p className="text-foreground text-lg font-medium">
+                    <p className="text-foreground text-base sm:text-lg font-medium break-words">
                       {formatDynamicValue(item.value)}
                     </p>
                   </div>
@@ -506,7 +506,7 @@ const FranchiseDetail = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {supportCards.map((feature, idx: number) => (
               <motion.div
                 key={feature.name || idx}
@@ -514,7 +514,7 @@ const FranchiseDetail = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1 }}
-                className="p-6 bg-background rounded-lg border border-border"
+                className="p-4 sm:p-6 bg-background rounded-lg border border-border min-w-0"
               >
                 <span className="material-symbols-outlined text-3xl text-gold-accent mb-4 block">
                   {feature.icon || "storefront"}

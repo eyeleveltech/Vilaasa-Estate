@@ -33,6 +33,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NEARBY_CATEGORY_OPTIONS } from "../lib/franchisePageHelpers";
 
 interface AdminVaultAsset {
   id: string;
@@ -86,7 +87,9 @@ export const AdminPropertyDetail: React.FC = () => {
   const [newNearby, setNewNearby] = useState({
     name: "",
     distance: "",
+    travelTime: "",
     category: "Airport",
+    description: "",
   });
 
   // New financial metric form state
@@ -239,7 +242,7 @@ export const AdminPropertyDetail: React.FC = () => {
       if (res.data.success) {
         toast.success("Nearby place added");
         setShowNearbyModal(false);
-        setNewNearby({ name: "", distance: "", category: "Airport" });
+        setNewNearby({ name: "", distance: "", travelTime: "", category: "Airport", description: "" });
         fetchPropertyData();
       }
     } catch {
@@ -1114,7 +1117,7 @@ export const AdminPropertyDetail: React.FC = () => {
                 <h4 className="text-sm font-semibold text-foreground">Add Nearby Place</h4>
                 <div className="space-y-3 text-xs">
                   <div>
-                    <Label className="text-xs">Place Name *</Label>
+                    <Label className="text-xs">Place / Landmark Name *</Label>
                     <Input
                       type="text"
                       required
@@ -1126,18 +1129,31 @@ export const AdminPropertyDetail: React.FC = () => {
                       className="mt-1 bg-secondary/40 h-9"
                     />
                   </div>
-                  <div>
-                    <Label className="text-xs">Drive Distance *</Label>
-                    <Input
-                      type="text"
-                      required
-                      placeholder="e.g. 15 Mins Drive"
-                      value={newNearby.distance}
-                      onChange={(e) =>
-                        setNewNearby({ ...newNearby, distance: e.target.value })
-                      }
-                      className="mt-1 bg-secondary/40 h-9"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Distance (e.g. 15 km)</Label>
+                      <Input
+                        type="text"
+                        placeholder="e.g. 15 km"
+                        value={newNearby.distance}
+                        onChange={(e) =>
+                          setNewNearby({ ...newNearby, distance: e.target.value })
+                        }
+                        className="mt-1 bg-secondary/40 h-9"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Commute Time (e.g. 20 Mins)</Label>
+                      <Input
+                        type="text"
+                        placeholder="e.g. 20 Mins Drive"
+                        value={newNearby.travelTime}
+                        onChange={(e) =>
+                          setNewNearby({ ...newNearby, travelTime: e.target.value })
+                        }
+                        className="mt-1 bg-secondary/40 h-9"
+                      />
+                    </div>
                   </div>
                   <div>
                     <Label className="text-xs">Category</Label>
@@ -1148,13 +1164,24 @@ export const AdminPropertyDetail: React.FC = () => {
                       }
                       className="mt-1 w-full rounded-md border border-input bg-secondary/40 px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
                     >
-                      <option value="Airport">Airport</option>
-                      <option value="Metro">Metro / Transit</option>
-                      <option value="School">Private Academy / School</option>
-                      <option value="Hospital">Medical Centre</option>
-                      <option value="Dining">Fine Dining</option>
-                      <option value="Leisure">Yacht Club / Marina</option>
+                      {NEARBY_CATEGORY_OPTIONS.map((cat) => (
+                        <option key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </option>
+                      ))}
                     </select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Context / Route Notes</Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g. Direct expressway access via Sheikh Zayed Road"
+                      value={newNearby.description}
+                      onChange={(e) =>
+                        setNewNearby({ ...newNearby, description: e.target.value })
+                      }
+                      className="mt-1 bg-secondary/40 h-9"
+                    />
                   </div>
                 </div>
 

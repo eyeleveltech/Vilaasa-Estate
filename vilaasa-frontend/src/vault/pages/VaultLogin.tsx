@@ -25,7 +25,7 @@ export const VaultLogin: React.FC = () => {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-background px-4 py-12 text-foreground font-display antialiased">
+    <div className="relative flex min-h-screen w-full max-w-full items-center justify-center overflow-hidden bg-background px-3 sm:px-4 py-8 sm:py-12 text-foreground font-display antialiased">
       {/* Background Ambience Orbs matching public showcase */}
       <div className="pointer-events-none absolute -top-40 left-1/2 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[130px]" />
       <div className="pointer-events-none absolute -bottom-40 right-1/4 h-[400px] w-[400px] rounded-full bg-[#D4AF37]/5 blur-[120px]" />
@@ -37,7 +37,7 @@ export const VaultLogin: React.FC = () => {
         className="relative z-10 w-full max-w-md"
       >
         {/* Main Vault Box */}
-        <div className="rounded-2xl border border-border bg-card/95 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
+        <div className="rounded-2xl border border-border bg-card/95 p-4 sm:p-6 md:p-8 shadow-2xl backdrop-blur-xl">
           {/* Header */}
           <div className="text-center">
             <div className="flex justify-center mb-4">

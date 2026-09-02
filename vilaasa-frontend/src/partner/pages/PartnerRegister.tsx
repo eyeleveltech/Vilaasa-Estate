@@ -60,7 +60,7 @@ export const PartnerRegister: React.FC = () => {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-background px-4 py-12 text-foreground antialiased font-display">
+    <div className="relative flex min-h-screen w-full max-w-full items-center justify-center bg-background px-3 sm:px-4 py-8 sm:py-12 text-foreground antialiased font-display overflow-hidden">
       {/* Background Decorative Gradient Orbs */}
       <div className="pointer-events-none absolute -top-40 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-primary/10 blur-[150px]" />
       <div className="pointer-events-none absolute -bottom-40 right-1/4 h-[500px] w-[500px] rounded-full bg-emerald-500/5 blur-[130px]" />
@@ -69,7 +69,7 @@ export const PartnerRegister: React.FC = () => {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
-        className="relative w-full max-w-lg space-y-8 rounded-xl border border-border bg-card/95 p-6 sm:p-8 shadow-2xl backdrop-blur-xl"
+        className="relative w-full max-w-lg space-y-6 sm:space-y-8 rounded-xl border border-border bg-card/95 p-4 sm:p-6 md:p-8 shadow-2xl backdrop-blur-xl"
       >
         {/* Brand Header */}
         <div className="text-center space-y-3">

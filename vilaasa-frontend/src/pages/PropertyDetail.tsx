@@ -319,14 +319,14 @@ const PropertyDetail = () => {
 
       {/* At a Glance */}
       {(property.specs.length > 0 || property.brochure || property.virtualTour360Url) && (
-        <section className="px-4 py-14 md:px-10 md:py-20">
+        <section className="px-3.5 sm:px-6 md:px-10 py-10 sm:py-14 md:py-20">
           <div className="max-w-[1280px] mx-auto">
             {property.specs.length > 0 && (
               <>
-                <h2 className="mb-6 text-2xl font-light text-foreground md:mb-8">
+                <h2 className="mb-6 text-xl sm:text-2xl font-light text-foreground md:mb-8">
                   At a Glance
                 </h2>
-                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
                   {property.specs.filter(s => s.label?.trim() && s.value?.trim()).map((spec, idx) => (
                     <motion.div
                       key={spec.label}
@@ -334,12 +334,12 @@ const PropertyDetail = () => {
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ delay: idx * 0.1 }}
-                      className="flex flex-col gap-2 rounded border border-border bg-card p-4"
+                      className="flex flex-col gap-1.5 sm:gap-2 rounded border border-border bg-card p-3.5 sm:p-4 min-w-0"
                     >
-                      <span className="text-muted-foreground text-xs uppercase tracking-wider">
+                      <span className="text-muted-foreground text-[11px] sm:text-xs uppercase tracking-wider truncate">
                         {spec.label}
                       </span>
-                      <span className="text-foreground font-medium">
+                      <span className="text-foreground font-medium text-sm sm:text-base break-words">
                         {formatDynamicValue(spec.value)}
                       </span>
                     </motion.div>

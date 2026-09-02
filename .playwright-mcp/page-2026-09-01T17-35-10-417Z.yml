@@ -1,0 +1,25 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T"
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - link "Vilaasa Estates":
+          - /url: /home
+          - img "Vilaasa Estates"
+      - generic [ref=e7]:
+        - text: Private Executive Portal
+        - heading "Admin Authentication" [level=2] [ref=e8]
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - text: Email Address
+        - textbox "Email Address" [ref=e12]:
+          - /placeholder: admin@vilaasa.com
+      - generic [ref=e13]:
+        - text: Password
+        - generic [ref=e14]:
+          - textbox "Password" [ref=e15]:
+            - /placeholder: ••••••••••••
+          - button [ref=e16] [cursor=pointer]
+      - button "Access Management Console" [ref=e20] [cursor=pointer]

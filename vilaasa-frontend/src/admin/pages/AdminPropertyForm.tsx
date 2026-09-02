@@ -64,6 +64,8 @@ import {
   UNIT_TYPE_PRESETS,
   AMENITY_PRESETS,
   NEARBY_CATEGORY_PRESETS,
+  NEARBY_PLACE_PRESETS,
+  NEARBY_CATEGORY_OPTIONS,
 } from "../lib/franchisePageHelpers";
 import { SortableArrayItem } from "../components/SortableArrayItem";
 import { PresetDropdown } from "../components/PresetDropdown";
@@ -153,6 +155,41 @@ const COMMON_AMENITY_ICONS = [
   { label: "High-Speed WiFi", icon: "wifi" },
   { label: "Star / Bespoke", icon: "star" },
 ];
+
+const detectNearbyCategory = (name: string): string => {
+  const lower = (name || "").toLowerCase();
+  if (lower.includes("airport") || lower.includes("flight") || lower.includes("helipad") || lower.includes("aviation") || lower.includes("aerodrome")) return "Airport";
+  if (lower.includes("metro") || lower.includes("train") || lower.includes("station") || lower.includes("transit") || lower.includes("rail") || lower.includes("expressway") || lower.includes("highway")) return "Metro";
+  if (lower.includes("hospital") || lower.includes("clinic") || lower.includes("medical") || lower.includes("healthcare") || lower.includes("apollo") || lower.includes("manipal")) return "Hospital";
+  if (lower.includes("school") || lower.includes("university") || lower.includes("college") || lower.includes("academy") || lower.includes("institute") || lower.includes("campus")) return "School";
+  if (lower.includes("beach") || lower.includes("coast") || lower.includes("shore") || lower.includes("sea") || lower.includes("cove") || lower.includes("bay") || lower.includes("ocean") || lower.includes("waterfront")) return "Beach";
+  if (lower.includes("mall") || lower.includes("shopping") || lower.includes("market") || lower.includes("retail") || lower.includes("plaza") || lower.includes("galleria")) return "Shopping";
+  if (lower.includes("dining") || lower.includes("restaurant") || lower.includes("bistro") || lower.includes("cafe") || lower.includes("culinary") || lower.includes("lounge") || lower.includes("bar")) return "Dining";
+  if (lower.includes("marina") || lower.includes("yacht") || lower.includes("boat") || lower.includes("harbor") || lower.includes("harbour") || lower.includes("sailing")) return "Leisure";
+  if (lower.includes("golf") || lower.includes("putting") || lower.includes("fairway")) return "Golf";
+  if (lower.includes("business") || lower.includes("cbd") || lower.includes("tech park") || lower.includes("financial centre") || lower.includes("tower") || lower.includes("hub")) return "Business";
+  if (lower.includes("park") || lower.includes("nature") || lower.includes("sanctuary") || lower.includes("forest") || lower.includes("reserve") || lower.includes("wildlife") || lower.includes("garden")) return "Nature";
+  if (lower.includes("fort") || lower.includes("heritage") || lower.includes("palace") || lower.includes("museum") || lower.includes("temple") || lower.includes("church") || lower.includes("monument")) return "Heritage";
+  return "Transit";
+};
+
+const getNearbyCategoryIcon = (category: string): string => {
+  switch (category) {
+    case "Airport": return "flight";
+    case "Metro": return "train";
+    case "Hospital": return "local_hospital";
+    case "School": return "school";
+    case "Beach": return "beach_access";
+    case "Shopping": return "shopping_bag";
+    case "Dining": return "restaurant";
+    case "Leisure": return "directions_boat";
+    case "Golf": return "sports_golf";
+    case "Business": return "business_center";
+    case "Nature": return "forest";
+    case "Heritage": return "castle";
+    default: return "near_me";
+  }
+};
 
 const STATUS_CONFIG: Record<
   PropertyStatus,
@@ -604,10 +641,20 @@ export const AdminPropertyForm: React.FC = () => {
   };
 
   // Nearby Places
-  const handleAddNearbyPlace = (category?: string) => {
+  const handleAddNearbyPlace = (preset?: { label: string; value?: string; icon?: string } | string | null) => {
+    let cat = "Transit";
+    let defaultName = "";
+
+    if (typeof preset === "string") {
+      cat = preset;
+    } else if (preset && typeof preset === "object") {
+      cat = preset.value || detectNearbyCategory(preset.label);
+      defaultName = preset.label || "";
+    }
+
     setNearbyPlaces((prev) => [
       ...prev,
-      { id: genId("np"), name: "", distance: "", travelTime: "", category: category || "Transit", description: "" },
+      { id: genId("np"), name: defaultName, distance: "", travelTime: "", category: cat, description: "" },
     ]);
   };
   const handleRemoveNearbyPlace = (id: string) => {
@@ -625,7 +672,19 @@ export const AdminPropertyForm: React.FC = () => {
     val: string
   ) => {
     setNearbyPlaces((prev) =>
-      prev.map((x) => x.id === id ? { ...x, [field]: val } : x)
+      prev.map((x) => {
+        if (x.id !== id) return x;
+        if (field === "name") {
+          const detected = detectNearbyCategory(val);
+          const shouldUpdateCat = !x.category || x.category === "Transit" || x.category === detectNearbyCategory(x.name);
+          return {
+            ...x,
+            name: val,
+            ...(shouldUpdateCat && detected !== "Transit" ? { category: detected } : {}),
+          };
+        }
+        return { ...x, [field]: val };
+      })
     );
   };
 
@@ -1787,20 +1846,20 @@ export const AdminPropertyForm: React.FC = () => {
                     Nearby Landmarks &amp; Commute Times
                   </h4>
                   <p className="text-[11px] text-muted-foreground">
-                    Airports, helipads, beaches, hospitals, and transit hubs.
+                    Airports, transit hubs, beaches, hospitals, schools, and marinas.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <PresetDropdown
-                    presets={NEARBY_CATEGORY_PRESETS.map((cat) => ({ label: cat }))}
-                    triggerLabel="Add Preset Place"
-                    onSelect={(p) => handleAddNearbyPlace(p?.label)}
+                    presets={NEARBY_PLACE_PRESETS}
+                    triggerLabel="Add Preset Landmark"
+                    onSelect={(p) => handleAddNearbyPlace(p)}
                   />
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => handleAddNearbyPlace()}
+                    onClick={() => handleAddNearbyPlace(null)}
                     className="gap-1.5 h-7 text-xs border-border text-muted-foreground hover:text-foreground"
                   >
                     <Plus className="h-3 w-3" />
@@ -1811,24 +1870,97 @@ export const AdminPropertyForm: React.FC = () => {
 
               {nearbyPlaces.length === 0 ? (
                 <div className="p-6 text-center border border-dashed border-border rounded-xl bg-secondary/10">
-                  <p className="text-xs text-muted-foreground">No nearby places added. Use a preset or click &quot;Custom&quot;.</p>
+                  <p className="text-xs text-muted-foreground">No nearby landmarks added. Use a preset or click &quot;Custom&quot; to add commute points.</p>
                 </div>
               ) : (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndNearbyPlaces}>
                   <SortableContext items={nearbyPlaces.map((p) => p.id)} strategy={verticalListSortingStrategy}>
                     <div className="space-y-4 pt-2">
-                      {nearbyPlaces.map((place) => (
-                        <SortableArrayItem key={place.id} id={place.id} onClone={() => handleCloneNearbyPlace(place.id)} onRemove={() => handleRemoveNearbyPlace(place.id)}>
-                          <div className="p-3 rounded-lg border border-border bg-secondary/20 space-y-2">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                              <Input placeholder="Landmark (e.g. MOPA International Airport)" value={place.name} onChange={(e) => handleUpdateNearbyPlace(place.id, "name", e.target.value)} className="bg-secondary/40 h-8 text-xs font-semibold" />
-                              <Input placeholder="Distance (e.g. 24 km)" value={place.distance} onChange={(e) => handleUpdateNearbyPlace(place.id, "distance", e.target.value)} className="bg-secondary/40 h-8 text-xs" />
-                              <Input placeholder="Travel (e.g. 35 Mins)" value={place.travelTime} onChange={(e) => handleUpdateNearbyPlace(place.id, "travelTime", e.target.value)} className="bg-secondary/40 h-8 text-xs" />
+                      {nearbyPlaces.map((place, idx) => {
+                        const iconKey = getNearbyCategoryIcon(place.category || "Transit");
+                        return (
+                          <SortableArrayItem key={place.id} id={place.id} onClone={() => handleCloneNearbyPlace(place.id)} onRemove={() => handleRemoveNearbyPlace(place.id)}>
+                            <div className="p-3.5 rounded-lg border border-border/70 bg-secondary/20 space-y-3">
+                              {/* Item Header with Category selector */}
+                              <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary border border-primary/30 shrink-0">
+                                    <span className="material-symbols-outlined text-sm">{iconKey}</span>
+                                  </div>
+                                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                    Landmark #{idx + 1}
+                                  </Label>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wider hidden sm:inline">
+                                    Category:
+                                  </Label>
+                                  <select
+                                    value={place.category || "Transit"}
+                                    onChange={(e) => handleUpdateNearbyPlace(place.id, "category", e.target.value)}
+                                    className="bg-secondary/70 border border-border text-[11px] rounded-md px-2 h-7 text-foreground focus:outline-none focus:border-primary max-w-[160px]"
+                                  >
+                                    {NEARBY_CATEGORY_OPTIONS.map((cat) => (
+                                      <option key={cat.value} value={cat.value}>
+                                        {cat.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+
+                              {/* Form Inputs with Explicit Labels */}
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                                    Landmark Name <span className="text-destructive">*</span>
+                                  </Label>
+                                  <Input
+                                    placeholder="e.g. MOPA International Airport"
+                                    value={place.name}
+                                    onChange={(e) => handleUpdateNearbyPlace(place.id, "name", e.target.value)}
+                                    className="bg-secondary/40 h-8 text-xs font-semibold mt-1"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                                    Distance (km / miles)
+                                  </Label>
+                                  <Input
+                                    placeholder="e.g. 24 km"
+                                    value={place.distance}
+                                    onChange={(e) => handleUpdateNearbyPlace(place.id, "distance", e.target.value)}
+                                    className="bg-secondary/40 h-8 text-xs mt-1"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                                    Commute / Drive Time
+                                  </Label>
+                                  <Input
+                                    placeholder="e.g. 35 Mins Drive"
+                                    value={place.travelTime}
+                                    onChange={(e) => handleUpdateNearbyPlace(place.id, "travelTime", e.target.value)}
+                                    className="bg-secondary/40 h-8 text-xs mt-1"
+                                  />
+                                </div>
+                              </div>
+
+                              <div>
+                                <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                                  Context / Route Notes
+                                </Label>
+                                <Input
+                                  placeholder="e.g. Direct 6-lane expressway connectivity from main gates"
+                                  value={place.description}
+                                  onChange={(e) => handleUpdateNearbyPlace(place.id, "description", e.target.value)}
+                                  className="bg-secondary/40 h-7 text-[11px] text-muted-foreground mt-1"
+                                />
+                              </div>
                             </div>
-                            <Input placeholder="Context (e.g. Direct expressway access from main gates)" value={place.description} onChange={(e) => handleUpdateNearbyPlace(place.id, "description", e.target.value)} className="bg-secondary/40 h-7 text-[11px] text-muted-foreground" />
-                          </div>
-                        </SortableArrayItem>
-                      ))}
+                          </SortableArrayItem>
+                        );
+                      })}
                     </div>
                   </SortableContext>
                 </DndContext>
