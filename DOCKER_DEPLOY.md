@@ -215,7 +215,7 @@ docker compose down -v       # DESTROYS the database volume. Do not run casually
 | `502` from Apache | web container down, or `a2enmod proxy_http` missing | `docker compose ps`, then `sudo a2enmod proxy_http && systemctl restart apache2` |
 | Site loads, API calls fail | Apache vhost not proxying `/api/` | The vhost proxies `/` wholesale — check you did not add a competing `DocumentRoot` |
 | Backend restart loop | Bad `DATABASE_URL`, or a missing required env var | `docker compose logs backend` — env errors are printed as one list at boot |
-| `exec format error` on entrypoint | `docker-entrypoint.sh` saved with CRLF | `.gitattributes` forces LF; re-clone, or run `dos2unix vilaasa-backend/docker-entrypoint.sh` |
+| `exec format error` on entrypoint | `docker-entrypoint.sh` saved with CRLF | `.gitattributes` forces LF; re-clone, or run `dos2unix backend/docker-entrypoint.sh` |
 | Uploads fail near 100 MB | proxy body limit | `client_max_body_size` (nginx) and `ProxyTimeout` (Apache) are already set to match multer's 100 MB |
 | Emails link to `localhost` | `FRONTEND_URL` not set | Must be `https://www.vilaasaestates.com` in `.env.production` |
 | Everyone shares one rate limit | `X-Forwarded-For` chain broken | nginx passes the header through unchanged to match Express's `trust proxy = 1`; do not change it to `$proxy_add_x_forwarded_for` without also raising the trust level |

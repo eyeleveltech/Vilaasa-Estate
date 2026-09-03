@@ -54,7 +54,7 @@
 
 ### Step 1: Environment Variables (`.env`)
 
-In `vilaasa-backend/.env`:
+In `backend/.env`:
 ```env
 PORT=5000
 NODE_ENV=development
@@ -84,7 +84,7 @@ FRONTEND_URL=http://localhost:8080
 
 ### Step 2: Database Synchronization & Seeding
 
-Run in `vilaasa-backend/`:
+Run in `backend/`:
 ```bash
 # Generate Prisma Client
 npx prisma generate
@@ -97,11 +97,11 @@ npm run db:seed
 
 ```bash
 # Start Backend (Terminal 1)
-cd vilaasa-backend
+cd backend
 npm run dev
 
 # Start Frontend (Terminal 2)
-cd vilaasa-frontend
+cd frontend
 npm run dev
 ```
 

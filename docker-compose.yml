@@ -25,7 +25,7 @@ services:
 
   backend:
     build:
-      context: ./vilaasa-backend
+      context: ./backend
     restart: unless-stopped
     # PID 1 that reaps zombies and forwards SIGTERM, so restarts are not
     # held up by the 10s kill timeout.
@@ -40,7 +40,7 @@ services:
 
   web:
     build:
-      context: ./vilaasa-frontend
+      context: ./frontend
       args:
         # Same-origin API path; nginx forwards /api/ to the backend service.
         VITE_API_URL: /api/v1

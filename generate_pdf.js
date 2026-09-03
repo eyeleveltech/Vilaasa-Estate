@@ -117,16 +117,16 @@ function generateHandoverPDF() {
   addSectionTitle('3. How to Run & Work on the Platform', 'Developer Quickstart');
   
   addSubSection('1. Environment Configuration');
-  addParagraph('Ensure vilaasa-backend/.env and vilaasa-frontend/.env are configured:');
+  addParagraph('Ensure backend/.env and frontend/.env are configured:');
   addCodeBox('DATABASE_URL=postgresql://postgres:<db-password>@localhost:5432/vilaasa\nJWT_SECRET=<generate-a-unique-secret-min-32-chars>');
 
   addSubSection('2. Database Synchronization & Seeding');
-  addParagraph('Run the following commands in vilaasa-backend/ to apply migrations and seed initial data:');
+  addParagraph('Run the following commands in backend/ to apply migrations and seed initial data:');
   addCodeBox('npx prisma generate\nnpm run db:seed');
 
   addSubSection('3. Starting Development Servers');
-  addBullet('Backend Server', 'In vilaasa-backend: npm run dev (Runs on http://localhost:5000)');
-  addBullet('Frontend Server', 'In vilaasa-frontend: npm run dev (Runs on http://localhost:8080)');
+  addBullet('Backend Server', 'In backend: npm run dev (Runs on http://localhost:5000)');
+  addBullet('Frontend Server', 'In frontend: npm run dev (Runs on http://localhost:8080)');
 
   addSubSection('4. Default Portal Credentials');
   addBullet('Super Admin (/admin/login)', 'superadmin@vilaasa.com  |  SuperAdmin@Vilaasa2026');

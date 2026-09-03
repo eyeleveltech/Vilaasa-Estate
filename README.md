@@ -8,14 +8,14 @@ Vilaasa Estates is a platform for luxury real estate in Dubai and India markets,
 
 ```
 villasa/
-├── vilaasa-frontend/     # Vite + React (TypeScript) + Tailwind CSS + Framer Motion
+├── frontend/     # Vite + React (TypeScript) + Tailwind CSS + Framer Motion
 │   ├── src/              # Components, Pages, Hooks, Contexts, Types
 │   ├── public/           # Static media assets
 │   ├── index.html        # Single Page App entry point
 │   ├── .env.example      # Frontend environment config
 │   └── package.json
 │
-├── vilaasa-backend/      # Node.js + Express + Prisma + PostgreSQL + Cloudinary
+├── backend/      # Node.js + Express + Prisma + PostgreSQL + Cloudinary
 │   ├── src/              # Express app, modules, controllers, middlewares, utils
 │   ├── prisma/           # PostgreSQL schema, migrations, seed script
 │   ├── API.md            # Complete REST API documentation
@@ -38,8 +38,8 @@ npm install
 ```
 
 ### 2. Configure Environment Variables
-- **Backend:** Copy `vilaasa-backend/.env.example` to `vilaasa-backend/.env` and configure your `DATABASE_URL`, `JWT_SECRET`, and `CLOUDINARY_*` keys.
-- **Frontend:** Copy `vilaasa-frontend/.env.example` to `vilaasa-frontend/.env`.
+- **Backend:** Copy `backend/.env.example` to `backend/.env` and configure your `DATABASE_URL`, `JWT_SECRET`, and `CLOUDINARY_*` keys.
+- **Frontend:** Copy `frontend/.env.example` to `frontend/.env`.
 
 ### 3. Run Database Migrations & Seed
 ```bash
@@ -83,4 +83,4 @@ npm run build:frontend
 ---
 
 ## 📖 API Documentation
-Full REST API documentation is available in [`vilaasa-backend/API.md`](./vilaasa-backend/API.md).
+Full REST API documentation is available in [`backend/API.md`](./backend/API.md).

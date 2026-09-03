@@ -13,7 +13,7 @@ const apiSecret = process.env.CLOUDINARY_API_SECRET;
 if (!cloudName || !apiKey || !apiSecret) {
   console.error(
     "❌ Cloudinary credentials are missing. Set CLOUDINARY_CLOUD_NAME, " +
-      "CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET in vilaasa-backend/.env " +
+      "CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET in backend/.env " +
       "before running this script.",
   );
   process.exit(1);
@@ -26,7 +26,7 @@ cloudinary.config({
   secure: true,
 });
 
-const FRONTEND_DIR = path.resolve(__dirname, "../../vilaasa-frontend");
+const FRONTEND_DIR = path.resolve(__dirname, "../../frontend");
 const ASSETS_DIR = path.join(FRONTEND_DIR, "src/assets");
 const PUBLIC_DIR = path.join(FRONTEND_DIR, "public");
 const ARCHIVE_DIR = path.resolve(__dirname, "../../media-archive");

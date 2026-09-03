@@ -77,7 +77,7 @@ if (issues.length > 0) {
 
   throw new Error(
     `Invalid environment configuration (NODE_ENV=${NODE_ENV}):\n${details}\n\n` +
-      `Copy vilaasa-backend/.env.example to vilaasa-backend/.env and fill in ` +
+      `Copy backend/.env.example to backend/.env and fill in ` +
       `the values above, or set them in your deployment environment.`,
   );
 }
