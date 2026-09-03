@@ -52,7 +52,14 @@ export function CountryCodeSelect({ value, onChange }: Props) {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent className="w-[300px] p-0">
+      {/* align="start" anchors the list to the trigger's left edge. The
+          default "center" centres a 300px list on an 80px button, so it
+          spilled ~110px past the dialog on each side. */}
+      <PopoverContent
+        align="start"
+        collisionPadding={12}
+        className="w-[300px] max-w-[calc(100vw-2rem)] p-0"
+      >
         <Command
           filter={(value, search, keywords = []) => {
             const term = search.toLowerCase();
