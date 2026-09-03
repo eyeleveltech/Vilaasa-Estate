@@ -4,3 +4,9 @@ dist
 *.log
 .DS_Store
 coverage
+
+# Compiled seed output (the .ts is the source of truth; a stale .js
+# would bypass the destructive-seed guard)
+prisma/seed.js
+prisma/seed.d.ts
+prisma/seed*.map

@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import jwt, { SignOptions } from "jsonwebtoken";
 import { Prisma, Role } from "@prisma/client";
 import { prisma } from "../../config/db";
+import { env } from "../../config/env";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { ApiError } from "../../utils/ApiError";
 import { asyncHandler } from "../../utils/asyncHandler";
@@ -20,11 +21,9 @@ import {
 import { sendVaultOnboardingEmail } from "../../services/email.service";
 
 const generateToken = (userId: string, email: string, role: string): string => {
-  return jwt.sign(
-    { userId, id: userId, email, role },
-    process.env.JWT_SECRET || "default_jwt_secret",
-    { expiresIn: (process.env.JWT_EXPIRES_IN || "7d") as any },
-  );
+  return jwt.sign({ userId, id: userId, email, role }, env.JWT_SECRET, {
+    expiresIn: env.JWT_EXPIRES_IN as SignOptions["expiresIn"],
+  });
 };
 
 /**

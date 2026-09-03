@@ -1,4 +1,6 @@
 import "dotenv/config";
+// Validates required secrets and aborts boot if any are missing or weak.
+import { env } from "./config/env";
 import express, { Request, Response, Application } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -24,7 +26,7 @@ import heroHighlightRoutes from "./modules/heroHighlight/heroHighlight.routes";
 import franchiseRoutes from "./modules/franchise/franchise.routes";
 
 const app: Application = express();
-const PORT = process.env.PORT || 5000;
+const PORT = env.PORT;
 
 // Security & Header Middlewares
 app.use(helmet());
@@ -67,7 +69,7 @@ app.use(
 app.options("*", cors());
 
 // Logging
-if (process.env.NODE_ENV !== "test") {
+if (env.NODE_ENV !== "test") {
   app.use(morgan("dev"));
 }
 
@@ -101,14 +103,14 @@ app.get("/api/v1/health", (_req: Request, res: Response) => {
         status: "healthy",
         uptime: process.uptime(),
         timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || "development",
+        environment: env.NODE_ENV,
       },
       "Vilaasa Estates API is operating smoothly",
     ),
   );
 });
 
-if (process.env.NODE_ENV === "production") {
+if (env.IS_PRODUCTION) {
   app.set("trust proxy", 1);
 }
 
@@ -147,12 +149,12 @@ app.use(errorHandler);
 // ----------------------------------------------------
 // Start Server
 // ----------------------------------------------------
-if (process.env.NODE_ENV !== "test") {
+if (env.NODE_ENV !== "test") {
   const startServer = async () => {
     await connectDB();
     app.listen(PORT, () => {
       console.log(
-        `🚀 Vilaasa Estates Backend listening on port ${PORT} [${process.env.NODE_ENV || "development"}]`,
+        `🚀 Vilaasa Estates Backend listening on port ${PORT} [${env.NODE_ENV}]`,
       );
       console.log(`📡 Health check available at: http://localhost:${PORT}/api/v1/health`);
     });

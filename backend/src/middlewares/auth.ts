@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { prisma } from "../config/db";
+import { env } from "../config/env";
 import { ApiError } from "../utils/ApiError";
 import { asyncHandler } from "../utils/asyncHandler";
 import { Role } from "@prisma/client";
@@ -26,11 +27,9 @@ export const verifyJWT = asyncHandler(
       throw ApiError.unauthorized("Bearer token is missing");
     }
 
-    const jwtSecret = process.env.JWT_SECRET || "default_jwt_secret";
-
     let decoded: JwtPayload;
     try {
-      decoded = jwt.verify(token, jwtSecret) as JwtPayload;
+      decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
     } catch {
       throw ApiError.unauthorized("Authentication token is invalid or expired");
     }

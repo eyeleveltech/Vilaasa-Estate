@@ -118,7 +118,7 @@ function generateHandoverPDF() {
   
   addSubSection('1. Environment Configuration');
   addParagraph('Ensure vilaasa-backend/.env and vilaasa-frontend/.env are configured:');
-  addCodeBox('DATABASE_URL=postgresql://postgres:Naif2003@localhost:5432/vilaasa\nJWT_SECRET=vilaasa_luxury_secret_jwt_key_2026_super_secure');
+  addCodeBox('DATABASE_URL=postgresql://postgres:<db-password>@localhost:5432/vilaasa\nJWT_SECRET=<generate-a-unique-secret-min-32-chars>');
 
   addSubSection('2. Database Synchronization & Seeding');
   addParagraph('Run the following commands in vilaasa-backend/ to apply migrations and seed initial data:');

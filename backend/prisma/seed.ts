@@ -14,7 +14,43 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+/**
+ * This script is DESTRUCTIVE: it deletes every row in all 24 tables before
+ * inserting demo data. It must never run automatically as part of a container
+ * start command or a deploy step — only `prisma migrate deploy` belongs there.
+ *
+ * Against a production database it refuses to run unless the operator has
+ * explicitly opted in for that single invocation:
+ *
+ *   CONFIRM_DESTRUCTIVE_SEED=wipe-and-reseed npm run db:seed
+ */
+const DESTRUCTIVE_SEED_CONFIRMATION = "wipe-and-reseed";
+
+function assertSeedingIsAllowed() {
+  const nodeEnv = process.env.NODE_ENV?.trim() || "development";
+  const confirmed =
+    process.env.CONFIRM_DESTRUCTIVE_SEED?.trim() ===
+    DESTRUCTIVE_SEED_CONFIRMATION;
+
+  if (nodeEnv === "production" && !confirmed) {
+    throw new Error(
+      [
+        "Refusing to seed: NODE_ENV=production and this script DELETES ALL DATA in every table.",
+        "If you are certain the target database is disposable, re-run with:",
+        `  CONFIRM_DESTRUCTIVE_SEED=${DESTRUCTIVE_SEED_CONFIRMATION} npm run db:seed`,
+      ].join("\n"),
+    );
+  }
+
+  console.warn(
+    `⚠️  Destructive seed starting against NODE_ENV=${nodeEnv}. ` +
+      "All existing rows will be deleted.",
+  );
+}
+
 async function main() {
+  assertSeedingIsAllowed();
+
   console.log("🌱 Starting comprehensive database seeding for Vilaasa Estates...");
 
   // 1. Clean existing data

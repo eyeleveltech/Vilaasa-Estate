@@ -29,3 +29,9 @@ dist-ssr
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Environment files — real credentials must never be committed
+.env
+.env.*
+!.env.example
+!.env.production.example

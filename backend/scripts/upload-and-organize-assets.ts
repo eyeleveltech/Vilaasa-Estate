@@ -6,9 +6,18 @@ import { v2 as cloudinary } from "cloudinary";
 // Load environment variables
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
-const cloudName = process.env.CLOUDINARY_CLOUD_NAME || "cjhdssri";
-const apiKey = process.env.CLOUDINARY_API_KEY || "942266362419499";
-const apiSecret = process.env.CLOUDINARY_API_SECRET || "14UkRpIECLJ1AzMU6lhmlXV1KNM";
+const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+const apiKey = process.env.CLOUDINARY_API_KEY;
+const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+if (!cloudName || !apiKey || !apiSecret) {
+  console.error(
+    "❌ Cloudinary credentials are missing. Set CLOUDINARY_CLOUD_NAME, " +
+      "CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET in vilaasa-backend/.env " +
+      "before running this script.",
+  );
+  process.exit(1);
+}
 
 cloudinary.config({
   cloud_name: cloudName,

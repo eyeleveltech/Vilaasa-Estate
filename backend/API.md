@@ -46,8 +46,13 @@
 ## 2. Authentication (`/api/v1/auth`)
 
 ### POST `/api/v1/auth/register`
-- **Auth:** Public
-- **Description:** Registers a new user account (`SUPER_ADMIN` or `CHANNEL_PARTNER`).
+- **Auth:** Protected — **Super Admin only**
+- **Description:** Creates a user account with an explicit `role`. Because the
+  role is caller-supplied, this endpoint is restricted to authenticated
+  `SUPER_ADMIN` callers; a public version would let anyone create an admin.
+- **Self-service signup is not this endpoint.** Prospective partners submit
+  `POST /api/v1/channel-partners/register`, which files a `PENDING`
+  application and creates no login until an admin approves it.
 - **Request Body:**
   ```json
   {

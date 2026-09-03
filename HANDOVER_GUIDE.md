@@ -58,19 +58,29 @@ In `vilaasa-backend/.env`:
 ```env
 PORT=5000
 NODE_ENV=development
-DATABASE_URL=postgresql://postgres:Naif2003@localhost:5432/vilaasa
-JWT_SECRET=vilaasa_luxury_secret_jwt_key_2026_super_secure
+DATABASE_URL=postgresql://postgres:<db-password>@localhost:5432/vilaasa
+# REQUIRED, minimum 32 characters. Generate with: openssl rand -base64 48
+JWT_SECRET=<generate-a-unique-secret>
 JWT_EXPIRES_IN=7d
-CLOUDINARY_CLOUD_NAME=cjhdssri
-CLOUDINARY_API_KEY=942266362419499
-CLOUDINARY_API_SECRET=14UkRpIECLJ1AzMU6lhmlXV1KNM
+CLOUDINARY_CLOUD_NAME=<cloudinary-cloud-name>
+CLOUDINARY_API_KEY=<cloudinary-api-key>
+CLOUDINARY_API_SECRET=<cloudinary-api-secret>
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=psycbaka@gmail.com
-SMTP_PASS=kloh njxc mwpf zlng
+SMTP_USER=<smtp-mailbox-address>
+SMTP_PASS=<smtp-app-password>
 SMTP_FROM="Vilaasa Estates <noreply@vilaasaestates.com>"
 FRONTEND_URL=http://localhost:8080
 ```
+
+> **Never commit real values.** This repository is hosted on GitHub, so any
+> secret written into a tracked file must be treated as compromised and
+> rotated at the provider. Real values belong only in an untracked `.env`
+> (already gitignored) or in your deployment platform's secret store.
+>
+> The backend refuses to start if `JWT_SECRET` is missing or shorter than
+> 32 characters, and refuses to start in production without the three
+> Cloudinary variables.
 
 ### Step 2: Database Synchronization & Seeding
 
@@ -103,13 +113,18 @@ npm run dev
 | **Channel Partner** | `http://localhost:8080/partner/login` | `partner@luxuryestates.com` | `Partner@Vilaasa2026` |
 | **Vault Investor** | `http://localhost:8080/vault/login` | `investor@vilaasa.com` | `investor123` |
 
+> These are **seed defaults for local development only**. They are created by
+> `prisma/seed.ts`, which must never be run against production. If any of these
+> accounts exist on a live deployment, change their passwords immediately.
+
 ---
 
 ## 📡 5. Core API Endpoints Reference
 
 ### Authentication
 - `POST /api/v1/auth/login` — Super Admin / Partner Login
-- `POST /api/v1/auth/register` — Channel Partner Registration
+- `POST /api/v1/auth/register` — Account creation (**Super Admin only**)
+- `POST /api/v1/channel-partners/register` — Public partner application (creates a PENDING record, not a login)
 - `POST /api/v1/vault/login` — Dedicated Vault Investor Login (`VAULT_CLIENT` role gated)
 
 ### Properties & Inventory

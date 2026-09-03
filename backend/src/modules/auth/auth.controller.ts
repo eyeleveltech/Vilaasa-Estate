@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt, { SignOptions } from "jsonwebtoken";
+import { Role } from "@prisma/client";
 import { prisma } from "../../config/db";
+import { env } from "../../config/env";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { ApiError } from "../../utils/ApiError";
 import { asyncHandler } from "../../utils/asyncHandler";
@@ -9,19 +11,29 @@ import { RegisterInput, LoginInput } from "./auth.schema";
 import { sendVaultOnboardingEmail } from "../../services/email.service";
 
 const generateToken = (userId: string, email: string, role: string): string => {
-  const secret = process.env.JWT_SECRET || "default_jwt_secret";
-  const expiresIn = (process.env.JWT_EXPIRES_IN || "7d") as SignOptions["expiresIn"];
-  return jwt.sign({ userId, email, role }, secret, { expiresIn });
+  const expiresIn = env.JWT_EXPIRES_IN as SignOptions["expiresIn"];
+  return jwt.sign({ userId, email, role }, env.JWT_SECRET, { expiresIn });
 };
 
 /**
- * @desc    Register a new user (Channel Partner or Admin)
+ * @desc    Create a user account with an explicit role
  * @route   POST /api/v1/auth/register
- * @access  Public
+ * @access  Protected (Super Admin)
  */
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const { email, password, name, phone, phoneCode, role, licenseNumber } =
     req.body as RegisterInput;
+
+  // Defence in depth. The route already requires a SUPER_ADMIN, but `role`
+  // comes straight from the request body: if that middleware were ever
+  // removed, this endpoint would hand out SUPER_ADMIN to anonymous callers.
+  // Re-checking here means the privilege boundary survives a routing mistake.
+  if (req.user?.role !== Role.SUPER_ADMIN) {
+    throw ApiError.forbidden(
+      "Only a super admin may create accounts. Channel partners apply via " +
+        "POST /api/v1/channel-partners/register.",
+    );
+  }
 
   const existingUser = await prisma.user.findUnique({
     where: { email },
