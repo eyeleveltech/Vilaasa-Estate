@@ -1,0 +1,120 @@
+name: Deploy to VPS
+
+# Runs only after CI succeeds on main, or on demand. Never on a pull request:
+# a fork PR must not be able to reach the production host.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never let two deploys touch the VPS at once, and never cancel one midway.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and restart on the VPS
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    # Add required reviewers to this environment in
+    # Settings > Environments > production to gate deploys on approval.
+    environment: production
+
+    steps:
+      - name: Check required secrets are configured
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          missing=""
+          if [ -z "$VPS_HOST" ]; then missing="$missing VPS_HOST"; fi
+          if [ -z "$VPS_USER" ]; then missing="$missing VPS_USER"; fi
+          if [ -z "$VPS_SSH_KEY" ]; then missing="$missing VPS_SSH_KEY"; fi
+          if [ -n "$missing" ]; then
+            echo "Missing repository secrets:$missing"
+            echo "Add them under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "All required secrets are present."
+
+      - name: Configure SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_SSH_HOST_KEY: ${{ secrets.VPS_SSH_HOST_KEY }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          port="${VPS_PORT:-22}"
+          if [ -n "$VPS_SSH_HOST_KEY" ]; then
+            # Pinned host key: immune to a man-in-the-middle on first contact.
+            printf '%s\n' "$VPS_SSH_HOST_KEY" > ~/.ssh/known_hosts
+          else
+            # Trust-on-first-use. Set the VPS_SSH_HOST_KEY secret (take it from
+            # `ssh-keyscan your-host` run on a machine you trust) to remove this.
+            echo "VPS_SSH_HOST_KEY not set - falling back to ssh-keyscan."
+            ssh-keyscan -p "$port" -H "$VPS_HOST" > ~/.ssh/known_hosts 2>/dev/null
+          fi
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/vilaasa' }}
+        run: |
+          port="${VPS_PORT:-22}"
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -p "$port" \
+            "$VPS_USER@$VPS_HOST" \
+            "DEPLOY_PATH='$DEPLOY_PATH' bash -euo pipefail -s" <<'REMOTE'
+          cd "$DEPLOY_PATH"
+
+          # .env.production is gitignored and lives only on the host, so a hard
+          # reset gives a deterministic tree without touching credentials.
+          git fetch --all --prune
+          git reset --hard origin/main
+
+          if [ ! -f .env.production ]; then
+            echo "ERROR: $PWD/.env.production is missing. Copy it to the host first."
+            exit 1
+          fi
+
+          docker compose build
+          docker compose up -d
+          docker compose ps
+
+          # Reclaim layers from superseded builds.
+          docker image prune -f
+          REMOTE
+
+      - name: Wait for the live site to report healthy
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS https://www.vilaasaestates.com/api/v1/health 2>/dev/null \
+                 | grep -q '"status":"healthy"'; then
+              echo "Live site healthy after about $((i * 5))s"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Live site did not report healthy within 150s"
+          exit 1
+
+      - name: Rollback hint (on failure)
+        if: failure()
+        run: |
+          echo "Deploy failed. To roll back on the VPS:"
+          echo "  cd /opt/vilaasa && git reset --hard <previous-sha> && docker compose up -d --build"

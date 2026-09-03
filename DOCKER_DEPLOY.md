@@ -159,6 +159,80 @@ Sign in at `https://www.vilaasaestates.com/admin/login`.
 
 ---
 
+## CI/CD (GitHub Actions)
+
+### `ci.yml` - runs on every push and PR to `main`
+
+| Job | What it proves |
+| :--- | :--- |
+| Backend - typecheck | `npm ci`, `prisma generate`, `tsc --noEmit` |
+| Frontend - build | `npm ci`, lint (non-blocking), production `vite build` |
+| Docker stack | Builds both images and runs the real stack |
+
+The stack job is the one that matters. It brings up postgres + API + nginx with
+throwaway credentials and asserts:
+
+- the API reports healthy through the nginx proxy;
+- `prisma migrate deploy` actually created the schema;
+- the SPA is served, and `/admin/login`, `/vault/login`, `/partner/login` all
+  fall back to `index.html`;
+- **anonymous `SUPER_ADMIN` creation returns 401** - a regression test for the
+  privilege escalation, so the hole cannot silently reopen;
+- `/auth/login` and `/channel-partners/register` are still public.
+
+No real credential is ever used in CI.
+
+### `deploy.yml` - deploys to the VPS
+
+Triggers after CI succeeds on `main`, or manually via **Actions > Deploy to VPS
+> Run workflow**. On the host it hard-resets to `origin/main`, rebuilds, and
+restarts, then polls `https://www.vilaasaestates.com/api/v1/health` until it
+reports healthy. `.env.production` is gitignored and lives only on the host, so
+a hard reset never touches your credentials - but the job aborts if that file
+is missing rather than starting a broken stack.
+
+Required secrets, under **Settings > Secrets and variables > Actions**:
+
+| Secret | Value |
+| :--- | :--- |
+| `VPS_HOST` | VPS IP or hostname |
+| `VPS_USER` | SSH user (e.g. `root`) |
+| `VPS_SSH_KEY` | **Private** key, full PEM including the BEGIN/END lines |
+| `VPS_PORT` | Optional, defaults to `22` |
+| `VPS_SSH_HOST_KEY` | Optional but recommended - see below |
+
+Optional variable: `DEPLOY_PATH` (defaults to `/opt/vilaasa`).
+
+Generate a deploy-only keypair rather than reusing a personal key:
+
+```bash
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/vilaasa_deploy -N ""
+ssh-copy-id -i ~/.ssh/vilaasa_deploy.pub root@<your-vps-ip>
+cat ~/.ssh/vilaasa_deploy        # -> paste into the VPS_SSH_KEY secret
+```
+
+Without `VPS_SSH_HOST_KEY` the runner trusts the host on first contact. To pin
+it, run this on a machine you trust and paste the output into that secret:
+
+```bash
+ssh-keyscan <your-vps-ip>
+```
+
+### Gating deploys on approval
+
+Create a `production` environment under **Settings > Environments** and add
+required reviewers. The deploy job already declares `environment: production`,
+so it will wait for approval before touching the VPS.
+
+### `playwright.yml` - manual only
+
+The E2E specs target hardcoded `localhost:8080` URLs and assert on real
+property and franchise content, so they need a seeded database. The workflow
+brings the stack up and runs them on demand, but it does not gate merges until
+seeding is wired in - a permanently red check is worse than no check.
+
+---
+
 ## Routine operations
 
 **Deploy a new version**
