@@ -28,6 +28,30 @@ function transformToListItem(prop: BackendProperty): PropertyListItem {
     "24/7 Security",
   ];
 
+  // Derive returns display: 1) direct expectedIrrPercent, 2) financialMetrics IRR, 3) customSpecs IRR
+  const irrFromMetrics =
+    prop.financialMetrics?.find((m) =>
+      m.label?.toLowerCase().includes("irr") ||
+      m.label?.toLowerCase().includes("return"),
+    )?.value ||
+    (Array.isArray(prop.customSpecs)
+      ? (prop.customSpecs.find(
+          (s: { label?: string; value?: string }) =>
+            s?.label?.toLowerCase().includes("irr") ||
+            s?.label?.toLowerCase().includes("return"),
+        ) as { label?: string; value?: string } | undefined)?.value
+      : undefined);
+
+  const returnDisplay = prop.expectedIrrPercent
+    ? `${prop.expectedIrrPercent}% IRR`
+    : irrFromMetrics
+      ? irrFromMetrics.toLowerCase().includes("irr")
+        ? irrFromMetrics
+        : `${irrFromMetrics} IRR`
+      : prop.rentalYieldPercent
+        ? `${prop.rentalYieldPercent}% Net Yield`
+        : undefined;
+
   return {
     id: prop.slug || prop.id,
     name: prop.name,
@@ -48,7 +72,7 @@ function transformToListItem(prop: BackendProperty): PropertyListItem {
     image: featuredMedia,
     franchiseCategory: isDomestic ? "Domestic" : "International",
     rawType: prop.type,
-    return: prop.expectedIrrPercent ? `${prop.expectedIrrPercent}% IRR` : undefined,
+    return: returnDisplay,
   };
 }
 

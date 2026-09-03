@@ -1472,17 +1472,18 @@ export const AdminPropertyForm: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2 sm:pt-6">
-                <input
-                  type="checkbox"
-                  id="poa"
-                  checked={priceOnApplication}
-                  onChange={(e) => setPriceOnApplication(e.target.checked)}
-                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
-                />
-                <Label htmlFor="poa" className="text-xs font-medium cursor-pointer">
-                  Price On Application (POA)
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Expected Returns / IRR (%)
                 </Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  placeholder="e.g. 18.5"
+                  value={expectedIrrPercent}
+                  onChange={(e) => setExpectedIrrPercent(e.target.value)}
+                  className="bg-secondary/40 h-10 text-xs mt-1 font-mono"
+                />
               </div>
 
               <div className="space-y-1.5">
@@ -1497,6 +1498,19 @@ export const AdminPropertyForm: React.FC = () => {
                   onChange={(e) => setRentalYieldPercent(e.target.value)}
                   className="bg-secondary/40 h-10 text-xs mt-1 font-mono"
                 />
+              </div>
+
+              <div className="flex items-center space-x-2 pt-2 sm:col-span-2 md:col-span-4">
+                <input
+                  type="checkbox"
+                  id="poa"
+                  checked={priceOnApplication}
+                  onChange={(e) => setPriceOnApplication(e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                />
+                <Label htmlFor="poa" className="text-xs font-medium cursor-pointer">
+                  Price On Application (POA)
+                </Label>
               </div>
             </div>
 

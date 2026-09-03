@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { Mail, Smartphone } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +27,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { CountryCodeSelect } from "./CountryCodeSelect";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { markOtpVerified, isOtpVerified, getSavedLeadProfile } from "@/lib/otpAccess";
+import { markOtpVerified, isOtpVerified } from "@/lib/otpAccess";
 import api from "@/api/axios";
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -93,21 +94,21 @@ export const InquiryFormDialog = ({
   });
   const [otp, setOtp] = useState("");
 
-  // Prepopulate saved lead profile if available
+  // Reset form to clean, empty fields whenever dialog opens
   useEffect(() => {
     if (open) {
-      const saved = getSavedLeadProfile();
-      if (saved) {
-        setFormData((prev) => ({
-          ...prev,
-          name: saved.name || prev.name,
-          email: saved.email || prev.email,
-          phone: saved.phone || prev.phone,
-          phoneCountryCode: saved.phoneCountryCode || prev.phoneCountryCode,
-        }));
-      }
+      setFormData({
+        name: "",
+        phoneCountryCode: "+91",
+        phone: "",
+        email: "",
+        investmentType: projectType || "real-estate",
+        investmentRange: "",
+      });
+      setOtp("");
+      setStep("form");
     }
-  }, [open]);
+  }, [open, projectType]);
 
   // Resend OTP Countdown Timer
   useEffect(() => {
@@ -584,25 +585,36 @@ export const InquiryFormDialog = ({
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 sm:h-11 text-xs sm:text-sm uppercase tracking-wider font-bold shadow-md shadow-primary/20"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 sm:h-11 text-xs sm:text-sm uppercase tracking-wider font-bold shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                 >
-                  {isSubmitting
+                  <Smartphone className="w-4 h-4" />
+                  {isSubmitting && otpChannel === "SMS"
                     ? "Sending Code..."
                     : intent === "inquiry"
                       ? "Connect & Send OTP to Mobile"
                       : "Send OTP to Mobile"}
                 </Button>
 
-                <div className="text-center pt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => handleSendOtp("EMAIL")}
-                    disabled={isSubmitting}
-                    className="text-xs text-muted-foreground hover:text-primary transition-colors underline-offset-4 hover:underline cursor-pointer"
-                  >
-                    Prefer email? Send OTP to email instead
-                  </button>
+                <div className="relative flex items-center justify-center my-0.5">
+                  <div className="border-t border-border/60 w-full" />
+                  <span className="bg-background px-2 text-[10px] sm:text-xs text-muted-foreground uppercase tracking-widest font-mono">
+                    Or
+                  </span>
+                  <div className="border-t border-border/60 w-full" />
                 </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleSendOtp("EMAIL")}
+                  disabled={isSubmitting}
+                  className="w-full border-border/80 bg-secondary/30 hover:bg-secondary text-foreground hover:text-primary h-10 sm:h-11 text-xs sm:text-sm uppercase tracking-wider font-semibold transition-all flex items-center justify-center gap-2"
+                >
+                  <Mail className="w-4 h-4 text-primary" />
+                  {isSubmitting && otpChannel === "EMAIL"
+                    ? "Sending Email Code..."
+                    : "Send OTP to Email"}
+                </Button>
               </div>
             </motion.form>
           )}

@@ -265,7 +265,7 @@ const DomesticRealEstate = () => {
                             {`${formatAmount(property.price)}${" "}Onwards`}
                           </p>
                         </div>
-                        {property.roi && (
+                        {(property.return || property.roi) && (
                           <>
                             <div className="h-8 w-px bg-border" />
                             <div>
@@ -273,7 +273,7 @@ const DomesticRealEstate = () => {
                                 Returns
                               </p>
                               <p className="text-xs font-medium text-gold sm:text-sm">
-                                {property.return}
+                                {property.return || property.roi}
                               </p>
                             </div>
                           </>

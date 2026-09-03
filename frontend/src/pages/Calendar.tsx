@@ -80,30 +80,7 @@ const Calendar_Page = () => {
     loadProps();
   }, []);
 
-  // Load saved lead profile from localStorage
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const raw = localStorage.getItem(LEAD_PROFILE_STORAGE_KEY);
-      if (!raw) return;
-      const saved = JSON.parse(raw) as {
-        name?: string;
-        email?: string;
-        phone?: string;
-        phoneCountryCode?: string;
-      };
 
-      setFormData((prev) => ({
-        ...prev,
-        name: saved.name || prev.name,
-        email: saved.email || prev.email,
-        phone: saved.phone || prev.phone,
-        phoneCountryCode: saved.phoneCountryCode || prev.phoneCountryCode,
-      }));
-    } catch (error) {
-      console.error("Failed to read saved lead profile:", error);
-    }
-  }, []);
 
   // Dynamic Slot Availability Fetcher
   const fetchSlots = useCallback(async (date: Date, propertyId?: string) => {

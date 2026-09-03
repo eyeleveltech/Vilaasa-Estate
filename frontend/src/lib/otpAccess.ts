@@ -91,6 +91,7 @@ export const getSavedLeadProfile = (): LeadProfile | null => {
 export const clearOtpVerification = () => {
   if (typeof window === "undefined") return;
   localStorage.removeItem(OTP_ACCESS_STORAGE_KEY);
+  localStorage.removeItem(LEAD_PROFILE_STORAGE_KEY);
 };
 
 /**
