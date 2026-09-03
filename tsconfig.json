@@ -1,7 +1,7 @@
 {
   "files": [],
   "references": [
-    { "path": "./vilaasa-frontend" },
-    { "path": "./vilaasa-backend" }
+    { "path": "./frontend" },
+    { "path": "./backend" }
   ]
 }

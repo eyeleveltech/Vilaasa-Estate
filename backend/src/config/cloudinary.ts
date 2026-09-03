@@ -1,14 +1,5 @@
-import "dotenv/config";
 import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
-import path from "path";
-import fs from "fs";
-import os from "os";
-import dotenv from "dotenv";
-
-// Ensure .env is loaded regardless of execution CWD
-dotenv.config({ path: path.resolve(__dirname, "../../.env") });
-dotenv.config({ path: path.resolve(process.cwd(), ".env") });
-dotenv.config({ path: path.resolve(process.cwd(), "vilaasa-backend/.env") });
+import { env, isCloudinaryConfigured } from "./env";
 
 export interface UploadResult {
   url: string;
@@ -19,22 +10,34 @@ export interface UploadResult {
   bytes: number;
 }
 
+/**
+ * Applies credentials from the validated environment. Credentials are never
+ * hardcoded: without them the SDK stays unconfigured and uploads fail loudly
+ * instead of writing into an unrelated Cloudinary account.
+ */
 const getCloudinaryConfig = () => {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME || "cjhdssri";
-  const apiKey = process.env.CLOUDINARY_API_KEY || "942266362419499";
-  const apiSecret =
-    process.env.CLOUDINARY_API_SECRET || "14UkRpIECLJ1AzMU6lhmlXV1KNM";
+  if (!isCloudinaryConfigured()) {
+    throw new Error(
+      "Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, " +
+        "CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET to enable media uploads.",
+    );
+  }
 
   cloudinary.config({
-    cloud_name: cloudName,
-    api_key: apiKey,
-    api_secret: apiSecret,
+    cloud_name: env.CLOUDINARY_CLOUD_NAME,
+    api_key: env.CLOUDINARY_API_KEY,
+    api_secret: env.CLOUDINARY_API_SECRET,
     secure: true,
   });
 };
 
-// Initial config run
-getCloudinaryConfig();
+if (isCloudinaryConfigured()) {
+  getCloudinaryConfig();
+} else {
+  console.warn(
+    "⚠️  Cloudinary credentials are not set — media uploads will be rejected.",
+  );
+}
 
 /**
  * Uploads a memory buffer to Cloudinary.

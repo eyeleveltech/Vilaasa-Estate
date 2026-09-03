@@ -10,9 +10,9 @@
 ---
 
 ## 2. Backend Deployment — Render.com
-1. Push `vilaasa-backend` to your GitHub repository.
+1. Push `backend` to your GitHub repository.
 2. Log in to [https://render.com](https://render.com) and click **New ➔ Web Service**.
-3. Connect your repository. Render will automatically detect [`render.yaml`](file:///d:/EyeLevel/eyelevel%20intern/villasa/vilaasa-backend/render.yaml).
+3. Connect your repository. Render will automatically detect [`render.yaml`](file:///d:/EyeLevel/eyelevel%20intern/villasa/backend/render.yaml).
 4. Configure the environment variables in the Render Dashboard:
    - `NODE_ENV`: `production`
    - `DATABASE_URL`: `postgresql://...`
@@ -31,14 +31,14 @@
 ---
 
 ## 3. Frontend Deployment — Vercel
-1. Push `vilaasa-frontend` to your GitHub repository.
+1. Push `frontend` to your GitHub repository.
 2. Log in to [https://vercel.com](https://vercel.com) and click **New Project**.
-3. Import the `vilaasa-frontend` repository.
+3. Import the `frontend` repository.
 4. Configure Build & Environment Settings:
    - **Framework Preset**: Vite
    - **Environment Variables**:
      - `VITE_API_URL`: `https://your-render-service.onrender.com/api/v1`
-5. Click **Deploy**. Vercel will build the frontend using [`vercel.json`](file:///d:/EyeLevel/eyelevel%20intern/villasa/vilaasa-frontend/vercel.json) rewrite rules.
+5. Click **Deploy**. Vercel will build the frontend using [`vercel.json`](file:///d:/EyeLevel/eyelevel%20intern/villasa/frontend/vercel.json) rewrite rules.
 
 ---
 
