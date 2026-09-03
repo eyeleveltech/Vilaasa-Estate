@@ -8,10 +8,16 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    # Credentials come from the same file the API reads, so the two can never
+    # drift apart. This uses env_file rather than ${VAR} substitution on
+    # purpose: compose substitutes only from the shell or from a file named
+    # exactly `.env`, never from an arbitrarily named one, so ${POSTGRES_USER}
+    # here would silently expand to an empty string and postgres would refuse
+    # to start. env_file instead injects the values into the container, where
+    # the escaped $$ in the healthcheck below resolves them.
+    env_file:
+      - .env.production
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
       # Keeps the volume's collation stable across future image upgrades.
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     volumes:
