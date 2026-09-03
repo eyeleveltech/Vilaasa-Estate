@@ -1,0 +1,6 @@
+# Shell scripts run inside Linux containers: CRLF endings would make the
+# kernel fail to find the interpreter ("no such file or directory").
+*.sh text eol=lf
+docker-entrypoint.sh text eol=lf
+Dockerfile text eol=lf
+*.conf text eol=lf

@@ -1,0 +1,20 @@
+node_modules
+dist
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+*.log
+
+# Unreferenced in source: these clips are served from Cloudinary (see
+# src/config/cdnAssets.ts). Excluding them removes ~61 MB from the image.
+public/domesticVideos
+public/internationalVideo
+
+# Local scratch files
+output.json
+output2.json
+test_map.html
+vite.config.ts.timestamp-*
+vercel.json

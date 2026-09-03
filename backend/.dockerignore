@@ -1,0 +1,17 @@
+node_modules
+dist
+.env
+.env.*
+!.env.example
+*.log
+.git
+.gitignore
+# scripts/create-admin.js is needed in the image to bootstrap the first
+# admin; the Cloudinary asset uploader is a local-only tool.
+scripts/upload-and-organize-assets.ts
+API.md
+DEPLOY.md
+prisma/seed.ts
+prisma/seed.js
+prisma/seed.d.ts
+prisma/*.map
