@@ -77,21 +77,55 @@ if (env.NODE_ENV !== "test") {
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 
-// Rate Limiting (100 requests per 15 minutes window)
+// ----------------------------------------------------
+// Rate Limiting
+// ----------------------------------------------------
+// Two tiers. General browsing is generous because a single admin or vault
+// dashboard page issues a dozen or more requests, and one shared office IP
+// can carry several users: a tight global ceiling locks out real people long
+// before it inconveniences an attacker. The abuse that actually matters -
+// credential stuffing and OTP spam that costs real money per SMS - is held
+// down separately below.
+const rateLimitMessage = (retryAfter: string) => ({
+  success: false,
+  statusCode: 429,
+  message: `Too many requests from this IP. Please try again after ${retryAfter}.`,
+  errors: ["Rate limit exceeded"],
+});
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: env.RATE_LIMIT_MAX,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    success: false,
-    statusCode: 429,
-    message: "Too many requests from this IP. Please try again after 15 minutes.",
-    errors: ["Rate limit exceeded"],
-  },
+  // Health checks must never consume a caller's budget. The container
+  // healthcheck alone polls every 30s, which would burn 30 requests a window.
+  skip: (req: Request) => req.path === "/v1/health",
+  message: rateLimitMessage("15 minutes"),
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: rateLimitMessage("15 minutes"),
+});
+
+// Every OTP send bills an SMS or an email, so this stays tighter still.
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: rateLimitMessage("15 minutes"),
 });
 
 app.use("/api/", apiLimiter);
+app.use("/api/v1/auth/login", authLimiter);
+app.use("/api/v1/auth/register", authLimiter);
+app.use("/api/v1/vault/login", authLimiter);
+app.use("/api/v1/auth/otp", otpLimiter);
 
 // ----------------------------------------------------
 // Health Check Endpoint

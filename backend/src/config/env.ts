@@ -62,6 +62,10 @@ export const env = {
 
   DATABASE_URL: required("DATABASE_URL"),
 
+  // Requests per 15 minutes per client IP for general API traffic.
+  // Tunable without a rebuild; see the limiter in app.ts.
+  RATE_LIMIT_MAX: parseInt(read("RATE_LIMIT_MAX") || "1000", 10),
+
   JWT_SECRET: required("JWT_SECRET", 32),
   JWT_EXPIRES_IN: read("JWT_EXPIRES_IN") || "7d",
 
