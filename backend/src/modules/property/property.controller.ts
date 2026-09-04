@@ -31,6 +31,16 @@ const generateUniqueSlug = async (name: string, customSlug?: string): Promise<st
 };
 
 /**
+ * Safely clamps numeric values for DECIMAL(5, 2) columns (-999.99 to 999.99)
+ * to prevent PostgreSQL numeric field overflow error (code 22003).
+ */
+const sanitizeDecimal52 = (val: number | null | undefined): number | null | undefined => {
+  if (val === undefined) return undefined;
+  if (val === null || isNaN(val)) return null;
+  return Math.min(Math.max(val, -999.99), 999.99);
+};
+
+/**
  * @desc    Get paginated list of properties with filters
  * @route   GET /api/v1/properties
  * @access  Public
@@ -295,171 +305,176 @@ export const createProperty = asyncHandler(
 
     const slug = await generateUniqueSlug(data.name, data.slug);
 
-    // 1. Create Unique Location for this Property
-    let location = await prisma.location.create({
-      data: {
-        city: data.location.city || "Multiple Locations",
-        country: data.location.country || "India",
-        community: data.location.community,
-        addressLine: data.location.addressLine,
-        postalCode: data.location.postalCode,
-        latitude: data.location.latitude,
-        longitude: data.location.longitude,
-        googleMapUrl: data.location.googleMapUrl,
-        mapEmbedUrl: data.location.mapEmbedUrl,
-      },
-    });
+    // Execute creation inside an atomic transaction
+    const createdProperty = await prisma.$transaction(async (tx) => {
+      // 1. Create Unique Location for this Property
+      const location = await tx.location.create({
+        data: {
+          city: data.location.city || "Multiple Locations",
+          country: data.location.country || "India",
+          community: data.location.community,
+          addressLine: data.location.addressLine,
+          postalCode: data.location.postalCode,
+          latitude: data.location.latitude,
+          longitude: data.location.longitude,
+          googleMapUrl: data.location.googleMapUrl,
+          mapEmbedUrl: data.location.mapEmbedUrl,
+        },
+      });
 
-    if (data.amenities?.length) {
-      for (const a of data.amenities) {
-        if (a.name) {
-          await prisma.amenity.upsert({
-            where: { name: a.name.trim() },
-            update: a.iconKey ? { iconKey: a.iconKey } : {},
-            create: {
-              name: a.name.trim(),
-              iconKey: a.iconKey || "star",
-            },
-          });
+      if (data.amenities?.length) {
+        for (const a of data.amenities) {
+          if (a.name) {
+            await tx.amenity.upsert({
+              where: { name: a.name.trim() },
+              update: a.iconKey ? { iconKey: a.iconKey } : {},
+              create: {
+                name: a.name.trim(),
+                iconKey: a.iconKey || "star",
+              },
+            });
+          }
         }
       }
-    }
 
-    // 2. Create Property with relations
-    const createdProperty = await prisma.property.create({
-      data: {
-        slug,
-        name: data.name,
-        tagline: data.tagline,
-        description: data.description,
-        visionHeadline: data.visionHeadline,
-        type: data.type,
-        customType: data.customType,
-        status: data.status,
-        price: data.price,
-        currency: data.currency,
-        priceOnApplication: data.priceOnApplication,
-        rentalYieldPercent: data.rentalYieldPercent,
-        expectedIrrPercent: data.expectedIrrPercent,
-        appreciationPercent: data.appreciationPercent,
-        totalAreaSqFt: data.totalAreaSqFt,
-        bedrooms: data.bedrooms,
-        bathrooms: data.bathrooms,
-        furnishingStatus: data.furnishingStatus,
-        possessionDate:
-          data.possessionDate && !isNaN(new Date(data.possessionDate).getTime())
-            ? new Date(data.possessionDate)
+      // 2. Create Property with relations
+      return await tx.property.create({
+        data: {
+          slug,
+          name: data.name,
+          tagline: data.tagline,
+          description: data.description,
+          visionHeadline: data.visionHeadline,
+          type: data.type,
+          customType: data.customType,
+          status: data.status,
+          price: data.price,
+          currency: data.currency,
+          priceOnApplication: data.priceOnApplication,
+          rentalYieldPercent: sanitizeDecimal52(data.rentalYieldPercent),
+          expectedIrrPercent: sanitizeDecimal52(data.expectedIrrPercent),
+          appreciationPercent: sanitizeDecimal52(data.appreciationPercent),
+          totalAreaSqFt: data.totalAreaSqFt,
+          bedrooms: data.bedrooms,
+          bathrooms: data.bathrooms,
+          furnishingStatus: data.furnishingStatus,
+          possessionDate:
+            data.possessionDate && !isNaN(new Date(data.possessionDate).getTime())
+              ? new Date(data.possessionDate)
+              : undefined,
+          reraNumber: data.reraNumber,
+          ownershipType: data.ownershipType,
+          paymentPlan: data.paymentPlan ? (data.paymentPlan as Prisma.InputJsonValue) : Prisma.JsonNull,
+          virtualTour360Url: data.virtualTour360Url && data.virtualTour360Url.trim() ? data.virtualTour360Url.trim() : null,
+          brochureUrl: data.brochureUrl && data.brochureUrl.trim() ? data.brochureUrl.trim() : null,
+          maintenanceFeePerSqFt: data.maintenanceFeePerSqFt,
+          customSpecs: data.customSpecs !== undefined ? (data.customSpecs as any) : undefined,
+          sectionVisibility: data.sectionVisibility !== undefined ? (data.sectionVisibility as any) : undefined,
+          verdictQuote: data.verdictQuote,
+          verdictAuthor: data.verdictAuthor,
+          verdictTitle: data.verdictTitle,
+          franchiseModel: data.franchiseModel || null,
+          minTicketSize: data.minTicketSize !== undefined ? data.minTicketSize : null,
+          totalProjectCost: data.totalProjectCost !== undefined ? data.totalProjectCost : null,
+          paybackPeriodYears: data.paybackPeriodYears !== undefined ? data.paybackPeriodYears : null,
+          lockInPeriodYears: data.lockInPeriodYears !== undefined ? data.lockInPeriodYears : null,
+          expectedAnnualRoi: data.expectedAnnualRoi !== undefined ? data.expectedAnnualRoi : null,
+          yieldPayoutFrequency: data.yieldPayoutFrequency || null,
+          supportModules: data.supportModules !== undefined ? (data.supportModules as Prisma.InputJsonValue) : Prisma.JsonNull,
+          advantages: data.advantages !== undefined ? (data.advantages as Prisma.InputJsonValue) : Prisma.JsonNull,
+          locationId: location.id,
+          adminId: req.user?.id,
+          configurations: data.configurations?.length
+            ? {
+                createMany: {
+                  data: data.configurations.map((c) => ({
+                    unitType: c.unitType.trim(),
+                    areaSqFt: c.areaSqFt ?? 0,
+                    viewType: c.viewType || null,
+                    price: c.price ?? 0,
+                    isAvailable: c.isAvailable ?? true,
+                    floorPlanUrl: c.floorPlanUrl || null,
+                  })),
+                },
+              }
             : undefined,
-        reraNumber: data.reraNumber,
-        ownershipType: data.ownershipType,
-        paymentPlan: data.paymentPlan ? (data.paymentPlan as Prisma.InputJsonValue) : Prisma.JsonNull,
-        virtualTour360Url: data.virtualTour360Url,
-        brochureUrl: data.brochureUrl,
-        maintenanceFeePerSqFt: data.maintenanceFeePerSqFt,
-        customSpecs: data.customSpecs !== undefined ? (data.customSpecs as any) : undefined,
-        verdictQuote: data.verdictQuote,
-        verdictAuthor: data.verdictAuthor,
-        verdictTitle: data.verdictTitle,
-        franchiseModel: data.franchiseModel || null,
-        minTicketSize: data.minTicketSize !== undefined ? data.minTicketSize : null,
-        totalProjectCost: data.totalProjectCost !== undefined ? data.totalProjectCost : null,
-        paybackPeriodYears: data.paybackPeriodYears !== undefined ? data.paybackPeriodYears : null,
-        lockInPeriodYears: data.lockInPeriodYears !== undefined ? data.lockInPeriodYears : null,
-        expectedAnnualRoi: data.expectedAnnualRoi !== undefined ? data.expectedAnnualRoi : null,
-        yieldPayoutFrequency: data.yieldPayoutFrequency || null,
-        supportModules: data.supportModules !== undefined ? (data.supportModules as Prisma.InputJsonValue) : Prisma.JsonNull,
-        advantages: data.advantages !== undefined ? (data.advantages as Prisma.InputJsonValue) : Prisma.JsonNull,
-        locationId: location.id,
-        adminId: req.user?.id,
-        configurations: data.configurations?.length
-          ? {
-              createMany: {
-                data: data.configurations.map((c) => ({
-                  unitType: c.unitType.trim(),
-                  areaSqFt: c.areaSqFt ?? 0,
-                  viewType: c.viewType || null,
-                  price: c.price ?? 0,
-                  isAvailable: c.isAvailable ?? true,
-                  floorPlanUrl: c.floorPlanUrl || null,
-                })),
-              },
-            }
-          : undefined,
-        media: data.media?.length
-          ? {
-              createMany: {
-                data: data.media.map((m, idx) => ({
-                  mediaType: m.mediaType || "GALLERY",
-                  url: m.url,
-                  thumbnailUrl: m.thumbnailUrl,
-                  altText: m.altText || m.caption,
-                  orderIndex: m.orderIndex ?? idx,
-                  isFeatured: m.isFeatured ?? idx === 0,
-                })),
-              },
-            }
-          : undefined,
-        amenities: data.amenities?.length
-          ? {
-              create: data.amenities.map((a) => {
-                if (a.amenityId) {
+          media: data.media?.length
+            ? {
+                createMany: {
+                  data: data.media.map((m, idx) => ({
+                    mediaType: m.mediaType || "GALLERY",
+                    url: m.url,
+                    thumbnailUrl: m.thumbnailUrl,
+                    altText: m.altText || m.caption,
+                    orderIndex: m.orderIndex ?? idx,
+                    isFeatured: m.isFeatured ?? idx === 0,
+                  })),
+                },
+              }
+            : undefined,
+          amenities: data.amenities?.length
+            ? {
+                create: data.amenities.map((a) => {
+                  if (a.amenityId) {
+                    return {
+                      description: a.description,
+                      amenity: { connect: { id: a.amenityId } },
+                    };
+                  }
+
                   return {
                     description: a.description,
-                    amenity: { connect: { id: a.amenityId } },
-                  };
-                }
-
-                return {
-                  description: a.description,
-                  amenity: {
-                    connectOrCreate: {
-                      where: { name: a.name! },
-                      create: {
-                        name: a.name!,
-                        iconKey: a.iconKey || "star",
+                    amenity: {
+                      connectOrCreate: {
+                        where: { name: a.name! },
+                        create: {
+                          name: a.name!,
+                          iconKey: a.iconKey || "star",
+                        },
                       },
                     },
-                  },
-                };
-              }),
-            }
-          : undefined,
-        nearbyPlaces: data.nearbyPlaces?.length
-          ? {
-              createMany: {
-                data: data.nearbyPlaces.map((p) => ({
-                  name: p.name,
-                  distance: p.distance || "Nearby",
-                  category: p.category ?? null,
-                  travelTime: p.travelTime ?? null,
-                  description: p.description ?? null,
-                })),
-              },
-            }
-          : undefined,
-        financialMetrics: data.financialMetrics?.length
-          ? {
-              createMany: {
-                data: data.financialMetrics.map((f) => ({
-                  label: f.label,
-                  value: f.value,
-                  note: f.note ?? null,
-                  icon: f.icon ?? null,
-                })),
-              },
-            }
-          : undefined,
-      },
-      include: {
-        location: true,
-        configurations: true,
-        media: true,
-        amenities: {
-          include: { amenity: true },
+                  };
+                }),
+              }
+            : undefined,
+          nearbyPlaces: data.nearbyPlaces?.length
+            ? {
+                createMany: {
+                  data: data.nearbyPlaces.map((p) => ({
+                    name: p.name,
+                    distance: p.distance || "Nearby",
+                    category: p.category ?? null,
+                    travelTime: p.travelTime ?? null,
+                    description: p.description ?? null,
+                    iconKey: p.iconKey ?? null,
+                  })),
+                },
+              }
+            : undefined,
+          financialMetrics: data.financialMetrics?.length
+            ? {
+                createMany: {
+                  data: data.financialMetrics.map((f) => ({
+                    label: f.label,
+                    value: f.value,
+                    note: f.note ?? null,
+                    icon: f.icon ?? null,
+                  })),
+                },
+              }
+            : undefined,
         },
-        nearbyPlaces: true,
-        financialMetrics: true,
-      },
+        include: {
+          location: true,
+          configurations: true,
+          media: true,
+          amenities: {
+            include: { amenity: true },
+          },
+          nearbyPlaces: true,
+          financialMetrics: true,
+        },
+      });
     });
 
     return res.status(201).json(
@@ -508,6 +523,23 @@ export const updateProperty = asyncHandler(
       }
     }
 
+    // Check for duplicate property slug if custom slug is being changed
+    if (data.slug) {
+      const slugCandidate = slugify(data.slug, { lower: true, strict: true });
+      const existingSlug = await prisma.property.findFirst({
+        where: {
+          slug: slugCandidate,
+          id: { not: property.id },
+        },
+      });
+      if (existingSlug) {
+        throw new ApiError(
+          409,
+          `The URL slug "${slugCandidate}" is already in use by another property.`,
+        );
+      }
+    }
+
     let locationId = property.locationId;
 
     if (data.location) {
@@ -517,24 +549,49 @@ export const updateProperty = asyncHandler(
           update: {
             city: data.location.city || "Multiple Locations",
             country: data.location.country || "India",
-            community: data.location.community,
-            addressLine: data.location.addressLine,
-            postalCode: data.location.postalCode,
-            latitude: data.location.latitude,
-            longitude: data.location.longitude,
-            googleMapUrl: data.location.googleMapUrl,
-            mapEmbedUrl: data.location.mapEmbedUrl || data.location.googleMapUrl,
+            community:
+              data.location.community !== undefined
+                ? data.location.community && data.location.community.trim()
+                  ? data.location.community.trim()
+                  : null
+                : undefined,
+            addressLine:
+              data.location.addressLine !== undefined
+                ? data.location.addressLine && data.location.addressLine.trim()
+                  ? data.location.addressLine.trim()
+                  : null
+                : undefined,
+            postalCode:
+              data.location.postalCode !== undefined
+                ? data.location.postalCode && data.location.postalCode.trim()
+                  ? data.location.postalCode.trim()
+                  : null
+                : undefined,
+            latitude: data.location.latitude !== undefined ? data.location.latitude : undefined,
+            longitude: data.location.longitude !== undefined ? data.location.longitude : undefined,
+            googleMapUrl:
+              data.location.googleMapUrl !== undefined
+                ? data.location.googleMapUrl && data.location.googleMapUrl.trim()
+                  ? data.location.googleMapUrl.trim()
+                  : null
+                : undefined,
+            mapEmbedUrl:
+              data.location.mapEmbedUrl !== undefined
+                ? data.location.mapEmbedUrl && data.location.mapEmbedUrl.trim()
+                  ? data.location.mapEmbedUrl.trim()
+                  : null
+                : undefined,
           },
           create: {
             city: data.location.city || "Multiple Locations",
             country: data.location.country || "India",
-            community: data.location.community,
-            addressLine: data.location.addressLine,
-            postalCode: data.location.postalCode,
-            latitude: data.location.latitude,
-            longitude: data.location.longitude,
-            googleMapUrl: data.location.googleMapUrl,
-            mapEmbedUrl: data.location.mapEmbedUrl || data.location.googleMapUrl,
+            community: data.location.community ? data.location.community.trim() : null,
+            addressLine: data.location.addressLine ? data.location.addressLine.trim() : null,
+            postalCode: data.location.postalCode ? data.location.postalCode.trim() : null,
+            latitude: data.location.latitude ?? null,
+            longitude: data.location.longitude ?? null,
+            googleMapUrl: data.location.googleMapUrl ? data.location.googleMapUrl.trim() : null,
+            mapEmbedUrl: data.location.mapEmbedUrl || data.location.googleMapUrl || null,
           },
         });
         locationId = updatedLoc.id;
@@ -543,13 +600,13 @@ export const updateProperty = asyncHandler(
           data: {
             city: data.location.city || "Multiple Locations",
             country: data.location.country || "India",
-            community: data.location.community,
-            addressLine: data.location.addressLine,
-            postalCode: data.location.postalCode,
-            latitude: data.location.latitude,
-            longitude: data.location.longitude,
-            googleMapUrl: data.location.googleMapUrl,
-            mapEmbedUrl: data.location.mapEmbedUrl || data.location.googleMapUrl,
+            community: data.location.community ? data.location.community.trim() : null,
+            addressLine: data.location.addressLine ? data.location.addressLine.trim() : null,
+            postalCode: data.location.postalCode ? data.location.postalCode.trim() : null,
+            latitude: data.location.latitude ?? null,
+            longitude: data.location.longitude ?? null,
+            googleMapUrl: data.location.googleMapUrl ? data.location.googleMapUrl.trim() : null,
+            mapEmbedUrl: data.location.mapEmbedUrl || data.location.googleMapUrl || null,
           },
         });
         locationId = newLoc.id;
@@ -644,6 +701,7 @@ export const updateProperty = asyncHandler(
             category: p.category ?? null,
             travelTime: p.travelTime ?? null,
             description: p.description ?? null,
+            iconKey: p.iconKey ?? null,
           })),
         });
       }
@@ -672,36 +730,94 @@ export const updateProperty = asyncHandler(
       data: {
         name: data.name,
         slug: data.slug ? slugify(data.slug, { lower: true, strict: true }) : undefined,
-        tagline: data.tagline,
+        tagline:
+          data.tagline !== undefined
+            ? data.tagline && data.tagline.trim()
+              ? data.tagline.trim()
+              : null
+            : undefined,
         description: data.description,
-        visionHeadline: data.visionHeadline,
+        visionHeadline:
+          data.visionHeadline !== undefined
+            ? data.visionHeadline && data.visionHeadline.trim()
+              ? data.visionHeadline.trim()
+              : null
+            : undefined,
         type: data.type,
         customType: data.customType !== undefined ? data.customType : undefined,
         status: data.status,
         price: data.price,
         currency: data.currency,
         priceOnApplication: data.priceOnApplication,
-        rentalYieldPercent: data.rentalYieldPercent,
-        expectedIrrPercent: data.expectedIrrPercent,
-        appreciationPercent: data.appreciationPercent,
+        rentalYieldPercent: sanitizeDecimal52(data.rentalYieldPercent),
+        expectedIrrPercent: sanitizeDecimal52(data.expectedIrrPercent),
+        appreciationPercent: sanitizeDecimal52(data.appreciationPercent),
         totalAreaSqFt: data.totalAreaSqFt,
         bedrooms: data.bedrooms,
         bathrooms: data.bathrooms,
         furnishingStatus: data.furnishingStatus,
         possessionDate:
-          data.possessionDate && !isNaN(new Date(data.possessionDate).getTime())
-            ? new Date(data.possessionDate)
+          data.possessionDate !== undefined
+            ? data.possessionDate && !isNaN(new Date(data.possessionDate).getTime())
+              ? new Date(data.possessionDate)
+              : null
             : undefined,
-        reraNumber: data.reraNumber,
-        ownershipType: data.ownershipType,
-        paymentPlan: data.paymentPlan ? (data.paymentPlan as Prisma.InputJsonValue) : undefined,
-        virtualTour360Url: data.virtualTour360Url,
-        brochureUrl: data.brochureUrl,
-        maintenanceFeePerSqFt: data.maintenanceFeePerSqFt,
+        reraNumber:
+          data.reraNumber !== undefined
+            ? data.reraNumber && data.reraNumber.trim()
+              ? data.reraNumber.trim()
+              : null
+            : undefined,
+        ownershipType:
+          data.ownershipType !== undefined
+            ? data.ownershipType && data.ownershipType.trim()
+              ? data.ownershipType.trim()
+              : null
+            : undefined,
+        paymentPlan:
+          data.paymentPlan !== undefined
+            ? data.paymentPlan
+              ? (data.paymentPlan as Prisma.InputJsonValue)
+              : Prisma.JsonNull
+            : undefined,
+        virtualTour360Url:
+          data.virtualTour360Url !== undefined
+            ? data.virtualTour360Url && data.virtualTour360Url.trim()
+              ? data.virtualTour360Url.trim()
+              : null
+            : undefined,
+        brochureUrl:
+          data.brochureUrl !== undefined
+            ? data.brochureUrl && data.brochureUrl.trim()
+              ? data.brochureUrl.trim()
+              : null
+            : undefined,
+        maintenanceFeePerSqFt:
+          data.maintenanceFeePerSqFt !== undefined
+            ? data.maintenanceFeePerSqFt
+              ? Number(data.maintenanceFeePerSqFt)
+              : null
+            : undefined,
         customSpecs: data.customSpecs !== undefined ? (data.customSpecs as any) : undefined,
-        verdictQuote: data.verdictQuote,
-        verdictAuthor: data.verdictAuthor,
-        verdictTitle: data.verdictTitle,
+        sectionVisibility: data.sectionVisibility !== undefined ? (data.sectionVisibility as any) : undefined,
+        verdictQuote:
+          data.verdictQuote !== undefined
+            ? data.verdictQuote && data.verdictQuote.trim()
+              ? data.verdictQuote.trim()
+              : null
+            : undefined,
+        verdictAuthor:
+          data.verdictAuthor !== undefined
+            ? data.verdictAuthor && data.verdictAuthor.trim()
+              ? data.verdictAuthor.trim()
+              : null
+            : undefined,
+        verdictTitle:
+          data.verdictTitle !== undefined
+            ? data.verdictTitle && data.verdictTitle.trim()
+              ? data.verdictTitle.trim()
+              : null
+            : undefined,
         franchiseModel: data.franchiseModel !== undefined ? (data.franchiseModel || null) : undefined,
         minTicketSize: data.minTicketSize !== undefined ? data.minTicketSize : undefined,
         totalProjectCost: data.totalProjectCost !== undefined ? data.totalProjectCost : undefined,

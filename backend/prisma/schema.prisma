@@ -161,6 +161,7 @@ model Property {
   brochureUrl         String?          // Direct PDF Brochure URL (e.g. Cloudinary PDF link)
   maintenanceFeePerSqFt Decimal?       @db.Decimal(10, 2)
   customSpecs         Json?            // User-defined free-text specifications [{ label: string, value: string }]
+  sectionVisibility   Json?            // Controls public display of sections { "sec-specs": true, ... }
 
   // Editorial Verdict
   verdictQuote        String?          @db.Text
@@ -312,6 +313,7 @@ model NearbyPlace {
   category   String?  // "Airport", "Metro", "School", "Hospital", "Shopping"
   travelTime String?
   description String? @db.Text
+  iconKey    String?
 
   @@index([propertyId])
 }
@@ -693,6 +695,7 @@ model FranchisePage {
   blueprintMetrics     Json?
   ecosystemCards       Json?
   benefitCards         Json?
+  sectionVisibility    Json?
 
   // 2. Hero Financial Metrics (Free Text Pairs)
   metric1Label         String?

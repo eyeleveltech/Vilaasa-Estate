@@ -66,6 +66,16 @@ const getStatusConfig = (rawStatus?: string) => {
   };
 };
 
+const sanitizeDescription = (text: string) => {
+  if (!text) return "";
+  return text
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
+    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, "")
+    .replace(/\son\w+=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/javascript:/gi, "");
+};
+
 const PropertyDetail = () => {
   const navigate = useNavigate();
   const [openCalendar, setOpenCalendar] = useState(false);
@@ -245,13 +255,13 @@ const PropertyDetail = () => {
       </header>
 
       {/* Concept & Vision / Verdict Section */}
-      {(property.visionHeadline || (property.description && property.description.length > 0) || property.verdict?.quote) && (
+      {property.sectionVisibility?.["sec-vision"] !== false && (property.visionHeadline || (property.description && property.description.length > 0) || property.verdict?.quote) && (
         <section className="border-y border-border bg-card px-4 py-14 md:px-10 md:py-20">
           <div
             className={`mx-auto max-w-[1280px] ${
-              Boolean(property.verdict?.quote) && Boolean(property.visionHeadline || (property.description && property.description.length > 0))
+              property.verdict?.quote && (property.visionHeadline || (property.description && property.description.length > 0))
                 ? "grid grid-cols-1 items-center gap-10 md:gap-16 lg:grid-cols-2"
-                : Boolean(property.verdict?.quote)
+                : property.verdict?.quote
                 ? "max-w-2xl mx-auto"
                 : "max-w-4xl mx-auto"
             }`}
@@ -276,7 +286,7 @@ const PropertyDetail = () => {
                     .map((para, idx) => (
                       <p
                         key={idx}
-                        dangerouslySetInnerHTML={{ __html: para }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeDescription(para) }}
                         className="text-sm leading-relaxed text-muted-foreground md:text-base whitespace-pre-line"
                       />
                 ))}
@@ -318,7 +328,7 @@ const PropertyDetail = () => {
       )}
 
       {/* At a Glance */}
-      {(property.specs.length > 0 || property.brochure || property.virtualTour360Url) && (
+      {property.sectionVisibility?.["sec-specs"] !== false && (property.specs.length > 0 || property.brochure || property.virtualTour360Url) && (
         <section className="px-3.5 sm:px-6 md:px-10 py-10 sm:py-14 md:py-20">
           <div className="max-w-[1280px] mx-auto">
             {property.specs.length > 0 && (
@@ -351,18 +361,31 @@ const PropertyDetail = () => {
             {(property.brochure || property.virtualTour360Url) && (
               <div className="mt-8 flex flex-wrap gap-4">
                 {property.brochure && (
-                  <a
-                    href={property.brochure}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button variant="outline" className="w-full gap-2 sm:w-auto">
+                  isUnlocked ? (
+                    <a
+                      href={property.brochure}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button variant="outline" className="w-full gap-2 sm:w-auto">
+                        <span className="material-symbols-outlined text-lg">
+                          download
+                        </span>
+                        Download Brochure
+                      </Button>
+                    </a>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={() => setInquiryDialogOpen(true)}
+                      className="w-full gap-2 sm:w-auto"
+                    >
                       <span className="material-symbols-outlined text-lg">
-                        download
+                        lock
                       </span>
-                      Download Brochure
+                      Unlock Brochure (OTP)
                     </Button>
-                  </a>
+                  )
                 )}
                 {property.virtualTour360Url && (
                   <a
@@ -385,7 +408,7 @@ const PropertyDetail = () => {
       )}
 
       {/* Financial Intelligence */}
-      {property.financials.length > 0 && (
+      {property.sectionVisibility?.["sec-financials"] !== false && property.financials.length > 0 && (
         <section className="bg-[#0c1a14] px-4 py-14 md:px-10 md:py-20">
           <div className="max-w-[1280px] mx-auto">
             <div className="mb-8 flex flex-col gap-4 md:mb-12 md:flex-row md:items-center md:justify-between">
@@ -434,7 +457,7 @@ const PropertyDetail = () => {
       )}
 
       {/* Pricing Table */}
-      {property.configurations.length > 0 && (
+      {property.sectionVisibility?.["sec-pricing"] !== false && property.configurations.length > 0 && (
         <section className="px-4 py-14 md:px-10 md:py-20">
           <div className="max-w-[1280px] mx-auto">
             <h2 className="mb-6 text-2xl font-light text-foreground md:mb-8">
@@ -529,11 +552,11 @@ const PropertyDetail = () => {
         </section>
       )}
 
-      {/* Floor Plans */}
-      {property.galleryImages && <Gallery property={property} />}
+      {/* Floor Plans / Gallery */}
+      {property.sectionVisibility?.["sec-gallery"] !== false && property.galleryImages && <Gallery property={property} />}
 
       {/* Amenities */}
-      {property.amenities.length > 0 && (
+      {property.sectionVisibility?.["sec-amenities"] !== false && property.amenities.length > 0 && (
         <section className="px-4 py-14 md:px-10 md:py-20">
           <div className="max-w-[1280px] mx-auto">
             <h2 className="mb-6 text-2xl font-light text-foreground md:mb-8">
@@ -566,7 +589,7 @@ const PropertyDetail = () => {
       )}
 
       {/* Location & Connectivity */}
-      {(property.mapEmbedUrl || property.googleMapLink || (property.nearbyLocations && property.nearbyLocations.length > 0)) && (
+      {property.sectionVisibility?.["sec-location"] !== false && (property.mapEmbedUrl || property.googleMapLink || (property.nearbyLocations && property.nearbyLocations.length > 0)) && (
         <section className="border-t border-border bg-card px-4 py-14 md:px-10 md:py-20">
           <div className="max-w-[1280px] mx-auto">
             <h2 className="mb-2 text-2xl font-light text-foreground md:mb-3">
@@ -678,70 +701,53 @@ const PropertyDetail = () => {
       <CalanderDialog
         open={openCalendar}
         onOpenChange={setOpenCalendar}
+        propertyId={property.id}
         propertyName={property.name}
-        onConfirm={({ date, time }) => {
-          const LEAD_PROFILE_STORAGE_KEY = "vilaasa-lead-profile";
+        onConfirm={({ date, time, name, email, phone, notes }) => {
           const SITE_VISIT_WEBHOOK_URL =
             "https://automate.eyelevelstudio.in/webhook/site-visit";
-          let savedLead: {
-            name?: string;
-            email?: string;
-            phone?: string;
-            phoneCountryCode?: string;
-          } | null = null;
-
-          if (typeof window !== "undefined") {
-            try {
-              const raw = localStorage.getItem(LEAD_PROFILE_STORAGE_KEY);
-              savedLead = raw ? (JSON.parse(raw) as typeof savedLead) : null;
-            } catch (error) {
-              console.error("Failed to read saved lead profile:", error);
-            }
-          }
-
-          const fullPhone =
-            savedLead?.phone && savedLead?.phoneCountryCode
-              ? `${savedLead.phoneCountryCode} ${savedLead.phone}`.trim()
-              : savedLead?.phone?.trim() || "";
-
-          const payload = {
-            propertyId: property.id,
-            propertyName: property.name,
-            date: date.toISOString(),
-            time,
-            timezone: "Asia/Kolkata",
-            visitType:
-              property.country?.toLowerCase() === "india"
-                ? "real-estate-india"
-                : "real-estate-international",
-            source: "property-detail-sticky-cta",
-            name: savedLead?.name?.trim() || "",
-            email: savedLead?.email?.trim() || "",
-            phone: fullPhone,
-          };
 
           void (async () => {
             try {
-              // 1. Submit directly to PostgreSQL backend (deliberate inquiry: sendEmail = true)
-              await api.post("/inquiries", {
-                name: savedLead?.name?.trim() || "VIP Client",
-                email: savedLead?.email?.trim() || `vip-visit-${Date.now()}@client.com`,
-                phone: fullPhone || "+971 50 0000000",
-                investmentType: "real-estate",
-                investmentRange: property.priceValue || "Ultra Prime",
-                currency: "USD",
-                source: "SITE_VISIT_MODAL",
-                notes: `Private Inspection scheduled for ${date.toLocaleDateString()} at ${time}. Property: ${property.name}`,
-                sendEmail: true,
-                intent: "INQUIRY",
+              // 1. Submit directly to Vilaasa Site Visits API (creates SiteVisit & CRM Inquiry entry)
+              await api.post("/site-visits", {
+                propertyId: property.id,
+                name: name.trim(),
+                email: email.trim(),
+                phone: phone.trim(),
+                scheduledDate: date.toISOString(),
+                scheduledTime: time,
+                timezone: "Asia/Kolkata",
+                visitType:
+                  property.country?.toLowerCase() === "india"
+                    ? "real-estate-india"
+                    : "real-estate-international",
+                notes:
+                  notes?.trim() ||
+                  `Private inspection booked from property page: ${property.name}`,
               });
 
-              // 2. Also forward to webhook if available
+              // 2. Also forward to webhook if available (non-blocking)
               try {
                 await fetch(SITE_VISIT_WEBHOOK_URL, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(payload),
+                  body: JSON.stringify({
+                    propertyId: property.id,
+                    propertyName: property.name,
+                    date: date.toISOString(),
+                    time,
+                    timezone: "Asia/Kolkata",
+                    visitType:
+                      property.country?.toLowerCase() === "india"
+                        ? "real-estate-india"
+                        : "real-estate-international",
+                    source: "property-detail-sticky-cta",
+                    name: name.trim(),
+                    email: email.trim(),
+                    phone: phone.trim(),
+                    notes: notes?.trim() || undefined,
+                  }),
                 });
               } catch {
                 // Optional webhook fallback
@@ -751,11 +757,18 @@ const PropertyDetail = () => {
                 title: "Private Inspection Scheduled",
                 description: `Your private viewing for ${property.name} on ${date.toLocaleDateString()} at ${time} has been confirmed. Our Senior Partner will contact you shortly.`,
               });
-            } catch (error) {
+            } catch (error: unknown) {
               console.error("Site visit booking failed:", error);
+              const errMsg =
+                error && typeof error === "object" && "response" in error
+                  ? (error as { response?: { data?: { message?: string } } })
+                      .response?.data?.message
+                  : undefined;
+
               toast({
-                title: "Visit request failed",
-                description: "Could not schedule your visit. Please try again.",
+                title: "Visit Request Failed",
+                description:
+                  errMsg || "Could not schedule your visit. Please try again.",
                 variant: "destructive",
               });
             }

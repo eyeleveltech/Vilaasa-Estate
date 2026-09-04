@@ -34,17 +34,27 @@ const FranchiseDetail = () => {
       .get(`/franchise/${franchise.id}/page`)
       .then((res) => {
         if (res.data?.success && res.data?.data) {
-          setPageContent(normalizeFranchisePageData(res.data.data));
+          const normalized = normalizeFranchisePageData(res.data.data);
+          if (
+            (!res.data.data.sectionVisibility || Object.keys(res.data.data.sectionVisibility).length === 0) &&
+            franchise.sectionVisibility
+          ) {
+            normalized.sectionVisibility = franchise.sectionVisibility;
+          }
+          setPageContent(normalized);
         }
       })
       .catch(() => {});
-  }, [franchise?.id]);
+  }, [franchise?.id, franchise?.sectionVisibility]);
 
   useEffect(() => {
     if (isUnlocked && franchise?.id) {
       trackSilentPropertyView(franchise.id, franchise.name);
     }
   }, [isUnlocked, franchise?.id, franchise?.name]);
+
+  const visibility = pageContent?.sectionVisibility || franchise?.sectionVisibility;
+  const isSecVisible = (secId: string) => visibility?.[secId] !== false;
 
   const galleryImages: GalleryItem[] = pageContent?.galleryImages || [];
 
@@ -274,157 +284,176 @@ const FranchiseDetail = () => {
       </header>
 
       {/* Stats Bar (Section 2: Hero Financial Metrics) */}
-      <section className="py-8 px-4 md:px-10 bg-card border-y border-border">
-        <div className="max-w-[1280px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-6">
-          {pageContent?.heroMetrics && pageContent.heroMetrics.length > 0 ? (
-            pageContent.heroMetrics
-              .filter((stat) => stat.label && stat.value)
-              .map((stat, idx) => (
-                <div key={stat.id || idx} className="text-center">
-                  <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
-                    {stat.label}
-                  </p>
-                  <p className="text-foreground text-lg md:text-xl font-medium">
-                    {formatDynamicValue(stat.value)}
-                  </p>
-                </div>
-              ))
-          ) : pageContent?.metric1Label ? (
-            [
-              { label: pageContent.metric1Label, value: pageContent.metric1Value },
-              { label: pageContent.metric2Label, value: pageContent.metric2Value },
-              { label: pageContent.metric3Label, value: pageContent.metric3Value },
-              { label: pageContent.metric4Label, value: pageContent.metric4Value },
-            ]
-              .filter((stat) => stat.label && stat.value)
-              .map((stat, idx) => (
-                <div key={idx} className="text-center">
-                  <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
-                    {stat.label}
-                  </p>
-                  <p className="text-foreground text-lg md:text-xl font-medium">
-                    {formatDynamicValue(stat.value)}
-                  </p>
-                </div>
-              ))
-          ) : (
-            franchise.spec.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
-                  {stat.label}
-                </p>
-                <p className="text-foreground text-lg md:text-xl font-medium">
-                  {stat.value}
-                </p>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
-
-      {/* Vision Section */}
-      <section className="py-20 px-4 md:px-10">
-        <div className="max-w-[1280px] mx-auto grid grid-cols-1 lg:grid-cols-1 gap-16">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-          >
-            <span className="text-gold-accent/60 uppercase tracking-[0.2em] text-xs font-bold">
-              {franchise.visionEyebrow || "The Vision"}
-            </span>
-            <h2 className="text-3xl md:text-4xl font-light text-foreground mt-4 mb-6">
-              {pageContent?.visionHeadline ||
-                franchise.visionHeadline ||
-                "Elevating wellness into a professionally managed investment category."}
-            </h2>
-
-            {franchise.highlightQuote && (
-              <div className="my-6 p-6 rounded-xl border border-primary/30 bg-primary/5 italic text-base md:text-lg text-foreground/90 font-serif leading-relaxed">
-                &ldquo;{franchise.highlightQuote}&rdquo;
-              </div>
-            )}
-
-            {pageContent?.visionDescription ? (
-              <p className="text-muted-foreground leading-relaxed mb-4 text-base whitespace-pre-line">
-                {pageContent.visionDescription}
-              </p>
-            ) : Array.isArray(franchise.description) ? (
-              franchise.description.map((para, idx) => (
-                <p
-                  key={idx}
-                  className="text-muted-foreground leading-relaxed mb-4 text-base"
-                >
-                  {para}
-                </p>
-              ))
-            ) : franchise.description ? (
-              <p className="text-muted-foreground leading-relaxed mb-4 text-base whitespace-pre-line">
-                {franchise.description}
-              </p>
-            ) : null}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Financial Blueprint */}
-      <section className="py-20 px-4 md:px-10 bg-[#0c1a14]">
-        <div className="max-w-[1280px] mx-auto">
-          <div className="flex items-center gap-2 mb-6">
-            <span className="material-symbols-outlined text-gold-accent text-3xl">
-              pie_chart
-            </span>
-            <h2 className="text-2xl font-light text-foreground">
-              Financial Blueprint
-            </h2>
-          </div>
-
-          {/* Flexible Return Headline & Terms if configured */}
-          {(franchise.returnHeadline || franchise.returnTerms) && (
-            <div className="mb-8 p-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 max-w-3xl">
-              <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs tracking-wider uppercase mb-1">
-                <span className="material-symbols-outlined text-base">verified</span>
-                <span>Target Return Framework</span>
-              </div>
-              {franchise.returnHeadline && (
-                <h3 className="text-xl md:text-2xl font-light text-foreground font-luxia mb-2">
-                  {franchise.returnHeadline}
-                </h3>
-              )}
-              {franchise.returnTerms && (
-                <p className="text-muted-foreground text-xs md:text-sm leading-relaxed">
-                  {franchise.returnTerms}
-                </p>
-              )}
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-            {pageContent?.blueprintMetrics?.length ? (
-              pageContent.blueprintMetrics
-                .filter((item) => item.label)
-                .map((item, idx) => (
-                  <div
-                    key={item.id || idx}
-                    className="p-3.5 sm:p-4 bg-background/50 rounded border border-border min-w-0"
-                  >
-                    <p className="text-muted-foreground text-[11px] sm:text-xs uppercase tracking-wider mb-1 truncate">
-                      {item.label}
+      {isSecVisible("sec-hero-metrics") && (
+        <section className="py-8 px-4 md:px-10 bg-card border-y border-border">
+          <div className="max-w-[1280px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-6">
+            {pageContent?.heroMetrics && pageContent.heroMetrics.length > 0 ? (
+              pageContent.heroMetrics
+                .filter((stat) => stat.label && stat.value)
+                .map((stat, idx) => (
+                  <div key={stat.id || idx} className="text-center">
+                    <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
+                      {stat.label}
                     </p>
-                    <p className="text-foreground text-base sm:text-lg font-medium break-words">
-                      {formatDynamicValue(item.value)}
+                    <p className="text-foreground text-lg md:text-xl font-medium">
+                      {formatDynamicValue(stat.value)}
                     </p>
                   </div>
                 ))
-            ) : pageContent?.metric5Label ? (
+            ) : pageContent?.metric1Label ? (
               [
-                { label: pageContent.metric5Label, value: pageContent.metric5Value },
-                { label: pageContent.metric6Label, value: pageContent.metric6Value },
-                { label: pageContent.metric7Label, value: pageContent.metric7Value },
-                { label: pageContent.metric8Label, value: pageContent.metric8Value },
+                { label: pageContent.metric1Label, value: pageContent.metric1Value },
+                { label: pageContent.metric2Label, value: pageContent.metric2Value },
+                { label: pageContent.metric3Label, value: pageContent.metric3Value },
+                { label: pageContent.metric4Label, value: pageContent.metric4Value },
               ]
-                .filter((item) => item.label)
-                .map((item) => (
+                .filter((stat) => stat.label && stat.value)
+                .map((stat, idx) => (
+                  <div key={idx} className="text-center">
+                    <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
+                      {stat.label}
+                    </p>
+                    <p className="text-foreground text-lg md:text-xl font-medium">
+                      {formatDynamicValue(stat.value)}
+                    </p>
+                  </div>
+                ))
+            ) : (
+              franchise.spec.map((stat) => (
+                <div key={stat.label} className="text-center">
+                  <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
+                    {stat.label}
+                  </p>
+                  <p className="text-foreground text-lg md:text-xl font-medium">
+                    {stat.value}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Vision Section */}
+      {isSecVisible("sec-vision") && (
+        <section className="py-20 px-4 md:px-10">
+          <div className="max-w-[1280px] mx-auto grid grid-cols-1 lg:grid-cols-1 gap-16">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <span className="text-gold-accent/60 uppercase tracking-[0.2em] text-xs font-bold">
+                {franchise.visionEyebrow || "The Vision"}
+              </span>
+              <h2 className="text-3xl md:text-4xl font-light text-foreground mt-4 mb-6">
+                {pageContent?.visionHeadline ||
+                  franchise.visionHeadline ||
+                  "Elevating wellness into a professionally managed investment category."}
+              </h2>
+
+              {franchise.highlightQuote && (
+                <div className="my-6 p-6 rounded-xl border border-primary/30 bg-primary/5 italic text-base md:text-lg text-foreground/90 font-serif leading-relaxed">
+                  &ldquo;{franchise.highlightQuote}&rdquo;
+                </div>
+              )}
+
+              {pageContent?.visionDescription ? (
+                <p className="text-muted-foreground leading-relaxed mb-4 text-base whitespace-pre-line">
+                  {pageContent.visionDescription}
+                </p>
+              ) : Array.isArray(franchise.description) ? (
+                franchise.description.map((para, idx) => (
+                  <p
+                    key={idx}
+                    className="text-muted-foreground leading-relaxed mb-4 text-base"
+                  >
+                    {para}
+                  </p>
+                ))
+              ) : franchise.description ? (
+                <p className="text-muted-foreground leading-relaxed mb-4 text-base whitespace-pre-line">
+                  {franchise.description}
+                </p>
+              ) : null}
+            </motion.div>
+          </div>
+        </section>
+      )}
+
+      {/* Financial Blueprint */}
+      {isSecVisible("sec-blueprint") && (
+        <section className="py-20 px-4 md:px-10 bg-[#0c1a14]">
+          <div className="max-w-[1280px] mx-auto">
+            <div className="flex items-center gap-2 mb-6">
+              <span className="material-symbols-outlined text-gold-accent text-3xl">
+                pie_chart
+              </span>
+              <h2 className="text-2xl font-light text-foreground">
+                Financial Blueprint
+              </h2>
+            </div>
+
+            {/* Flexible Return Headline & Terms if configured */}
+            {(franchise.returnHeadline || franchise.returnTerms) && (
+              <div className="mb-8 p-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 max-w-3xl">
+                <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs tracking-wider uppercase mb-1">
+                  <span className="material-symbols-outlined text-base">verified</span>
+                  <span>Target Return Framework</span>
+                </div>
+                {franchise.returnHeadline && (
+                  <h3 className="text-xl md:text-2xl font-light text-foreground font-luxia mb-2">
+                    {franchise.returnHeadline}
+                  </h3>
+                )}
+                {franchise.returnTerms && (
+                  <p className="text-muted-foreground text-xs md:text-sm leading-relaxed">
+                    {franchise.returnTerms}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+              {pageContent?.blueprintMetrics?.length ? (
+                pageContent.blueprintMetrics
+                  .filter((item) => item.label)
+                  .map((item, idx) => (
+                    <div
+                      key={item.id || idx}
+                      className="p-3.5 sm:p-4 bg-background/50 rounded border border-border min-w-0"
+                    >
+                      <p className="text-muted-foreground text-[11px] sm:text-xs uppercase tracking-wider mb-1 truncate">
+                        {item.label}
+                      </p>
+                      <p className="text-foreground text-base sm:text-lg font-medium break-words">
+                        {formatDynamicValue(item.value)}
+                      </p>
+                    </div>
+                  ))
+              ) : pageContent?.metric5Label ? (
+                [
+                  { label: pageContent.metric5Label, value: pageContent.metric5Value },
+                  { label: pageContent.metric6Label, value: pageContent.metric6Value },
+                  { label: pageContent.metric7Label, value: pageContent.metric7Value },
+                  { label: pageContent.metric8Label, value: pageContent.metric8Value },
+                ]
+                  .filter((item) => item.label)
+                  .map((item) => (
+                    <div
+                      key={item.label}
+                      className="p-4 bg-background/50 rounded border border-border"
+                    >
+                      <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
+                        {item.label}
+                      </p>
+                      <p className="text-foreground text-lg font-medium">
+                        {formatDynamicValue(item.value)}
+                      </p>
+                    </div>
+                  ))
+              ) : (
+                franchise.financial.map((item) => (
                   <div
                     key={item.label}
                     className="p-4 bg-background/50 rounded border border-border"
@@ -432,38 +461,25 @@ const FranchiseDetail = () => {
                     <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
                       {item.label}
                     </p>
+
                     <p className="text-foreground text-lg font-medium">
-                      {formatDynamicValue(item.value)}
+                      {Array.isArray(item.value)
+                        ? item.value.map((v) => formatDynamicValue(v)).join(" - ")
+                        : formatDynamicValue(item.value)}
                     </p>
                   </div>
                 ))
-            ) : (
-              franchise.financial.map((item) => (
-                <div
-                  key={item.label}
-                  className="p-4 bg-background/50 rounded border border-border"
-                >
-                  <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
-                    {item.label}
-                  </p>
+              )}
+            </div>
 
-                  <p className="text-foreground text-lg font-medium">
-                    {Array.isArray(item.value)
-                      ? item.value.map((v) => formatDynamicValue(v)).join(" - ")
-                      : formatDynamicValue(item.value)}
-                  </p>
-                </div>
-              ))
+            {franchise.financialDisclaimer && (
+              <p className="text-[11px] text-muted-foreground/60 mt-6 italic">
+                * {franchise.financialDisclaimer}
+              </p>
             )}
           </div>
-
-          {franchise.financialDisclaimer && (
-            <p className="text-[11px] text-muted-foreground/60 mt-6 italic">
-              * {franchise.financialDisclaimer}
-            </p>
-          )}
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Wealth Projector CTA */}
       <section className="py-20 px-4 md:px-10 bg-background border-y border-border">
@@ -489,100 +505,104 @@ const FranchiseDetail = () => {
       </section>
 
       {/* Support & Training Section */}
-      <section className="py-20 px-4 md:px-10 bg-card">
-        <div className="max-w-[1280px] mx-auto">
-          <div className="text-center mb-12">
-            <span className="text-gold-accent/60 uppercase tracking-[0.2em] text-xs font-bold">
-              {pageContent?.ecosystemSubheading || franchise.ecosystemEyebrow || "Comprehensive Ecosystem"}
-            </span>
-            <h2 className="text-3xl font-light text-foreground mt-4 mb-4">
-              {pageContent?.ecosystemHeading || franchise.ecosystemHeading || "Support & Training"}
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              {pageContent?.ecosystemDescription ||
-                franchise.ecosystemIntro ||
-                franchise.support_training_para?.[0] ||
-                "Turnkey institutional development covering location scouting, biophilic architectural styling, therapist certification, and international marketing."}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {supportCards.map((feature, idx: number) => (
-              <motion.div
-                key={feature.name || idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="p-4 sm:p-6 bg-background rounded-lg border border-border min-w-0"
-              >
-                <span className="material-symbols-outlined text-3xl text-gold-accent mb-4 block">
-                  {feature.icon || "storefront"}
-                </span>
-                <h3 className="text-lg font-medium text-foreground mb-2">
-                  {feature.name}
-                </h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  {feature.description}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Key Benefits / FOCO Advantage */}
-      <section className="py-20 px-4 md:px-10">
-        <div className="max-w-[1280px] mx-auto">
-          <div className="text-center mb-12">
-            <span className="text-gold-accent/60 uppercase tracking-[0.2em] text-xs font-bold">
-              {pageContent?.benefitsSubheading || franchise.benefitsEyebrow || "The FOCO Advantage"}
-            </span>
-            <h2 className="text-3xl font-light text-foreground mt-4 mb-4">
-              {franchise.benefitsHeading || "The FOCO Advantage"}
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              {pageContent?.benefitsDescription ||
-                franchise.benefitsIntro ||
-                "Franchise Owned, Company Operated. A completely hands-off investment model designed for busy professionals."}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {benefitCards.map((adv, idx: number) => (
-              <motion.div
-                key={adv.name || idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="p-8 bg-card rounded-lg border border-border hover:border-gold-accent/50 transition-colors"
-              >
-                <span className="material-symbols-outlined text-4xl text-gold-accent mb-4 block">
-                  {adv.icon || "verified_user"}
-                </span>
-                <h3 className="text-xl font-medium text-foreground mb-3">
-                  {adv.name}
-                </h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  {adv.description}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-
-          {franchise.claimDisclaimer && (
-            <div className="mt-10 text-center">
-              <p className="text-[11px] text-muted-foreground/60 italic max-w-2xl mx-auto">
-                * {franchise.claimDisclaimer}
+      {isSecVisible("sec-ecosystem") && (
+        <section className="py-20 px-4 md:px-10 bg-card">
+          <div className="max-w-[1280px] mx-auto">
+            <div className="text-center mb-12">
+              <span className="text-gold-accent/60 uppercase tracking-[0.2em] text-xs font-bold">
+                {pageContent?.ecosystemSubheading || franchise.ecosystemEyebrow || "Comprehensive Ecosystem"}
+              </span>
+              <h2 className="text-3xl font-light text-foreground mt-4 mb-4">
+                {pageContent?.ecosystemHeading || franchise.ecosystemHeading || "Support & Training"}
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                {pageContent?.ecosystemDescription ||
+                  franchise.ecosystemIntro ||
+                  franchise.support_training_para?.[0] ||
+                  "Turnkey institutional development covering location scouting, biophilic architectural styling, therapist certification, and international marketing."}
               </p>
             </div>
-          )}
-        </div>
-      </section>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {supportCards.map((feature, idx: number) => (
+                <motion.div
+                  key={feature.name || idx}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="p-4 sm:p-6 bg-background rounded-lg border border-border min-w-0"
+                >
+                  <span className="material-symbols-outlined text-3xl text-gold-accent mb-4 block">
+                    {feature.icon || "storefront"}
+                  </span>
+                  <h3 className="text-lg font-medium text-foreground mb-2">
+                    {feature.name}
+                  </h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    {feature.description}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Key Benefits / FOCO Advantage */}
+      {isSecVisible("sec-benefits") && (
+        <section className="py-20 px-4 md:px-10">
+          <div className="max-w-[1280px] mx-auto">
+            <div className="text-center mb-12">
+              <span className="text-gold-accent/60 uppercase tracking-[0.2em] text-xs font-bold">
+                {pageContent?.benefitsSubheading || franchise.benefitsEyebrow || "The FOCO Advantage"}
+              </span>
+              <h2 className="text-3xl font-light text-foreground mt-4 mb-4">
+                {franchise.benefitsHeading || "The FOCO Advantage"}
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                {pageContent?.benefitsDescription ||
+                  franchise.benefitsIntro ||
+                  "Franchise Owned, Company Operated. A completely hands-off investment model designed for busy professionals."}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {benefitCards.map((adv, idx: number) => (
+                <motion.div
+                  key={adv.name || idx}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="p-8 bg-card rounded-lg border border-border hover:border-gold-accent/50 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-4xl text-gold-accent mb-4 block">
+                    {adv.icon || "verified_user"}
+                  </span>
+                  <h3 className="text-xl font-medium text-foreground mb-3">
+                    {adv.name}
+                  </h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    {adv.description}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+
+            {franchise.claimDisclaimer && (
+              <div className="mt-10 text-center">
+                <p className="text-[11px] text-muted-foreground/60 italic max-w-2xl mx-auto">
+                  * {franchise.claimDisclaimer}
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Investor Documents & Memorandums (Separated from Visual Gallery) */}
-      {franchise.investorDocuments && franchise.investorDocuments.length > 0 && (
+      {isSecVisible("sec-gallery") && franchise.investorDocuments && franchise.investorDocuments.length > 0 && (
         <section className="py-16 px-4 md:px-10 bg-secondary/20 border-y border-border">
           <div className="max-w-[1280px] mx-auto">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
@@ -693,7 +713,7 @@ const FranchiseDetail = () => {
       </section>
 
       {/* Bespoke Gallery & Architectural Layouts (Section 10) */}
-      {galleryImages.length > 0 && (
+      {isSecVisible("sec-gallery") && galleryImages.length > 0 && (
         <section className="py-20 px-4 md:px-10 bg-background border-t border-border">
           <div className="max-w-[1280px] mx-auto">
             <div className="text-center mb-12">

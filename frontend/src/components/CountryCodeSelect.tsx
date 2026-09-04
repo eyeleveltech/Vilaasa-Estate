@@ -2,6 +2,7 @@ import * as React from "react";
 import { Check, ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Command,
   CommandEmpty,
@@ -26,27 +27,23 @@ interface Country {
 interface Props {
   value: string; // dial code only
   onChange: (dialCode: string) => void;
+  className?: string;
 }
 
-export function CountryCodeSelect({ value, onChange }: Props) {
+export function CountryCodeSelect({ value, onChange, className }: Props) {
   const [open, setOpen] = React.useState(false);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
           role="combobox"
-          className="w-[80px] shrink-0 sm:w-[140px] justify-between h-full px-2 sm:px-4"
+          className={cn(
+            "w-[84px] shrink-0 sm:w-[96px] justify-between h-9 sm:h-10 px-2 sm:px-3 text-xs sm:text-sm font-normal normal-case tracking-normal bg-secondary/50 hover:bg-secondary/70 border-input text-foreground",
+            className,
+          )}
         >
-          {/* {value ? (
-              <span className="flex items-center gap-2">
-                <span>{value.flag}</span>
-                <span>{value.dial_code}</span>
-              </span>
-            ) : (
-              "Country"
-            )} */}
           <span className="truncate">{value}</span>
           <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
         </Button>
@@ -59,6 +56,7 @@ export function CountryCodeSelect({ value, onChange }: Props) {
         align="start"
         collisionPadding={12}
         className="w-[300px] max-w-[calc(100vw-2rem)] p-0"
+        onWheel={(e) => e.stopPropagation()}
       >
         <Command
           filter={(value, search, keywords = []) => {
@@ -70,7 +68,7 @@ export function CountryCodeSelect({ value, onChange }: Props) {
           }}
         >
           <CommandInput placeholder="Search country..." />
-          <CommandList className="h-[260px]">
+          <CommandList className="h-[260px] max-h-[260px] overflow-y-auto overscroll-contain">
             <CommandEmpty>No country found.</CommandEmpty>
             <CommandGroup>
               {CountryCodes.map((country) => (

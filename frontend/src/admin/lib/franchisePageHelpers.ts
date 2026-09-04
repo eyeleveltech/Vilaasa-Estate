@@ -90,8 +90,26 @@ export interface FranchisePageData {
   benefit3Description?: string;
   benefit3Icon?: string;
 
+  nextStepsSubheading?: string;
+  nextStepsDescription?: string;
+  ctaButton1?: string;
+  ctaButton2?: string;
+  planningHeadline?: string;
+  planningDescription?: string;
+
   galleryImages: GalleryItem[];
+  sectionVisibility?: Record<string, boolean>;
 }
+
+export const DEFAULT_FRANCHISE_SECTION_VISIBILITY: Record<string, boolean> = {
+  "sec-hero": true,
+  "sec-hero-metrics": true,
+  "sec-vision": true,
+  "sec-blueprint": true,
+  "sec-ecosystem": true,
+  "sec-benefits": true,
+  "sec-gallery": true,
+};
 
 export const HERO_PLACEHOLDERS = [
   { label: 'e.g. MIN. INVESTMENT', value: 'e.g. ₹3.5 Cr' },
@@ -183,6 +201,7 @@ export const DEFAULT_PAGE_DATA: FranchisePageData = {
   ],
 
   galleryImages: [],
+  sectionVisibility: { ...DEFAULT_FRANCHISE_SECTION_VISIBILITY },
 };
 
 export const COMMON_ICONS = [
@@ -240,10 +259,21 @@ export const normalizeFranchisePageData = (
 ): FranchisePageData => {
   if (!raw) return { ...DEFAULT_PAGE_DATA };
 
+  const isExistingRecord = Boolean(
+    (raw as any).id ||
+    (raw as any).propertyId ||
+    (raw as any).createdAt ||
+    (raw as any).updatedAt ||
+    raw.mainHeadline ||
+    raw.pageTitle ||
+    raw.visionDescription ||
+    (Array.isArray(raw.galleryImages) && raw.galleryImages.length > 0)
+  );
+
   // 1. Hero Metrics
   let heroMetrics: MetricBadge[] = [];
-  if (Array.isArray(raw.heroMetrics) && raw.heroMetrics.length > 0) {
-    heroMetrics = raw.heroMetrics;
+  if (Array.isArray(raw.heroMetrics)) {
+    heroMetrics = raw.heroMetrics.length > 0 ? raw.heroMetrics : (isExistingRecord ? [] : DEFAULT_PAGE_DATA.heroMetrics);
   } else {
     // Check legacy fields
     const legacyHero: MetricBadge[] = [];
@@ -259,13 +289,13 @@ export const normalizeFranchisePageData = (
     if (raw.metric4Label || raw.metric4Value) {
       legacyHero.push({ id: 'h4', label: raw.metric4Label || 'MODEL', value: raw.metric4Value || '' });
     }
-    heroMetrics = legacyHero.length > 0 ? legacyHero : DEFAULT_PAGE_DATA.heroMetrics;
+    heroMetrics = legacyHero.length > 0 ? legacyHero : (isExistingRecord ? [] : DEFAULT_PAGE_DATA.heroMetrics);
   }
 
   // 2. Blueprint Metrics
   let blueprintMetrics: MetricBadge[] = [];
-  if (Array.isArray(raw.blueprintMetrics) && raw.blueprintMetrics.length > 0) {
-    blueprintMetrics = raw.blueprintMetrics;
+  if (Array.isArray(raw.blueprintMetrics)) {
+    blueprintMetrics = raw.blueprintMetrics.length > 0 ? raw.blueprintMetrics : (isExistingRecord ? [] : DEFAULT_PAGE_DATA.blueprintMetrics);
   } else {
     const legacyBp: MetricBadge[] = [];
     if (raw.metric5Label || raw.metric5Value) {
@@ -280,13 +310,13 @@ export const normalizeFranchisePageData = (
     if (raw.metric8Label || raw.metric8Value) {
       legacyBp.push({ id: 'bp4', label: raw.metric8Label || 'YIELD PAYOUT', value: raw.metric8Value || '' });
     }
-    blueprintMetrics = legacyBp.length > 0 ? legacyBp : DEFAULT_PAGE_DATA.blueprintMetrics;
+    blueprintMetrics = legacyBp.length > 0 ? legacyBp : (isExistingRecord ? [] : DEFAULT_PAGE_DATA.blueprintMetrics);
   }
 
   // 3. Ecosystem Cards
   let ecosystemCards: SupportCard[] = [];
-  if (Array.isArray(raw.ecosystemCards) && raw.ecosystemCards.length > 0) {
-    ecosystemCards = raw.ecosystemCards;
+  if (Array.isArray(raw.ecosystemCards)) {
+    ecosystemCards = raw.ecosystemCards.length > 0 ? raw.ecosystemCards : (isExistingRecord ? [] : DEFAULT_PAGE_DATA.ecosystemCards);
   } else {
     const legacyEco: SupportCard[] = [];
     if (raw.support1Title) {
@@ -321,13 +351,13 @@ export const normalizeFranchisePageData = (
         icon: raw.support4Icon || 'campaign',
       });
     }
-    ecosystemCards = legacyEco.length > 0 ? legacyEco : DEFAULT_PAGE_DATA.ecosystemCards;
+    ecosystemCards = legacyEco.length > 0 ? legacyEco : (isExistingRecord ? [] : DEFAULT_PAGE_DATA.ecosystemCards);
   }
 
   // 4. Benefit Cards
   let benefitCards: BenefitCard[] = [];
-  if (Array.isArray(raw.benefitCards) && raw.benefitCards.length > 0) {
-    benefitCards = raw.benefitCards;
+  if (Array.isArray(raw.benefitCards)) {
+    benefitCards = raw.benefitCards.length > 0 ? raw.benefitCards : (isExistingRecord ? [] : DEFAULT_PAGE_DATA.benefitCards);
   } else {
     const legacyBen: BenefitCard[] = [];
     if (raw.benefit1Title) {
@@ -354,7 +384,7 @@ export const normalizeFranchisePageData = (
         icon: raw.benefit3Icon || 'trending_up',
       });
     }
-    benefitCards = legacyBen.length > 0 ? legacyBen : DEFAULT_PAGE_DATA.benefitCards;
+    benefitCards = legacyBen.length > 0 ? legacyBen : (isExistingRecord ? [] : DEFAULT_PAGE_DATA.benefitCards);
   }
 
   // 5. Gallery Images & Hero Image Sync
@@ -365,6 +395,11 @@ export const normalizeFranchisePageData = (
     isHero: Boolean(g.isHero || (heroImage && g.url === heroImage)),
   }));
 
+  // 6. Section Visibility
+  const sectionVisibility = raw.sectionVisibility && typeof raw.sectionVisibility === 'object'
+    ? { ...DEFAULT_FRANCHISE_SECTION_VISIBILITY, ...raw.sectionVisibility }
+    : { ...DEFAULT_FRANCHISE_SECTION_VISIBILITY };
+
   return {
     ...DEFAULT_PAGE_DATA,
     ...raw,
@@ -374,6 +409,7 @@ export const normalizeFranchisePageData = (
     ecosystemCards,
     benefitCards,
     galleryImages,
+    sectionVisibility,
   };
 };
 
@@ -387,6 +423,7 @@ export const prepareFranchisePagePayload = (data: FranchisePageData): FranchiseP
   const payload: FranchisePageData = {
     ...data,
     heroImage,
+    sectionVisibility: data.sectionVisibility || DEFAULT_FRANCHISE_SECTION_VISIBILITY,
     metric1Label: data.heroMetrics[0]?.label || '',
     metric1Value: data.heroMetrics[0]?.value || '',
     metric2Label: data.heroMetrics[1]?.label || '',
@@ -603,20 +640,72 @@ export const NEARBY_PLACE_PRESETS: Preset[] = [
 ];
 
 export const NEARBY_CATEGORY_OPTIONS = [
-  { value: 'Airport', label: '✈️ Airport', icon: 'flight' },
-  { value: 'Metro', label: '🚆 Metro / Transit', icon: 'train' },
-  { value: 'Hospital', label: '🏥 Hospital / Medical', icon: 'local_hospital' },
-  { value: 'School', label: '🎓 School / Academy', icon: 'school' },
-  { value: 'Beach', label: '🏖️ Beach / Waterfront', icon: 'beach_access' },
-  { value: 'Shopping', label: '🛍️ Shopping Mall', icon: 'shopping_bag' },
-  { value: 'Dining', label: '🍽️ Fine Dining', icon: 'restaurant' },
-  { value: 'Leisure', label: '⛵ Yacht Club / Marina', icon: 'directions_boat' },
-  { value: 'Golf', label: '⛳ Golf Course', icon: 'sports_golf' },
-  { value: 'Business', label: '🏢 Business District', icon: 'business_center' },
-  { value: 'Nature', label: '🌲 Nature / Park', icon: 'forest' },
-  { value: 'Heritage', label: '🏛️ Heritage Site', icon: 'castle' },
-  { value: 'Transit', label: '📍 General Landmark', icon: 'near_me' },
+  { value: 'Airport', label: 'Airport', icon: 'flight' },
+  { value: 'Metro', label: 'Metro / Transit', icon: 'train' },
+  { value: 'Hospital', label: 'Hospital / Medical', icon: 'local_hospital' },
+  { value: 'School', label: 'School / Academy', icon: 'school' },
+  { value: 'Beach', label: 'Beach / Waterfront', icon: 'beach_access' },
+  { value: 'Shopping', label: 'Shopping Mall', icon: 'shopping_bag' },
+  { value: 'Dining', label: 'Fine Dining', icon: 'restaurant' },
+  { value: 'Leisure', label: 'Yacht Club / Marina', icon: 'directions_boat' },
+  { value: 'Golf', label: 'Golf Course', icon: 'sports_golf' },
+  { value: 'Business', label: 'Business District', icon: 'business_center' },
+  { value: 'Nature', label: 'Nature / Park', icon: 'forest' },
+  { value: 'Heritage', label: 'Heritage Site', icon: 'castle' },
+  { value: 'Transit', label: 'General Landmark', icon: 'near_me' },
 ];
+
+export const COMMON_NEARBY_ICONS = [
+  { label: "Flight / Airport", icon: "flight" },
+  { label: "Helipad", icon: "helicopter" },
+  { label: "Train / Metro", icon: "train" },
+  { label: "Subway / Transit", icon: "subway" },
+  { label: "Car / Drive", icon: "directions_car" },
+  { label: "Navigation / Near Me", icon: "near_me" },
+  { label: "Beach / Coast", icon: "beach_access" },
+  { label: "Water / Ocean", icon: "water" },
+  { label: "Boat / Marina", icon: "directions_boat" },
+  { label: "Sailing / Yacht", icon: "sailing" },
+  { label: "Hospital / Healthcare", icon: "local_hospital" },
+  { label: "Medical / Clinic", icon: "medical_services" },
+  { label: "School / Education", icon: "school" },
+  { label: "Shopping / Retail", icon: "shopping_bag" },
+  { label: "Storefront / Mall", icon: "storefront" },
+  { label: "Dining / Restaurant", icon: "restaurant" },
+  { label: "Cafe / Coffee", icon: "local_cafe" },
+  { label: "Lounge / Bar", icon: "local_bar" },
+  { label: "Golf Course", icon: "sports_golf" },
+  { label: "Tennis Court", icon: "sports_tennis" },
+  { label: "Stadium / Arena", icon: "stadium" },
+  { label: "Business / CBD", icon: "business_center" },
+  { label: "Tower / High-Rise", icon: "apartment" },
+  { label: "Forest / Nature", icon: "forest" },
+  { label: "Park / Garden", icon: "park" },
+  { label: "Castle / Heritage", icon: "castle" },
+  { label: "Museum / Gallery", icon: "museum" },
+  { label: "Temple / Shrine", icon: "temple_hindu" },
+  { label: "Church / Cathedral", icon: "church" },
+  { label: "Map Pin / Location", icon: "location_on" },
+  { label: "Star / Landmark", icon: "star" },
+];
+
+export const getNearbyCategoryIcon = (category: string): string => {
+  switch (category) {
+    case "Airport": return "flight";
+    case "Metro": return "train";
+    case "Hospital": return "local_hospital";
+    case "School": return "school";
+    case "Beach": return "beach_access";
+    case "Shopping": return "shopping_bag";
+    case "Dining": return "restaurant";
+    case "Leisure": return "directions_boat";
+    case "Golf": return "sports_golf";
+    case "Business": return "business_center";
+    case "Nature": return "forest";
+    case "Heritage": return "castle";
+    default: return "near_me";
+  }
+};
 
 /* -------------------------------------------------------------------------- */
 /*                         CURRENCY INPUT FORMATTER                           */

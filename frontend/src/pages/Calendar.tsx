@@ -86,7 +86,10 @@ const Calendar_Page = () => {
   const fetchSlots = useCallback(async (date: Date, propertyId?: string) => {
     setLoadingSlots(true);
     try {
-      const dateStr = date.toISOString().split("T")[0];
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const dateStr = `${year}-${month}-${day}`;
       const params: Record<string, string> = { date: dateStr };
       if (propertyId) params.propertyId = propertyId;
 
@@ -164,13 +167,17 @@ const Calendar_Page = () => {
       const targetPropertyId =
         selectedPropertyId || properties[0]?.id || "palm-royale-default";
 
+      // Normalize to midday local date to avoid midnight UTC day-shift
+      const normalizedDate = new Date(selectedDate);
+      normalizedDate.setHours(12, 0, 0, 0);
+
       // Submit directly to Vilaasa Site Visits API (also auto-logs into CRM inquiry pipeline)
       await api.post("/site-visits", {
         propertyId: targetPropertyId,
         name: formData.name.trim(),
         email: clientEmail,
         phone: `${formData.phoneCountryCode} ${formData.phone}`.trim(),
-        scheduledDate: selectedDate.toISOString(),
+        scheduledDate: normalizedDate.toISOString(),
         scheduledTime: selectedTime,
         visitType,
         notes: formData.notes?.trim() || undefined,

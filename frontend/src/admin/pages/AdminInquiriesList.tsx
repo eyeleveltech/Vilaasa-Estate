@@ -270,6 +270,7 @@ export const AdminInquiriesList: React.FC = () => {
         scheduledTime: visitTime,
         visitType: "real-estate-india",
         notes: visitNotes || `Converted from Inquiry (ID: ${siteVisitInquiry.id})`,
+        inquiryId: siteVisitInquiry.id,
       });
 
       if (res.data.success) {

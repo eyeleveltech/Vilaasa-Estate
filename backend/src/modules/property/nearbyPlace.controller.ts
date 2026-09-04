@@ -11,6 +11,7 @@ export const NearbyPlaceSchema = z.object({
   category: z.string().optional().nullable(),
   travelTime: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
+  iconKey: z.string().optional().nullable(),
 });
 
 export const UpdateNearbyPlaceSchema = NearbyPlaceSchema.partial();
@@ -92,6 +93,7 @@ export const addNearbyPlace = asyncHandler(
         category: data.category ?? null,
         travelTime: data.travelTime ?? null,
         description: data.description ?? null,
+        iconKey: data.iconKey ?? null,
       },
     });
 
@@ -129,6 +131,7 @@ export const updateNearbyPlace = asyncHandler(
         category: data.category !== undefined ? data.category : undefined,
         travelTime: data.travelTime !== undefined ? data.travelTime : undefined,
         description: data.description !== undefined ? data.description : undefined,
+        iconKey: data.iconKey !== undefined ? data.iconKey : undefined,
       },
     });
 

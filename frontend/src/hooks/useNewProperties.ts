@@ -177,6 +177,23 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
     description: a.description || "",
   }));
 
+  const getNearbyCategoryIcon = (category?: string | null, name?: string): string => {
+    const lower = `${category || ""} ${name || ""}`.toLowerCase();
+    if (lower.includes("airport") || lower.includes("flight")) return "flight";
+    if (lower.includes("metro") || lower.includes("train") || lower.includes("transit") || lower.includes("rail")) return "train";
+    if (lower.includes("hospital") || lower.includes("clinic") || lower.includes("medical")) return "local_hospital";
+    if (lower.includes("school") || lower.includes("university") || lower.includes("college")) return "school";
+    if (lower.includes("beach") || lower.includes("coast") || lower.includes("sea")) return "beach_access";
+    if (lower.includes("shopping") || lower.includes("mall") || lower.includes("market")) return "shopping_bag";
+    if (lower.includes("dining") || lower.includes("restaurant") || lower.includes("cafe")) return "restaurant";
+    if (lower.includes("leisure") || lower.includes("marina") || lower.includes("yacht") || lower.includes("boat")) return "directions_boat";
+    if (lower.includes("golf")) return "sports_golf";
+    if (lower.includes("business") || lower.includes("cbd") || lower.includes("tower")) return "business_center";
+    if (lower.includes("nature") || lower.includes("park") || lower.includes("forest")) return "forest";
+    if (lower.includes("heritage") || lower.includes("fort") || lower.includes("palace") || lower.includes("museum")) return "castle";
+    return "near_me";
+  };
+
   const nearbyLocations = Array.from(new Map(
     (prop.nearbyPlaces || []).map((p) => [
       p.name, 
@@ -185,6 +202,8 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
         distance: p.distance,
         travelTime: p.travelTime,
         description: p.description,
+        category: p.category || undefined,
+        iconKey: p.iconKey || getNearbyCategoryIcon(p.category, p.name),
       }
     ])
   ).values());
@@ -192,6 +211,7 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
   return {
     id: prop.slug || prop.id,
     name: prop.name,
+    tagline: prop.tagline || undefined,
     location: prop.location
       ? `${prop.location.city}, ${prop.location.country}`
       : "Dubai, UAE",
@@ -213,13 +233,14 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
           .map((p) => p.trim())
           .filter(Boolean)
       : [prop.description || ""],
-    verdict: {
-      quote:
-        prop.verdictQuote ||
-        "An exceptional acquisition in an irreplaceable ultra-prime global enclave.",
-      author: prop.verdictAuthor || "Vilaasa Advisory Board",
-      title: prop.verdictTitle || "Director of Private Client Acquisitions",
-    },
+    verdict:
+      prop.verdictQuote && prop.verdictQuote.trim()
+        ? {
+            quote: prop.verdictQuote.trim(),
+            author: prop.verdictAuthor || "Vilaasa Advisory Board",
+            title: prop.verdictTitle || "Director of Private Client Acquisitions",
+          }
+        : undefined,
     specs,
     financials,
     configurations,
@@ -230,6 +251,7 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
     virtualTour360Url: prop.virtualTour360Url,
     googleMapLink: prop.location?.googleMapUrl,
     mapEmbedUrl: prop.location?.mapEmbedUrl || prop.location?.googleMapUrl,
+    sectionVisibility: (prop.sectionVisibility as Record<string, boolean>) || undefined,
   };
 }
 

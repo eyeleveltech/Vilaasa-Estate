@@ -266,7 +266,18 @@ const International = () => {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: index * 0.1 }}
                     >
-                      <div className="group block w-full overflow-hidden rounded-sm border border-border bg-card text-left transition-all hover:border-primary/50">
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => openInquiry({ id: property.id, name: property.name })}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            openInquiry({ id: property.id, name: property.name });
+                          }
+                        }}
+                        className="group block w-full cursor-pointer overflow-hidden rounded-sm border border-border bg-card text-left transition-all hover:border-primary/50 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      >
                         <div className="relative aspect-[4/3] overflow-hidden">
                           <div
                             className="h-full w-full bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
@@ -337,7 +348,10 @@ const International = () => {
                           <div className="mt-4 w-full">
                             <button
                               type="button"
-                              onClick={() => openInquiry({ id: property.id, name: property.name })}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openInquiry({ id: property.id, name: property.name });
+                              }}
                               className="inline-flex w-full justify-center bg-primary py-2 text-sm font-bold uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
                             >
                               View Details

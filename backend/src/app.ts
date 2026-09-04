@@ -121,11 +121,22 @@ const otpLimiter = rateLimit({
   message: rateLimitMessage("15 minutes"),
 });
 
+// Lead generation & site visit rate limiter to prevent DB flooding and email bombing
+const inquiryLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: rateLimitMessage("15 minutes"),
+});
+
 app.use("/api/", apiLimiter);
 app.use("/api/v1/auth/login", authLimiter);
 app.use("/api/v1/auth/register", authLimiter);
 app.use("/api/v1/vault/login", authLimiter);
 app.use("/api/v1/auth/otp", otpLimiter);
+app.use("/api/v1/inquiries", inquiryLimiter);
+app.use("/api/v1/site-visits", inquiryLimiter);
 
 // ----------------------------------------------------
 // Health Check Endpoint

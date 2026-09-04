@@ -14,6 +14,7 @@ import {
 export interface FranchiseItem {
   id: string;
   name: string;
+  tagline?: string;
   category: string;
   location: string;
   price: number;
@@ -83,6 +84,7 @@ export interface FranchiseItem {
     masterDisclaimer?: string;
     termsUrl?: string;
   };
+  sectionVisibility?: Record<string, boolean>;
 }
 
 export interface FranchiseListItem {
@@ -230,6 +232,7 @@ interface BackendProperty {
   location?: BackendLocation | null;
   media?: BackendMedia[];
   amenities?: BackendAmenityRel[];
+  sectionVisibility?: Record<string, boolean> | null;
 }
 
 interface ApiResponse<T> {
@@ -579,6 +582,7 @@ export function transformPropertyToFranchise(prop: BackendProperty): FranchiseIt
   return {
     id: prop.slug || prop.id,
     name: prop.name,
+    tagline: prop.tagline || undefined,
     category: prop.customType || "Franchises",
     type: prop.tagline || prop.type.replace(/_/g, " "),
     location:
@@ -669,6 +673,7 @@ export function transformPropertyToFranchise(prop: BackendProperty): FranchiseIt
     primaryCta: richSpecs?.primaryCta || { text: "Book a call today", link: "/calendar" },
     secondaryCta: richSpecs?.secondaryCta || { text: "Open Wealth Projector", link: "/wealth-projector" },
     seoAndLegal: richSpecs?.seoAndLegal || undefined,
+    sectionVisibility: (prop.sectionVisibility as Record<string, boolean>) || undefined,
   };
 }
 
