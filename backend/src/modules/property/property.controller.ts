@@ -357,6 +357,7 @@ export const createProperty = asyncHandler(
         brochureUrl: data.brochureUrl,
         maintenanceFeePerSqFt: data.maintenanceFeePerSqFt,
         customSpecs: data.customSpecs !== undefined ? (data.customSpecs as any) : undefined,
+        sectionVisibility: data.sectionVisibility !== undefined ? (data.sectionVisibility as any) : undefined,
         verdictQuote: data.verdictQuote,
         verdictAuthor: data.verdictAuthor,
         verdictTitle: data.verdictTitle,
@@ -433,6 +434,7 @@ export const createProperty = asyncHandler(
                   category: p.category ?? null,
                   travelTime: p.travelTime ?? null,
                   description: p.description ?? null,
+                  iconKey: p.iconKey ?? null,
                 })),
               },
             }
@@ -644,6 +646,7 @@ export const updateProperty = asyncHandler(
             category: p.category ?? null,
             travelTime: p.travelTime ?? null,
             description: p.description ?? null,
+            iconKey: p.iconKey ?? null,
           })),
         });
       }
@@ -699,6 +702,7 @@ export const updateProperty = asyncHandler(
         brochureUrl: data.brochureUrl,
         maintenanceFeePerSqFt: data.maintenanceFeePerSqFt,
         customSpecs: data.customSpecs !== undefined ? (data.customSpecs as any) : undefined,
+        sectionVisibility: data.sectionVisibility !== undefined ? (data.sectionVisibility as any) : undefined,
         verdictQuote: data.verdictQuote,
         verdictAuthor: data.verdictAuthor,
         verdictTitle: data.verdictTitle,

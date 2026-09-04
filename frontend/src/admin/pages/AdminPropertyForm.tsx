@@ -63,13 +63,11 @@ import {
   FINANCIAL_METRIC_PRESETS,
   UNIT_TYPE_PRESETS,
   AMENITY_PRESETS,
-  NEARBY_CATEGORY_PRESETS,
-  NEARBY_PLACE_PRESETS,
   NEARBY_CATEGORY_OPTIONS,
 } from "../lib/franchisePageHelpers";
 import { SortableArrayItem } from "../components/SortableArrayItem";
-import { PresetDropdown } from "../components/PresetDropdown";
 import { DraftSaveBar } from "../components/DraftSaveBar";
+import { FormSectionHeader } from "../components/FormSectionHeader";
 
 /* -------------------------------------------------------------------------- */
 /*                                CONSTANTS & HELPERS                         */
@@ -274,6 +272,29 @@ const SECTIONS_NAV = [
   { id: "sec-location", label: "8. Location" },
 ];
 
+
+const DEFAULT_PROPERTY_SECTION_EXPANDED: Record<string, boolean> = {
+  "sec-hero": true,
+  "sec-vision": true,
+  "sec-specs": true,
+  "sec-financials": true,
+  "sec-pricing": true,
+  "sec-gallery": true,
+  "sec-amenities": true,
+  "sec-location": true,
+};
+
+const DEFAULT_PROPERTY_SECTION_VISIBILITY: Record<string, boolean> = {
+  "sec-hero": true,
+  "sec-vision": true,
+  "sec-specs": true,
+  "sec-financials": true,
+  "sec-pricing": true,
+  "sec-gallery": true,
+  "sec-amenities": true,
+  "sec-location": true,
+};
+
 // Helper to generate unique IDs for dynamic array items
 const genId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -293,10 +314,29 @@ export const AdminPropertyForm: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(isEditMode);
   const [saving, setSaving] = useState<boolean>(false);
   const [uploadingGallery, setUploadingGallery] = useState<boolean>(false);
-  const [activeStepId, setActiveStepId] = useState<string>(SECTIONS_NAV[0].id);
-  const [isAllSectionsView, setIsAllSectionsView] = useState<boolean>(false);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
+    DEFAULT_PROPERTY_SECTION_EXPANDED
+  );
+  const [sectionVisibility, setSectionVisibility] = useState<Record<string, boolean>>(
+    DEFAULT_PROPERTY_SECTION_VISIBILITY
+  );
 
-  const isSectionVisible = (sectionId: string) => isAllSectionsView || activeStepId === sectionId;
+  const toggleSectionExpanded = (secId: string) => {
+    setExpandedSections((prev) => ({ ...prev, [secId]: !prev[secId] }));
+  };
+
+  const toggleSectionVisibility = (secId: string, visible: boolean) => {
+    setSectionVisibility((prev) => ({ ...prev, [secId]: visible }));
+  };
+
+  const handleToggleAllSections = () => {
+    const allExpanded = Object.values(expandedSections).every(Boolean);
+    const nextState: Record<string, boolean> = {};
+    Object.keys(DEFAULT_PROPERTY_SECTION_EXPANDED).forEach((k) => {
+      nextState[k] = !allExpanded;
+    });
+    setExpandedSections(nextState);
+  };
 
   /* ---------------------- DnD Sensors ---------------------------------- */
   const sensors = useSensors(
@@ -453,6 +493,13 @@ export const AdminPropertyForm: React.FC = () => {
               description: p.description || "",
             }))
           );
+        }
+
+        if (prop.sectionVisibility && typeof prop.sectionVisibility === "object") {
+          setSectionVisibility({
+            ...DEFAULT_PROPERTY_SECTION_VISIBILITY,
+            ...(prop.sectionVisibility as Record<string, boolean>),
+          });
         }
 
         // Media Gallery
@@ -770,31 +817,31 @@ export const AdminPropertyForm: React.FC = () => {
       toast.error("Property type is required (Hero Section)");
       return false;
     }
-    if (description.trim().length < 10) {
+    if (sectionVisibility["sec-vision"] !== false && description.trim().length < 10) {
       toast.error("Description must be at least 10 characters (Vision Section)");
       return false;
     }
-    if (!customSpecs.some((s) => s.label.trim())) {
+    if (sectionVisibility["sec-specs"] !== false && !customSpecs.some((s) => s.label.trim())) {
       toast.error("At least one specification is required (Specs Section)");
       return false;
     }
-    if (!financialMetrics.some((f) => f.label.trim())) {
+    if (sectionVisibility["sec-financials"] !== false && !financialMetrics.some((f) => f.label.trim())) {
       toast.error("At least one financial metric is required (Financials Section)");
       return false;
     }
-    if (!price.trim() && !priceOnApplication) {
+    if (sectionVisibility["sec-pricing"] !== false && !price.trim() && !priceOnApplication) {
       toast.error("Pricing must be provided or 'Price on Application' selected (Pricing Section)");
       return false;
     }
-    if (galleryImages.length === 0) {
+    if (sectionVisibility["sec-gallery"] !== false && galleryImages.length === 0) {
       toast.error("At least one gallery image is required (Gallery Section)");
       return false;
     }
-    if (!amenities.some((a) => a.name.trim())) {
+    if (sectionVisibility["sec-amenities"] !== false && !amenities.some((a) => a.name.trim())) {
       toast.error("At least one amenity is required (Amenities Section)");
       return false;
     }
-    if (!city.trim()) {
+    if (sectionVisibility["sec-location"] !== false && !city.trim()) {
       toast.error("City is required (Location Section)");
       return false;
     }
@@ -852,10 +899,14 @@ export const AdminPropertyForm: React.FC = () => {
         type: mappedType,
         customType: propertyType.trim(),
         status,
-        description: description.trim(),
+        description:
+          description.trim().length >= 10
+            ? description.trim()
+            : `${name.trim()} - Luxury investment estate opportunity with institutional management.`,
         virtualTour360Url: virtualTour360Url.trim() || undefined,
         brochureUrl: brochureUrl.trim() || undefined,
         customSpecs: cleanedCustomSpecs,
+        sectionVisibility,
         price: priceOnApplication ? 0 : parseAmountNumber(price),
         currency,
         priceOnApplication,
@@ -930,13 +981,13 @@ export const AdminPropertyForm: React.FC = () => {
   /* ---------------------- Section Validation Status -------------------- */
   const sectionStatus: Record<string, boolean> = {
     "sec-hero": name.trim().length > 0 && propertyType.trim().length > 0,
-    "sec-vision": description.trim().length >= 10,
-    "sec-specs": customSpecs.some((s) => s.label.trim()),
-    "sec-financials": financialMetrics.some((f) => f.label.trim()),
-    "sec-pricing": price.trim().length > 0 || priceOnApplication,
-    "sec-gallery": galleryImages.length > 0,
-    "sec-amenities": amenities.some((a) => a.name.trim()),
-    "sec-location": city.trim().length > 0,
+    "sec-vision": sectionVisibility["sec-vision"] === false || description.trim().length >= 10,
+    "sec-specs": sectionVisibility["sec-specs"] === false || customSpecs.some((s) => s.label.trim()),
+    "sec-financials": sectionVisibility["sec-financials"] === false || financialMetrics.some((f) => f.label.trim()),
+    "sec-pricing": sectionVisibility["sec-pricing"] === false || price.trim().length > 0 || priceOnApplication,
+    "sec-gallery": sectionVisibility["sec-gallery"] === false || galleryImages.length > 0,
+    "sec-amenities": sectionVisibility["sec-amenities"] === false || amenities.some((a) => a.name.trim()),
+    "sec-location": sectionVisibility["sec-location"] === false || city.trim().length > 0,
   };
 
   return (
@@ -1002,67 +1053,61 @@ export const AdminPropertyForm: React.FC = () => {
       </div>
 
       {/* ----------------- STICKY SECTION STEP NAV with Validation Indicators ----------------- */}
-      <div className="sticky top-16 z-20 bg-background/95 backdrop-blur-md py-2.5 px-3 rounded-xl border border-border/80 shadow-md">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 text-xs no-scrollbar flex-1 min-w-0">
-            {SECTIONS_NAV.map((s, idx) => {
-              const done = sectionStatus[s.id];
-              const isActive = activeStepId === s.id;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => {
-                    setActiveStepId(s.id);
-                    if (isAllSectionsView) {
-                      document.getElementById(s.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    } else {
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }
-                  }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg whitespace-nowrap transition-all font-medium text-[11px] shrink-0 ${
-                    isActive
-                      ? "bg-primary text-primary-foreground font-semibold shadow-sm"
-                      : done
-                      ? "bg-secondary/40 text-foreground hover:bg-secondary/70 border border-emerald-500/30"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/40 border border-border/50"
-                  }`}
-                >
-                  {done ? (
-                    <CheckCircle className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-primary-foreground" : "text-emerald-400"}`} />
-                  ) : (
-                    <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-                      {idx + 1}
-                    </span>
-                  )}
-                  <span>{s.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="hidden md:flex items-center gap-2 pl-3 border-l border-border/60 shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsAllSectionsView((v) => !v)}
-              className="text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors px-2.5 py-1.5 rounded-md hover:bg-secondary/60 border border-border/60"
-            >
-              {isAllSectionsView ? "⚡ Step Wizard" : "📄 View All"}
-            </button>
-          </div>
+      <div className="sticky top-16 z-20 bg-background/95 backdrop-blur-md py-2.5 px-3 rounded-xl border border-border/80 shadow-md flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 text-xs no-scrollbar flex-1 min-w-0">
+          {SECTIONS_NAV.map((s, idx) => {
+            const done = sectionStatus[s.id];
+            const isVis = sectionVisibility[s.id] !== false;
+            return (
+              <a
+                key={s.id}
+                href={`#${s.id}`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg whitespace-nowrap transition-all font-medium text-[11px] shrink-0 ${
+                  done
+                    ? "bg-secondary/40 text-foreground hover:bg-secondary/70 border border-emerald-500/30"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40 border border-border/50"
+                } ${!isVis ? "opacity-60 border-dashed" : ""}`}
+              >
+                {done ? (
+                  <CheckCircle className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                ) : (
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground text-[10px] font-bold">
+                    {idx + 1}
+                  </span>
+                )}
+                <span>{s.label}</span>
+                {!isVis && <span className="text-[9px] text-amber-400/80 font-normal">(Hidden)</span>}
+              </a>
+            );
+          })}
         </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleToggleAllSections}
+          className="text-[11px] h-7 px-2.5 shrink-0 border-border text-muted-foreground hover:text-foreground hidden sm:flex"
+        >
+          {Object.values(expandedSections).every(Boolean) ? "Collapse All" : "Expand All"}
+        </Button>
       </div>
 
       {/* ----------------- FORM SECTIONS CONTAINER ----------------- */}
       <div className="w-full min-w-0">
         {/* SECTION 1: HERO & CORE LISTING */}
-        <section id="sec-hero" className={isSectionVisible("sec-hero") ? "rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6" : "hidden"}>
-          <div className="border-b border-border/70 pb-3 mb-5 flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5" />
-              1. Hero Header &amp; Core Listing
-            </span>
-          </div>
+        <section id="sec-hero" className="rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6 scroll-mt-24">
+          <FormSectionHeader
+            id="sec-hero"
+            title="1. Hero Header & Core Listing"
+            icon={<Sparkles className="h-3.5 w-3.5" />}
+            subtitle="Market scope, title, category, and virtual tour/brochure."
+            isExpanded={expandedSections["sec-hero"]}
+            isVisible={sectionVisibility["sec-hero"] !== false}
+            onToggleExpanded={() => toggleSectionExpanded("sec-hero")}
+            onToggleVisibility={(v) => toggleSectionVisibility("sec-hero", v)}
+          />
+          {expandedSections["sec-hero"] && (
 
           <div className="space-y-5">
             {/* Market Scope */}
@@ -1183,16 +1228,22 @@ export const AdminPropertyForm: React.FC = () => {
               </div>
             </div>
           </div>
+          )}
         </section>
 
         {/* SECTION 2: THE VISION & STORY */}
-        <section id="sec-vision" className={isSectionVisible("sec-vision") ? "rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6" : "hidden"}>
-          <div className="border-b border-border/70 pb-3 mb-5">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
-              <BookOpen className="h-3.5 w-3.5" />
-              2. The Vision Story &amp; Advisory Verdict
-            </span>
-          </div>
+        <section id="sec-vision" className="rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6 scroll-mt-24">
+          <FormSectionHeader
+            id="sec-vision"
+            title="2. The Vision Story & Advisory Verdict"
+            icon={<BookOpen className="h-3.5 w-3.5" />}
+            subtitle="Architectural vision, luxury lifestyle story, and expert investment verdict."
+            isExpanded={expandedSections["sec-vision"]}
+            isVisible={sectionVisibility["sec-vision"] !== false}
+            onToggleExpanded={() => toggleSectionExpanded("sec-vision")}
+            onToggleVisibility={(v) => toggleSectionVisibility("sec-vision", v)}
+          />
+          {expandedSections["sec-vision"] && (
 
           <div className="space-y-4">
             <div>
@@ -1260,115 +1311,125 @@ export const AdminPropertyForm: React.FC = () => {
               </div>
             </div>
           </div>
+          )}
         </section>
 
         {/* SECTION 3: AT A GLANCE (SPECS) */}
-        <section id="sec-specs" className={isSectionVisible("sec-specs") ? "rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6" : "hidden"}>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/70 pb-3 mb-5">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
-              <LayoutGrid className="h-3.5 w-3.5" />
-              3. At a Glance (Key Specifications)
-            </span>
-            <div className="flex flex-wrap items-center gap-2">
-              <PresetDropdown
-                presets={SPEC_PRESETS}
-                triggerLabel="Add Preset Spec"
-                onSelect={(p) => handleAddSpec(p)}
-              />
+        <section id="sec-specs" className="rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6 scroll-mt-24">
+          <FormSectionHeader
+            id="sec-specs"
+            title="3. At a Glance (Key Specifications)"
+            icon={<LayoutGrid className="h-3.5 w-3.5" />}
+            subtitle="Configurable spec cards shown prominently on the public listing."
+            isExpanded={expandedSections["sec-specs"]}
+            isVisible={sectionVisibility["sec-specs"] !== false}
+            onToggleExpanded={() => toggleSectionExpanded("sec-specs")}
+            onToggleVisibility={(v) => toggleSectionVisibility("sec-specs", v)}
+            actionButton={
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => handleAddSpec(null)}
-                className="gap-1.5 h-7 text-xs border-border text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  handleAddSpec(null);
+                  setExpandedSections((p) => ({ ...p, "sec-specs": true }));
+                }}
+                className="h-8 w-8 p-0 border-border text-muted-foreground hover:border-primary hover:text-primary"
+                title="Add Specification"
               >
-                <Plus className="h-3 w-3" />
-                <span>Custom</span>
+                <Plus className="h-4 w-4" />
               </Button>
-            </div>
-          </div>
-
-          {customSpecs.length === 0 ? (
-            <div className="p-4 rounded-lg border border-dashed border-border text-center">
-              <p className="text-xs text-muted-foreground">
-                No custom specifications added. Use a preset or click &quot;Custom&quot; to add specs.
-              </p>
-            </div>
-          ) : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndSpecs}>
-              <SortableContext items={customSpecs.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
-                  {customSpecs.map((spec, idx) => {
-                    const specPlaceholders = [
-                      { label: "e.g. BUILT-UP AREA", value: "e.g. 6,500 Sq.Ft." },
-                      { label: "e.g. BEDROOMS", value: "e.g. 5 Master Suites" },
-                      { label: "e.g. STARTING PRICE", value: "e.g. ₹12 Cr (or inr 12 cr)" },
-                      { label: "e.g. OWNERSHIP", value: "e.g. Freehold" },
-                    ];
-                    const ph = specPlaceholders[idx] || { label: "e.g. SPEC LABEL", value: "e.g. Value or ₹ Amount" };
-                    return (
-                      <SortableArrayItem
-                        key={spec.id}
-                        id={spec.id}
-                        onClone={() => handleCloneSpec(spec.id)}
-                        onRemove={() => handleRemoveSpec(spec.id)}
-                      >
-                        <div className="p-3.5 rounded-lg border border-border/60 bg-secondary/20 space-y-2">
-                          <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Spec #{idx + 1}</Label>
-                          <div>
-                            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Label</Label>
-                            <Input value={spec.label} onChange={(e) => handleUpdateSpec(spec.id, "label", e.target.value)} placeholder={ph.label} className="bg-secondary/40 h-8 text-xs font-semibold mt-1" />
-                          </div>
-                          <div>
-                            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                              Value <span className="text-[9px] text-muted-foreground/60 lowercase font-normal"></span>
-                            </Label>
-                            <Input value={spec.value} onChange={(e) => handleUpdateSpec(spec.id, "value", e.target.value)} placeholder={ph.value} className="bg-secondary/40 h-8 text-xs text-foreground font-bold mt-1" />
-                          </div>
-                        </div>
-                      </SortableArrayItem>
-                    );
-                  })}
+            }
+          />
+          {expandedSections["sec-specs"] && (
+            <div className="pt-2">
+              {customSpecs.length === 0 ? (
+                <div className="p-4 rounded-lg border border-dashed border-border text-center">
+                  <p className="text-xs text-muted-foreground">
+                    No custom specifications added. Click &quot;+&quot; to add specs.
+                  </p>
                 </div>
-              </SortableContext>
-            </DndContext>
+              ) : (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndSpecs}>
+                  <SortableContext items={customSpecs.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
+                      {customSpecs.map((spec, idx) => {
+                        const specPlaceholders = [
+                          { label: "e.g. BUILT-UP AREA", value: "e.g. 6,500 Sq.Ft." },
+                          { label: "e.g. BEDROOMS", value: "e.g. 5 Master Suites" },
+                          { label: "e.g. STARTING PRICE", value: "e.g. ₹12 Cr (or inr 12 cr)" },
+                          { label: "e.g. OWNERSHIP", value: "e.g. Freehold" },
+                        ];
+                        const ph = specPlaceholders[idx] || { label: "e.g. SPEC LABEL", value: "e.g. Value or ₹ Amount" };
+                        return (
+                          <SortableArrayItem
+                            key={spec.id}
+                            id={spec.id}
+                            onClone={() => handleCloneSpec(spec.id)}
+                            onRemove={() => handleRemoveSpec(spec.id)}
+                          >
+                            <div className="p-3.5 rounded-lg border border-border/60 bg-secondary/20 space-y-2">
+                              <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Spec #{idx + 1}</Label>
+                              <div>
+                                <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Label</Label>
+                                <Input value={spec.label} onChange={(e) => handleUpdateSpec(spec.id, "label", e.target.value)} placeholder={ph.label} className="bg-secondary/40 h-8 text-xs font-semibold mt-1" />
+                              </div>
+                              <div>
+                                <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                                  Value <span className="text-[9px] text-muted-foreground/60 lowercase font-normal"></span>
+                                </Label>
+                                <Input value={spec.value} onChange={(e) => handleUpdateSpec(spec.id, "value", e.target.value)} placeholder={ph.value} className="bg-secondary/40 h-8 text-xs text-foreground font-bold mt-1" />
+                              </div>
+                            </div>
+                          </SortableArrayItem>
+                        );
+                      })}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              )}
+            </div>
           )}
         </section>
 
         {/* SECTION 4: FINANCIAL INTELLIGENCE */}
-        <section id="sec-financials" className={isSectionVisible("sec-financials") ? "rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6" : "hidden"}>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/70 pb-3 mb-3">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
-              <TrendingUp className="h-3.5 w-3.5" />
-              4. Financial Intelligence
-            </span>
-            <div className="flex flex-wrap items-center gap-2">
-              <PresetDropdown
-                presets={FINANCIAL_METRIC_PRESETS}
-                triggerLabel="Add Preset Metric"
-                onSelect={(p) => handleAddFinancialMetric(p)}
-              />
+        <section id="sec-financials" className="rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6 scroll-mt-24">
+          <FormSectionHeader
+            id="sec-financials"
+            title="4. Financial Intelligence"
+            icon={<TrendingUp className="h-3.5 w-3.5" />}
+            subtitle="IRR, capital appreciation, rental yield projections, and financial metrics."
+            isExpanded={expandedSections["sec-financials"]}
+            isVisible={sectionVisibility["sec-financials"] !== false}
+            onToggleExpanded={() => toggleSectionExpanded("sec-financials")}
+            onToggleVisibility={(v) => toggleSectionVisibility("sec-financials", v)}
+            actionButton={
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => handleAddFinancialMetric(null)}
-                className="gap-1.5 h-7 text-xs border-border text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  handleAddFinancialMetric(null);
+                  setExpandedSections((p) => ({ ...p, "sec-financials": true }));
+                }}
+                className="h-8 w-8 p-0 border-border text-muted-foreground hover:border-primary hover:text-primary"
+                title="Add Financial Metric"
               >
-                <Plus className="h-3 w-3" />
-                <span>Custom</span>
+                <Plus className="h-4 w-4" />
               </Button>
-            </div>
-          </div>
-          <p className="text-[11px] text-muted-foreground mb-4 bg-amber-500/10 border border-amber-500/20 p-2 rounded-md">
-            <strong>Note:</strong> To avoid investor confusion, please clearly distinguish between the <strong>Base Franchise Fee / Booking Amount</strong> (e.g., ₹15 Lakh) and the <strong>Total Capital Required / Ticket Size</strong> (e.g., ₹40 Lakh). Use separate metrics for each.
-          </p>
+            }
+          />
+          {expandedSections["sec-financials"] && (
+            <div className="space-y-4">
+              <p className="text-[11px] text-muted-foreground mb-4 bg-amber-500/10 border border-amber-500/20 p-2 rounded-md">
+                <strong>Note:</strong> To avoid investor confusion, please clearly distinguish between the <strong>Base Franchise Fee / Booking Amount</strong> (e.g., ₹15 Lakh) and the <strong>Total Capital Required / Ticket Size</strong> (e.g., ₹40 Lakh). Use separate metrics for each.
+              </p>
 
-          {financialMetrics.length === 0 ? (
-            <div className="p-4 rounded-lg border border-dashed border-border text-center">
-              <p className="text-xs text-muted-foreground">No financial metrics added. Use a preset or &quot;Custom&quot; to add ROI metrics.</p>
-            </div>
-          ) : (
+              {financialMetrics.length === 0 ? (
+                <div className="p-4 rounded-lg border border-dashed border-border text-center">
+                  <p className="text-xs text-muted-foreground">No financial metrics added. Click &quot;+&quot; to add ROI metrics.</p>
+                </div>
+              ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndFinancialMetrics}>
               <SortableContext items={financialMetrics.map((m) => m.id)} strategy={verticalListSortingStrategy}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
@@ -1429,16 +1490,23 @@ export const AdminPropertyForm: React.FC = () => {
               </SortableContext>
             </DndContext>
           )}
-        </section>
+        </div>
+      )}
+    </section>
 
         {/* SECTION 5: PRICING & CONFIGURATIONS */}
-        <section id="sec-pricing" className={isSectionVisible("sec-pricing") ? "rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6" : "hidden"}>
-          <div className="border-b border-border/70 pb-3 mb-5 flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
-              <Tag className="h-3.5 w-3.5" />
-              5. Pricing &amp; Unit Configurations
-            </span>
-          </div>
+        <section id="sec-pricing" className="rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6 scroll-mt-24">
+          <FormSectionHeader
+            id="sec-pricing"
+            title="5. Pricing & Unit Configurations"
+            icon={<Tag className="h-3.5 w-3.5" />}
+            subtitle="Starting price, POA flag, and unit layout breakdowns."
+            isExpanded={expandedSections["sec-pricing"]}
+            isVisible={sectionVisibility["sec-pricing"] !== false}
+            onToggleExpanded={() => toggleSectionExpanded("sec-pricing")}
+            onToggleVisibility={(v) => toggleSectionVisibility("sec-pricing", v)}
+          />
+          {expandedSections["sec-pricing"] && (
 
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1525,21 +1593,16 @@ export const AdminPropertyForm: React.FC = () => {
                     Specify 3 BHK, 4 BHK, or custom penthouse floor plans and pricing.
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <PresetDropdown
-                    presets={UNIT_TYPE_PRESETS}
-                    triggerLabel="Add Preset Unit"
-                    onSelect={(p) => handleAddConfiguration(p)}
-                  />
+                <div className="flex items-center gap-2">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => handleAddConfiguration(null)}
-                    className="gap-1.5 h-7 text-xs border-border text-muted-foreground hover:text-foreground"
+                    className="h-8 w-8 p-0 border-border text-muted-foreground hover:border-primary hover:text-primary shrink-0"
+                    title="Add Layout Configuration"
                   >
-                    <Plus className="h-3 w-3" />
-                    <span>Custom</span>
+                    <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -1588,186 +1651,201 @@ export const AdminPropertyForm: React.FC = () => {
               )}
             </div>
           </div>
+          )}
         </section>
 
         {/* SECTION 6: VISUAL SHOWCASE & GALLERY */}
-        <section id="sec-gallery" className={isSectionVisible("sec-gallery") ? "rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6" : "hidden"}>
-          <div className="border-b border-border/70 pb-3 mb-5">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
-              <ImageIcon className="h-3.5 w-3.5" />
-              6. Visual Showcase &amp; Architectural Gallery
-            </span>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Upload luxury architectural photography, layouts, and mark your primary Hero Image.
-            </p>
-          </div>
-
-          {/* Batch drag-and-drop upload zone */}
-          <div className="mb-6">
-            <label
-              className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-border rounded-xl bg-secondary/10 hover:bg-secondary/20 cursor-pointer transition-colors"
-              onDragOver={handleGalleryDragOver}
-              onDrop={handleGalleryDrop}
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-3">
-                <Upload className="h-6 w-6" />
-              </div>
-              <p className="text-sm font-semibold text-foreground">
-                {uploadingGallery ? "Uploading..." : "Click or drag-and-drop to upload gallery images"}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">PNG, JPG, WEBP up to 2MB each. Multiple files supported.</p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*"
-                disabled={uploadingGallery}
-                onChange={(e) => { if (e.target.files) void handleUploadGalleryImages(e.target.files); }}
-                className="hidden"
-              />
-            </label>
-          </div>
-
-          {galleryImages.length === 0 ? (
-            <div className="text-center py-4 text-muted-foreground text-xs border border-border/40 rounded-lg bg-secondary/10">
-              No gallery images yet.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {galleryImages.map((img, idx) => (
-                <div
-                  key={img.id || idx}
-                  className={`relative rounded-xl border p-3 bg-secondary/20 space-y-2.5 transition-all ${
-                    img.isHero ? "border-amber-400/80 shadow-md ring-1 ring-amber-400/30" : "border-border"
-                  }`}
+        <section id="sec-gallery" className="rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6 scroll-mt-24">
+          <FormSectionHeader
+            id="sec-gallery"
+            title="6. Visual Showcase & Gallery"
+            icon={<ImageIcon className="h-3.5 w-3.5" />}
+            subtitle="Upload luxury architectural photography, layouts, and mark your primary Hero Image."
+            isExpanded={expandedSections["sec-gallery"]}
+            isVisible={sectionVisibility["sec-gallery"] !== false}
+            onToggleExpanded={() => toggleSectionExpanded("sec-gallery")}
+            onToggleVisibility={(v) => toggleSectionVisibility("sec-gallery", v)}
+          />
+          {expandedSections["sec-gallery"] && (
+            <div className="space-y-6">
+              {/* Batch drag-and-drop upload zone */}
+              <div>
+                <label
+                  className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-border rounded-xl bg-secondary/10 hover:bg-secondary/20 cursor-pointer transition-colors"
+                  onDragOver={handleGalleryDragOver}
+                  onDrop={handleGalleryDrop}
                 >
-                  <div className="aspect-[4/3] rounded-lg overflow-hidden bg-black/40 relative">
-                    <img src={img.url} alt={img.caption || "Gallery"} className="w-full h-full object-cover" />
-                    {img.isHero && (
-                      <div className="absolute top-2 left-2 flex items-center gap-1 bg-amber-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
-                        <Star className="h-3 w-3 fill-black" />
-                        <span>★ Hero Image</span>
-                      </div>
-                    )}
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-3">
+                    <Upload className="h-6 w-6" />
                   </div>
+                  <p className="text-sm font-semibold text-foreground">
+                    {uploadingGallery ? "Uploading..." : "Click or drag-and-drop to upload gallery images"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">PNG, JPG, WEBP up to 2MB each. Multiple files supported.</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    disabled={uploadingGallery}
+                    onChange={(e) => { if (e.target.files) void handleUploadGalleryImages(e.target.files); }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="flex items-center gap-1.5 text-xs text-foreground cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(img.isHero)}
-                          onChange={() => handleToggleHeroImage(idx)}
-                          className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
-                        />
-                        <span className="text-[11px] font-semibold">Show as Hero Image</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveGalleryImage(idx)}
-                        className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                        title="Remove Image"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground uppercase">Caption / Title</Label>
-                      <Input
-                        value={img.caption}
-                        onChange={(e) => handleUpdateGalleryCaption(idx, e.target.value)}
-                        placeholder="e.g. Master Bedroom View"
-                        className="bg-secondary/40 h-8 text-xs mt-1"
-                      />
-                    </div>
-                  </div>
+              {galleryImages.length === 0 ? (
+                <div className="text-center py-4 text-muted-foreground text-xs border border-border/40 rounded-lg bg-secondary/10">
+                  No gallery images yet.
                 </div>
-              ))}
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {galleryImages.map((img, idx) => (
+                    <div
+                      key={img.id || idx}
+                      className={`relative rounded-xl border p-3 bg-secondary/20 space-y-2.5 transition-all ${
+                        img.isHero ? "border-amber-400/80 shadow-md ring-1 ring-amber-400/30" : "border-border"
+                      }`}
+                    >
+                      <div className="aspect-[4/3] rounded-lg overflow-hidden bg-black/40 relative">
+                        <img src={img.url} alt={img.caption || "Gallery"} className="w-full h-full object-cover" />
+                        {img.isHero && (
+                          <div className="absolute top-2 left-2 flex items-center gap-1 bg-amber-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
+                            <Star className="h-3 w-3 fill-black" />
+                            <span>★ Hero Image</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="flex items-center gap-1.5 text-xs text-foreground cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(img.isHero)}
+                              onChange={() => handleToggleHeroImage(idx)}
+                              className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
+                            />
+                            <span className="text-[11px] font-semibold">Show as Hero Image</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveGalleryImage(idx)}
+                            className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                            title="Remove Image"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground uppercase">Caption / Title</Label>
+                          <Input
+                            value={img.caption}
+                            onChange={(e) => handleUpdateGalleryCaption(idx, e.target.value)}
+                            placeholder="e.g. Master Bedroom View"
+                            className="bg-secondary/40 h-8 text-xs mt-1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </section>
 
         {/* SECTION 7: AMENITIES */}
-        <section id="sec-amenities" className={isSectionVisible("sec-amenities") ? "rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6" : "hidden"}>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/70 pb-3 mb-5">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
-              <Layers className="h-3.5 w-3.5" />
-              7. Signature Amenities
-            </span>
-            <div className="flex flex-wrap items-center gap-2">
-              <PresetDropdown
-                presets={AMENITY_PRESETS}
-                triggerLabel="Add Preset Amenity"
-                onSelect={(p) => handleAddAmenity(p)}
-              />
+        <section id="sec-amenities" className="rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6 scroll-mt-24">
+          <FormSectionHeader
+            id="sec-amenities"
+            title="7. Signature Amenities"
+            icon={<Layers className="h-3.5 w-3.5" />}
+            subtitle="Luxury ecosystem features, wellness facilities, and concierge services."
+            isExpanded={expandedSections["sec-amenities"]}
+            isVisible={sectionVisibility["sec-amenities"] !== false}
+            onToggleExpanded={() => toggleSectionExpanded("sec-amenities")}
+            onToggleVisibility={(v) => toggleSectionVisibility("sec-amenities", v)}
+            actionButton={
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => handleAddAmenity(null)}
-                className="gap-1.5 h-7 text-xs border-border text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  handleAddAmenity(null);
+                  setExpandedSections((p) => ({ ...p, "sec-amenities": true }));
+                }}
+                className="h-8 w-8 p-0 border-border text-muted-foreground hover:border-primary hover:text-primary"
+                title="Add Amenity"
               >
-                <Plus className="h-3 w-3" />
-                <span>Custom</span>
+                <Plus className="h-4 w-4" />
               </Button>
-            </div>
-          </div>
-
-          {amenities.length === 0 ? (
-            <div className="p-6 text-center border border-dashed border-border rounded-xl bg-secondary/10">
-              <p className="text-xs text-muted-foreground">No amenities added yet. Use a preset or &quot;Custom&quot;.</p>
-            </div>
-          ) : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndAmenities}>
-              <SortableContext items={amenities.map((a) => a.id)} strategy={verticalListSortingStrategy}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                  {amenities.map((amenity) => (
-                    <SortableArrayItem key={amenity.id} id={amenity.id} onClone={() => handleCloneAmenity(amenity.id)} onRemove={() => handleRemoveAmenity(amenity.id)}>
-                      <div className="p-3.5 rounded-lg border border-border bg-secondary/20 space-y-2.5">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/30 shrink-0">
-                            <span className="material-symbols-outlined text-lg">{amenity.iconKey || "star"}</span>
-                          </div>
-                          <Input
-                            placeholder="Amenity Name (e.g. Private Marina & Yacht Berth)"
-                            value={amenity.name}
-                            onChange={(e) => handleUpdateAmenity(amenity.id, "name", e.target.value)}
-                            className="bg-secondary/40 h-8 text-xs font-semibold flex-1 min-w-0"
-                          />
-                          <select
-                            value={amenity.iconKey || "star"}
-                            onChange={(e) => handleUpdateAmenity(amenity.id, "iconKey", e.target.value)}
-                            className="bg-secondary/70 border border-border text-[11px] rounded px-2 h-8 text-muted-foreground w-full sm:w-auto sm:max-w-[140px]"
-                          >
-                            {COMMON_AMENITY_ICONS.map((p) => (
-                              <option key={p.icon} value={p.icon}>{p.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <Input
-                          placeholder="Context / Details (e.g. 24/7 dedicated concierge and yacht mooring privileges)"
-                          value={amenity.description}
-                          onChange={(e) => handleUpdateAmenity(amenity.id, "description", e.target.value)}
-                          className="bg-secondary/40 h-7 text-[11px] text-muted-foreground"
-                        />
-                      </div>
-                    </SortableArrayItem>
-                  ))}
+            }
+          />
+          {expandedSections["sec-amenities"] && (
+            <div className="pt-2">
+              {amenities.length === 0 ? (
+                <div className="p-6 text-center border border-dashed border-border rounded-xl bg-secondary/10">
+                  <p className="text-xs text-muted-foreground">No amenities added yet. Click &quot;+&quot; to add amenities.</p>
                 </div>
-              </SortableContext>
-            </DndContext>
+              ) : (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndAmenities}>
+                  <SortableContext items={amenities.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                      {amenities.map((amenity) => (
+                        <SortableArrayItem key={amenity.id} id={amenity.id} onClone={() => handleCloneAmenity(amenity.id)} onRemove={() => handleRemoveAmenity(amenity.id)}>
+                          <div className="p-3.5 rounded-lg border border-border bg-secondary/20 space-y-2.5">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/30 shrink-0">
+                                <span className="material-symbols-outlined text-lg">{amenity.iconKey || "star"}</span>
+                              </div>
+                              <Input
+                                placeholder="Amenity Name (e.g. Private Marina & Yacht Berth)"
+                                value={amenity.name}
+                                onChange={(e) => handleUpdateAmenity(amenity.id, "name", e.target.value)}
+                                className="bg-secondary/40 h-8 text-xs font-semibold flex-1 min-w-0"
+                              />
+                              <select
+                                value={amenity.iconKey || "star"}
+                                onChange={(e) => handleUpdateAmenity(amenity.id, "iconKey", e.target.value)}
+                                className="bg-secondary/70 border border-border text-[11px] rounded px-2 h-8 text-muted-foreground w-full sm:w-auto sm:max-w-[140px]"
+                              >
+                                {COMMON_AMENITY_ICONS.map((p) => (
+                                  <option key={p.icon} value={p.icon}>{p.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <Input
+                              placeholder="Context / Details (e.g. 24/7 dedicated concierge and yacht mooring privileges)"
+                              value={amenity.description}
+                              onChange={(e) => handleUpdateAmenity(amenity.id, "description", e.target.value)}
+                              className="bg-secondary/40 h-7 text-[11px] text-muted-foreground"
+                            />
+                          </div>
+                        </SortableArrayItem>
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              )}
+            </div>
           )}
         </section>
 
         {/* SECTION 8: LOCATION & CONNECTIVITY */}
-        <section id="sec-location" className={isSectionVisible("sec-location") ? "rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6" : "hidden"}>
-          <div className="border-b border-border/70 pb-3 mb-5 flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5" />
-              8. Location &amp; Connectivity
-            </span>
-          </div>
+        <section id="sec-location" className="rounded-xl border border-border bg-card p-6 shadow-sm min-w-0 w-full mb-6 scroll-mt-24">
+          <FormSectionHeader
+            id="sec-location"
+            title="8. Location & Connectivity"
+            icon={<MapPin className="h-3.5 w-3.5" />}
+            subtitle="Geographical location, GPS coordinates, Google Maps, and nearby landmarks."
+            isExpanded={expandedSections["sec-location"]}
+            isVisible={sectionVisibility["sec-location"] !== false}
+            onToggleExpanded={() => toggleSectionExpanded("sec-location")}
+            onToggleVisibility={(v) => toggleSectionVisibility("sec-location", v)}
+          />
+          {expandedSections["sec-location"] && (
 
           <div className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1864,20 +1942,15 @@ export const AdminPropertyForm: React.FC = () => {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <PresetDropdown
-                    presets={NEARBY_PLACE_PRESETS}
-                    triggerLabel="Add Preset Landmark"
-                    onSelect={(p) => handleAddNearbyPlace(p)}
-                  />
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => handleAddNearbyPlace(null)}
-                    className="gap-1.5 h-7 text-xs border-border text-muted-foreground hover:text-foreground"
+                    className="h-8 w-8 p-0 border-border text-muted-foreground hover:border-primary hover:text-primary shrink-0"
+                    title="Add Landmark"
                   >
-                    <Plus className="h-3 w-3" />
-                    <span>Custom</span>
+                    <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -1890,38 +1963,31 @@ export const AdminPropertyForm: React.FC = () => {
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndNearbyPlaces}>
                   <SortableContext items={nearbyPlaces.map((p) => p.id)} strategy={verticalListSortingStrategy}>
                     <div className="space-y-4 pt-2">
-                      {nearbyPlaces.map((place, idx) => {
-                        const iconKey = getNearbyCategoryIcon(place.category || "Transit");
-                        return (
-                          <SortableArrayItem key={place.id} id={place.id} onClone={() => handleCloneNearbyPlace(place.id)} onRemove={() => handleRemoveNearbyPlace(place.id)}>
-                            <div className="p-3.5 rounded-lg border border-border/70 bg-secondary/20 space-y-3">
-                              {/* Item Header with Category selector */}
-                              <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2">
-                                <div className="flex items-center gap-2">
-                                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary border border-primary/30 shrink-0">
-                                    <span className="material-symbols-outlined text-sm">{iconKey}</span>
-                                  </div>
-                                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                                    Landmark #{idx + 1}
-                                  </Label>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wider hidden sm:inline">
-                                    Category:
-                                  </Label>
-                                  <select
-                                    value={place.category || "Transit"}
-                                    onChange={(e) => handleUpdateNearbyPlace(place.id, "category", e.target.value)}
-                                    className="bg-secondary/70 border border-border text-[11px] rounded-md px-2 h-7 text-foreground focus:outline-none focus:border-primary max-w-[160px]"
-                                  >
-                                    {NEARBY_CATEGORY_OPTIONS.map((cat) => (
-                                      <option key={cat.value} value={cat.value}>
-                                        {cat.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
+                      {nearbyPlaces.map((place, idx) => (
+                        <SortableArrayItem key={place.id} id={place.id} onClone={() => handleCloneNearbyPlace(place.id)} onRemove={() => handleRemoveNearbyPlace(place.id)}>
+                          <div className="p-3.5 rounded-lg border border-border/70 bg-secondary/20 space-y-3">
+                            {/* Item Header with Category selector */}
+                            <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2">
+                              <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                Landmark #{idx + 1}
+                              </Label>
+                              <div className="flex items-center gap-1.5">
+                                <Label className="text-[10px] text-muted-foreground uppercase tracking-wider hidden sm:inline">
+                                  Category:
+                                </Label>
+                                <select
+                                  value={place.category || "Transit"}
+                                  onChange={(e) => handleUpdateNearbyPlace(place.id, "category", e.target.value)}
+                                  className="bg-secondary/70 border border-border text-[11px] rounded-md px-2 h-7 text-foreground focus:outline-none focus:border-primary max-w-[160px]"
+                                >
+                                  {NEARBY_CATEGORY_OPTIONS.map((cat) => (
+                                    <option key={cat.value} value={cat.value}>
+                                      {cat.label}
+                                    </option>
+                                  ))}
+                                </select>
                               </div>
+                            </div>
 
                               {/* Form Inputs with Explicit Labels */}
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1973,14 +2039,14 @@ export const AdminPropertyForm: React.FC = () => {
                               </div>
                             </div>
                           </SortableArrayItem>
-                        );
-                      })}
+                      ))}
                     </div>
                   </SortableContext>
                 </DndContext>
               )}
             </div>
           </div>
+          )}
         </section>
       </div>
 
@@ -1997,41 +2063,7 @@ export const AdminPropertyForm: React.FC = () => {
             Cancel
           </Button>
 
-          <div className="flex flex-wrap items-center justify-end gap-2.5 w-full sm:w-auto">
-            {!isAllSectionsView && SECTIONS_NAV.findIndex((s) => s.id === activeStepId) > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const currentIndex = SECTIONS_NAV.findIndex((s) => s.id === activeStepId);
-                  setActiveStepId(SECTIONS_NAV[currentIndex - 1].id);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="text-xs h-9 gap-1.5 border-border hover:bg-secondary text-foreground w-full sm:w-auto"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" />
-                <span>Previous</span>
-              </Button>
-            )}
-
-            {!isAllSectionsView && SECTIONS_NAV.findIndex((s) => s.id === activeStepId) < SECTIONS_NAV.length - 1 && (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  const currentIndex = SECTIONS_NAV.findIndex((s) => s.id === activeStepId);
-                  setActiveStepId(SECTIONS_NAV[currentIndex + 1].id);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                size="sm"
-                className="text-xs h-9 gap-1.5 border border-border/80 hover:border-primary/50 text-foreground font-medium bg-secondary/80 hover:bg-secondary w-full sm:w-auto"
-              >
-                <span>Next: {SECTIONS_NAV[SECTIONS_NAV.findIndex((s) => s.id === activeStepId) + 1].label.replace(/^\d+\.\s*/, "")}</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-            )}
-
+          <div className="flex items-center justify-end gap-2.5 w-full sm:w-auto">
             <Button
               type="button"
               onClick={handleSaveProperty}

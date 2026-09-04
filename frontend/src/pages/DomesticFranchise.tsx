@@ -202,7 +202,18 @@ const DomesticFranchise = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <div className="group block w-full overflow-hidden rounded-sm border border-border bg-card text-left transition-all hover:border-gold/50">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openInquiry({ id: franchise.id, name: franchise.name })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      openInquiry({ id: franchise.id, name: franchise.name });
+                    }
+                  }}
+                  className="group block w-full cursor-pointer overflow-hidden rounded-sm border border-border bg-card text-left transition-all hover:border-gold/50 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+                >
                   <div className="relative aspect-[4/3] overflow-hidden">
                     <div
                       className="h-full w-full bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
@@ -270,7 +281,10 @@ const DomesticFranchise = () => {
                     <div className="mt-4 w-full">
                       <button
                         type="button"
-                        onClick={() => openInquiry({ id: franchise.id, name: franchise.name })}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openInquiry({ id: franchise.id, name: franchise.name });
+                        }}
                         className="inline-flex w-full justify-center bg-gold py-2 text-sm font-bold uppercase tracking-wider text-gold-foreground transition-colors hover:bg-gold/90"
                       >
                         View Details

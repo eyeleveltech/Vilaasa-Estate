@@ -52,6 +52,8 @@ export interface PropertyNearbyLocation {
   distance: string;
   travelTime?: string;
   description?: string;
+  category?: string;
+  iconKey?: string;
 }
 
 export interface PropertyVerdict {
@@ -63,6 +65,7 @@ export interface PropertyVerdict {
 export interface PropertyDetail {
   id: string;
   name: string;
+  tagline?: string;
   location: string;
   country: string;
   type: string;
@@ -84,6 +87,7 @@ export interface PropertyDetail {
   mapEmbedUrl?: string;
   virtualTour360Url?: string;
   visionHeadline?: string;
+  sectionVisibility?: Record<string, boolean>;
 }
 
 export const DEFAULT_PROPERTY_IMAGES: Record<string, string> = {

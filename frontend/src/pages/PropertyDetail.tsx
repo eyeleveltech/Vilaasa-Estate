@@ -245,13 +245,13 @@ const PropertyDetail = () => {
       </header>
 
       {/* Concept & Vision / Verdict Section */}
-      {(property.visionHeadline || (property.description && property.description.length > 0) || property.verdict?.quote) && (
+      {property.sectionVisibility?.["sec-vision"] !== false && (property.visionHeadline || (property.description && property.description.length > 0) || property.verdict?.quote) && (
         <section className="border-y border-border bg-card px-4 py-14 md:px-10 md:py-20">
           <div
             className={`mx-auto max-w-[1280px] ${
-              Boolean(property.verdict?.quote) && Boolean(property.visionHeadline || (property.description && property.description.length > 0))
+              property.verdict?.quote && (property.visionHeadline || (property.description && property.description.length > 0))
                 ? "grid grid-cols-1 items-center gap-10 md:gap-16 lg:grid-cols-2"
-                : Boolean(property.verdict?.quote)
+                : property.verdict?.quote
                 ? "max-w-2xl mx-auto"
                 : "max-w-4xl mx-auto"
             }`}
@@ -318,7 +318,7 @@ const PropertyDetail = () => {
       )}
 
       {/* At a Glance */}
-      {(property.specs.length > 0 || property.brochure || property.virtualTour360Url) && (
+      {property.sectionVisibility?.["sec-specs"] !== false && (property.specs.length > 0 || property.brochure || property.virtualTour360Url) && (
         <section className="px-3.5 sm:px-6 md:px-10 py-10 sm:py-14 md:py-20">
           <div className="max-w-[1280px] mx-auto">
             {property.specs.length > 0 && (
@@ -385,7 +385,7 @@ const PropertyDetail = () => {
       )}
 
       {/* Financial Intelligence */}
-      {property.financials.length > 0 && (
+      {property.sectionVisibility?.["sec-financials"] !== false && property.financials.length > 0 && (
         <section className="bg-[#0c1a14] px-4 py-14 md:px-10 md:py-20">
           <div className="max-w-[1280px] mx-auto">
             <div className="mb-8 flex flex-col gap-4 md:mb-12 md:flex-row md:items-center md:justify-between">
@@ -434,7 +434,7 @@ const PropertyDetail = () => {
       )}
 
       {/* Pricing Table */}
-      {property.configurations.length > 0 && (
+      {property.sectionVisibility?.["sec-pricing"] !== false && property.configurations.length > 0 && (
         <section className="px-4 py-14 md:px-10 md:py-20">
           <div className="max-w-[1280px] mx-auto">
             <h2 className="mb-6 text-2xl font-light text-foreground md:mb-8">
@@ -529,11 +529,11 @@ const PropertyDetail = () => {
         </section>
       )}
 
-      {/* Floor Plans */}
-      {property.galleryImages && <Gallery property={property} />}
+      {/* Floor Plans / Gallery */}
+      {property.sectionVisibility?.["sec-gallery"] !== false && property.galleryImages && <Gallery property={property} />}
 
       {/* Amenities */}
-      {property.amenities.length > 0 && (
+      {property.sectionVisibility?.["sec-amenities"] !== false && property.amenities.length > 0 && (
         <section className="px-4 py-14 md:px-10 md:py-20">
           <div className="max-w-[1280px] mx-auto">
             <h2 className="mb-6 text-2xl font-light text-foreground md:mb-8">
@@ -566,7 +566,7 @@ const PropertyDetail = () => {
       )}
 
       {/* Location & Connectivity */}
-      {(property.mapEmbedUrl || property.googleMapLink || (property.nearbyLocations && property.nearbyLocations.length > 0)) && (
+      {property.sectionVisibility?.["sec-location"] !== false && (property.mapEmbedUrl || property.googleMapLink || (property.nearbyLocations && property.nearbyLocations.length > 0)) && (
         <section className="border-t border-border bg-card px-4 py-14 md:px-10 md:py-20">
           <div className="max-w-[1280px] mx-auto">
             <h2 className="mb-2 text-2xl font-light text-foreground md:mb-3">

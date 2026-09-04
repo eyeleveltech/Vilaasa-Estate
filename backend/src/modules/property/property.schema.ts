@@ -50,6 +50,7 @@ export const NearbyPlaceInputSchema = z.object({
   category: z.string().optional().nullable(),
   travelTime: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
+  iconKey: z.string().optional().nullable(),
 });
 
 export const FinancialMetricInputSchema = z.object({
@@ -91,6 +92,7 @@ export const CreatePropertySchema = z.object({
   brochureUrl: z.string().optional().nullable().or(z.literal("")),
   maintenanceFeePerSqFt: z.coerce.number().optional().nullable(),
   customSpecs: z.any().optional().nullable(),
+  sectionVisibility: z.any().optional().nullable(),
   verdictQuote: z.string().optional().nullable(),
   verdictAuthor: z.string().optional().nullable(),
   verdictTitle: z.string().optional().nullable(),
@@ -244,6 +246,7 @@ export interface NearbyPlaceInput {
   category?: string;
   travelTime?: string;
   description?: string;
+  iconKey?: string;
 }
 
 export interface FinancialMetricInput {
@@ -280,6 +283,7 @@ export interface CreatePropertyInput {
   brochureUrl?: string;
   maintenanceFeePerSqFt?: number;
   customSpecs?: { label: string; value: string }[];
+  sectionVisibility?: unknown;
   verdictQuote?: string;
   verdictAuthor?: string;
   verdictTitle?: string;

@@ -32,7 +32,7 @@ export function CountryCodeSelect({ value, onChange }: Props) {
   const [open, setOpen] = React.useState(false);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -59,6 +59,7 @@ export function CountryCodeSelect({ value, onChange }: Props) {
         align="start"
         collisionPadding={12}
         className="w-[300px] max-w-[calc(100vw-2rem)] p-0"
+        onWheel={(e) => e.stopPropagation()}
       >
         <Command
           filter={(value, search, keywords = []) => {
@@ -70,7 +71,7 @@ export function CountryCodeSelect({ value, onChange }: Props) {
           }}
         >
           <CommandInput placeholder="Search country..." />
-          <CommandList className="h-[260px]">
+          <CommandList className="h-[260px] max-h-[260px] overflow-y-auto overscroll-contain">
             <CommandEmpty>No country found.</CommandEmpty>
             <CommandGroup>
               {CountryCodes.map((country) => (

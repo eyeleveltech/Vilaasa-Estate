@@ -116,6 +116,7 @@ export interface NearbyPlace {
   category?: string | null;
   travelTime?: string | null;
   description?: string | null;
+  iconKey?: string | null;
 }
 
 export interface PropertyFinancialMetric {
@@ -194,6 +195,7 @@ export interface Property {
   yieldPayoutFrequency?: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
   supportModules?: string[] | null;
   advantages?: string[] | null;
+  sectionVisibility?: Record<string, boolean> | null;
   locationId: string;
   location: Location;
   adminId?: string | null;

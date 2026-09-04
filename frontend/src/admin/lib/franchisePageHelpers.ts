@@ -90,8 +90,26 @@ export interface FranchisePageData {
   benefit3Description?: string;
   benefit3Icon?: string;
 
+  nextStepsSubheading?: string;
+  nextStepsDescription?: string;
+  ctaButton1?: string;
+  ctaButton2?: string;
+  planningHeadline?: string;
+  planningDescription?: string;
+
   galleryImages: GalleryItem[];
+  sectionVisibility?: Record<string, boolean>;
 }
+
+export const DEFAULT_FRANCHISE_SECTION_VISIBILITY: Record<string, boolean> = {
+  "sec-hero": true,
+  "sec-hero-metrics": true,
+  "sec-vision": true,
+  "sec-blueprint": true,
+  "sec-ecosystem": true,
+  "sec-benefits": true,
+  "sec-gallery": true,
+};
 
 export const HERO_PLACEHOLDERS = [
   { label: 'e.g. MIN. INVESTMENT', value: 'e.g. ₹3.5 Cr' },
@@ -183,6 +201,7 @@ export const DEFAULT_PAGE_DATA: FranchisePageData = {
   ],
 
   galleryImages: [],
+  sectionVisibility: { ...DEFAULT_FRANCHISE_SECTION_VISIBILITY },
 };
 
 export const COMMON_ICONS = [
@@ -365,6 +384,11 @@ export const normalizeFranchisePageData = (
     isHero: Boolean(g.isHero || (heroImage && g.url === heroImage)),
   }));
 
+  // 6. Section Visibility
+  const sectionVisibility = raw.sectionVisibility && typeof raw.sectionVisibility === 'object'
+    ? { ...DEFAULT_FRANCHISE_SECTION_VISIBILITY, ...raw.sectionVisibility }
+    : { ...DEFAULT_FRANCHISE_SECTION_VISIBILITY };
+
   return {
     ...DEFAULT_PAGE_DATA,
     ...raw,
@@ -374,6 +398,7 @@ export const normalizeFranchisePageData = (
     ecosystemCards,
     benefitCards,
     galleryImages,
+    sectionVisibility,
   };
 };
 
@@ -387,6 +412,7 @@ export const prepareFranchisePagePayload = (data: FranchisePageData): FranchiseP
   const payload: FranchisePageData = {
     ...data,
     heroImage,
+    sectionVisibility: data.sectionVisibility || DEFAULT_FRANCHISE_SECTION_VISIBILITY,
     metric1Label: data.heroMetrics[0]?.label || '',
     metric1Value: data.heroMetrics[0]?.value || '',
     metric2Label: data.heroMetrics[1]?.label || '',
@@ -603,20 +629,72 @@ export const NEARBY_PLACE_PRESETS: Preset[] = [
 ];
 
 export const NEARBY_CATEGORY_OPTIONS = [
-  { value: 'Airport', label: '✈️ Airport', icon: 'flight' },
-  { value: 'Metro', label: '🚆 Metro / Transit', icon: 'train' },
-  { value: 'Hospital', label: '🏥 Hospital / Medical', icon: 'local_hospital' },
-  { value: 'School', label: '🎓 School / Academy', icon: 'school' },
-  { value: 'Beach', label: '🏖️ Beach / Waterfront', icon: 'beach_access' },
-  { value: 'Shopping', label: '🛍️ Shopping Mall', icon: 'shopping_bag' },
-  { value: 'Dining', label: '🍽️ Fine Dining', icon: 'restaurant' },
-  { value: 'Leisure', label: '⛵ Yacht Club / Marina', icon: 'directions_boat' },
-  { value: 'Golf', label: '⛳ Golf Course', icon: 'sports_golf' },
-  { value: 'Business', label: '🏢 Business District', icon: 'business_center' },
-  { value: 'Nature', label: '🌲 Nature / Park', icon: 'forest' },
-  { value: 'Heritage', label: '🏛️ Heritage Site', icon: 'castle' },
-  { value: 'Transit', label: '📍 General Landmark', icon: 'near_me' },
+  { value: 'Airport', label: 'Airport', icon: 'flight' },
+  { value: 'Metro', label: 'Metro / Transit', icon: 'train' },
+  { value: 'Hospital', label: 'Hospital / Medical', icon: 'local_hospital' },
+  { value: 'School', label: 'School / Academy', icon: 'school' },
+  { value: 'Beach', label: 'Beach / Waterfront', icon: 'beach_access' },
+  { value: 'Shopping', label: 'Shopping Mall', icon: 'shopping_bag' },
+  { value: 'Dining', label: 'Fine Dining', icon: 'restaurant' },
+  { value: 'Leisure', label: 'Yacht Club / Marina', icon: 'directions_boat' },
+  { value: 'Golf', label: 'Golf Course', icon: 'sports_golf' },
+  { value: 'Business', label: 'Business District', icon: 'business_center' },
+  { value: 'Nature', label: 'Nature / Park', icon: 'forest' },
+  { value: 'Heritage', label: 'Heritage Site', icon: 'castle' },
+  { value: 'Transit', label: 'General Landmark', icon: 'near_me' },
 ];
+
+export const COMMON_NEARBY_ICONS = [
+  { label: "Flight / Airport", icon: "flight" },
+  { label: "Helipad", icon: "helicopter" },
+  { label: "Train / Metro", icon: "train" },
+  { label: "Subway / Transit", icon: "subway" },
+  { label: "Car / Drive", icon: "directions_car" },
+  { label: "Navigation / Near Me", icon: "near_me" },
+  { label: "Beach / Coast", icon: "beach_access" },
+  { label: "Water / Ocean", icon: "water" },
+  { label: "Boat / Marina", icon: "directions_boat" },
+  { label: "Sailing / Yacht", icon: "sailing" },
+  { label: "Hospital / Healthcare", icon: "local_hospital" },
+  { label: "Medical / Clinic", icon: "medical_services" },
+  { label: "School / Education", icon: "school" },
+  { label: "Shopping / Retail", icon: "shopping_bag" },
+  { label: "Storefront / Mall", icon: "storefront" },
+  { label: "Dining / Restaurant", icon: "restaurant" },
+  { label: "Cafe / Coffee", icon: "local_cafe" },
+  { label: "Lounge / Bar", icon: "local_bar" },
+  { label: "Golf Course", icon: "sports_golf" },
+  { label: "Tennis Court", icon: "sports_tennis" },
+  { label: "Stadium / Arena", icon: "stadium" },
+  { label: "Business / CBD", icon: "business_center" },
+  { label: "Tower / High-Rise", icon: "apartment" },
+  { label: "Forest / Nature", icon: "forest" },
+  { label: "Park / Garden", icon: "park" },
+  { label: "Castle / Heritage", icon: "castle" },
+  { label: "Museum / Gallery", icon: "museum" },
+  { label: "Temple / Shrine", icon: "temple_hindu" },
+  { label: "Church / Cathedral", icon: "church" },
+  { label: "Map Pin / Location", icon: "location_on" },
+  { label: "Star / Landmark", icon: "star" },
+];
+
+export const getNearbyCategoryIcon = (category: string): string => {
+  switch (category) {
+    case "Airport": return "flight";
+    case "Metro": return "train";
+    case "Hospital": return "local_hospital";
+    case "School": return "school";
+    case "Beach": return "beach_access";
+    case "Shopping": return "shopping_bag";
+    case "Dining": return "restaurant";
+    case "Leisure": return "directions_boat";
+    case "Golf": return "sports_golf";
+    case "Business": return "business_center";
+    case "Nature": return "forest";
+    case "Heritage": return "castle";
+    default: return "near_me";
+  }
+};
 
 /* -------------------------------------------------------------------------- */
 /*                         CURRENCY INPUT FORMATTER                           */
