@@ -453,7 +453,7 @@ export const InquiryFormDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md max-h-[90vh] overflow-y-auto bg-background border-border p-4 pb-20 sm:p-6 sm:pb-6 z-[9999]">
-        <DialogHeader>
+        <DialogHeader className="pr-8 sm:pr-10">
           <DialogTitle className="text-lg sm:text-xl font-light">
             {step === "form" &&
               (customTitle || (intent === "inquiry" ? "Contact Senior Partner" : projectName ? `View Details — ${projectName}` : "View Details"))}
@@ -526,7 +526,7 @@ export const InquiryFormDialog = ({
                 <Label htmlFor="phone" className="text-xs sm:text-sm">
                   Phone Number *
                 </Label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <CountryCodeSelect
                     value={formData.phoneCountryCode}
                     onChange={(code) =>
@@ -581,13 +581,13 @@ export const InquiryFormDialog = ({
               )}
 
               {/* Action Buttons */}
-              <div className="pt-2 space-y-2.5">
+              <div className="pt-2 flex flex-col gap-2.5">
                 <Button
                   type="submit"
                   disabled={isSubmitting}
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 sm:h-11 text-xs sm:text-sm uppercase tracking-wider font-bold shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                 >
-                  <Smartphone className="w-4 h-4" />
+                  <Smartphone className="w-4 h-4 shrink-0" />
                   {isSubmitting && otpChannel === "SMS"
                     ? "Sending Code..."
                     : intent === "inquiry"
@@ -595,7 +595,7 @@ export const InquiryFormDialog = ({
                       : "Send OTP to Mobile"}
                 </Button>
 
-                <div className="relative flex items-center justify-center my-0.5">
+                <div className="relative flex items-center justify-center">
                   <div className="border-t border-border/60 w-full" />
                   <span className="bg-background px-2 text-[10px] sm:text-xs text-muted-foreground uppercase tracking-widest font-mono">
                     Or
@@ -610,7 +610,7 @@ export const InquiryFormDialog = ({
                   disabled={isSubmitting}
                   className="w-full border-border/80 bg-secondary/30 hover:bg-secondary text-foreground hover:text-primary h-10 sm:h-11 text-xs sm:text-sm uppercase tracking-wider font-semibold transition-all flex items-center justify-center gap-2"
                 >
-                  <Mail className="w-4 h-4 text-primary" />
+                  <Mail className="w-4 h-4 shrink-0 text-primary" />
                   {isSubmitting && otpChannel === "EMAIL"
                     ? "Sending Email Code..."
                     : "Send OTP to Email"}
