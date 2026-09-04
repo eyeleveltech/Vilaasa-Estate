@@ -67,14 +67,56 @@ import { FormSectionHeader } from "../components/FormSectionHeader";
 
 const parseValueToNumber = (val: string | undefined, defaultNum: number): number => {
   if (!val) return defaultNum;
-  const cleaned = val.replace(/[^0-9.]/g, "");
-  const num = parseFloat(cleaned);
+  const rangeMatch = val.match(/(\d+(?:\.\d+)?)\s*(?:-|to)\s*(\d+(?:\.\d+)?)/i);
+  let num: number;
+  if (rangeMatch) {
+    num = parseFloat(rangeMatch[1]);
+  } else {
+    const cleaned = val.replace(/[^0-9.]/g, "");
+    num = parseFloat(cleaned);
+  }
   if (isNaN(num)) return defaultNum;
   if (/cr/i.test(val)) return num * 10000000;
   if (/l|lac|lakh/i.test(val)) return num * 100000;
   if (/k/i.test(val)) return num * 1000;
   if (/m/i.test(val)) return num * 1000000;
   return num;
+};
+
+const parsePercentageValue = (val: string | undefined, defaultNum: number): number => {
+  if (!val) return defaultNum;
+  const rangeMatch = val.match(/(\d+(?:\.\d+)?)\s*(?:-|to)\s*(\d+(?:\.\d+)?)/i);
+  if (rangeMatch) {
+    const low = parseFloat(rangeMatch[1]);
+    if (!isNaN(low)) {
+      return Math.min(Math.max(low, 0), 999.99);
+    }
+  }
+  const singleMatch = val.match(/(\d+(?:\.\d+)?)/);
+  if (singleMatch) {
+    const num = parseFloat(singleMatch[1]);
+    if (!isNaN(num)) {
+      return Math.min(Math.max(num, 0), 999.99);
+    }
+  }
+  return defaultNum;
+};
+
+const parsePeriodValue = (val: string | undefined, defaultNum: number): number => {
+  if (!val) return defaultNum;
+  if (/month/i.test(val)) {
+    const numMatch = val.match(/(\d+(?:\.\d+)?)/);
+    if (numMatch) {
+      const months = parseFloat(numMatch[1]);
+      if (!isNaN(months)) return Math.round((months / 12) * 10) / 10;
+    }
+  }
+  const numMatch = val.match(/(\d+(?:\.\d+)?)/);
+  if (numMatch) {
+    const num = parseFloat(numMatch[1]);
+    if (!isNaN(num)) return num;
+  }
+  return defaultNum;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -116,6 +158,8 @@ export const AdminFranchiseForm: React.FC = () => {
   const [saving, setSaving] = useState<boolean>(false);
   const [uploadingGallery, setUploadingGallery] = useState<boolean>(false);
   const [brochureUrl, setBrochureUrl] = useState<string>("");
+  const [city, setCity] = useState<string>("Wayanad");
+  const [country, setCountry] = useState<string>("India");
 
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
     DEFAULT_FRANCHISE_SECTION_EXPANDED
@@ -178,6 +222,10 @@ export const AdminFranchiseForm: React.FC = () => {
       if (propRes.data.success && propRes.data.data) {
         setProperty(propRes.data.data);
         setBrochureUrl(propRes.data.data.brochureUrl || "");
+        if (propRes.data.data.location) {
+          setCity(propRes.data.data.location.city || "Wayanad");
+          setCountry(propRes.data.data.location.country || "India");
+        }
       }
 
       if (pageRes.data.success && pageRes.data.data) {
@@ -208,8 +256,22 @@ export const AdminFranchiseForm: React.FC = () => {
   /* -------------------- Draft Restore Handler ---------------------------- */
   const handleDraftRestore = (savedState: unknown) => {
     try {
-      const restored = normalizeFranchisePageData(savedState as Partial<FranchisePageData>);
+      const raw = savedState as Partial<FranchisePageData> & {
+        _brochureUrl?: string;
+        _city?: string;
+        _country?: string;
+      };
+      const restored = normalizeFranchisePageData(raw);
       setPageData(restored);
+      if (typeof raw._brochureUrl === "string") {
+        setBrochureUrl(raw._brochureUrl);
+      }
+      if (typeof raw._city === "string") {
+        setCity(raw._city);
+      }
+      if (typeof raw._country === "string") {
+        setCountry(raw._country);
+      }
       toast.success("Draft restored!");
     } catch {
       toast.error("Failed to restore draft.");
@@ -465,9 +527,9 @@ export const AdminFranchiseForm: React.FC = () => {
       35000000
     );
     const totalCost = parseValueToNumber(pageData.blueprintMetrics[0]?.value, 120000000);
-    const roi = parseValueToNumber(pageData.heroMetrics[1]?.value, 24);
-    const payback = parseValueToNumber(pageData.heroMetrics[2]?.value, 3);
-    const lockIn = parseValueToNumber(pageData.blueprintMetrics[2]?.value, 2);
+    const roi = parsePercentageValue(pageData.heroMetrics[1]?.value, 24);
+    const payback = parsePeriodValue(pageData.heroMetrics[2]?.value, 3);
+    const lockIn = parsePeriodValue(pageData.blueprintMetrics[2]?.value, 2);
 
     const cleanDescription =
       pageData.visionDescription.trim().length >= 5
@@ -481,7 +543,7 @@ export const AdminFranchiseForm: React.FC = () => {
       name: resolvedName,
       type: "FRANCHISE",
       customType: "Wellness Resort",
-      tagline: pageData.subheading.trim() || undefined,
+      tagline: pageData.subheading.trim() || null,
       description: cleanDescription,
       price: minTicket,
       minTicketSize: minTicket,
@@ -494,24 +556,22 @@ export const AdminFranchiseForm: React.FC = () => {
       paybackPeriodYears: payback,
       lockInPeriodYears: lockIn,
       yieldPayoutFrequency: "QUARTERLY" as const,
-      brochureUrl: brochureUrl.trim() || undefined,
+      brochureUrl: brochureUrl.trim() || null,
       sectionVisibility: pageData.sectionVisibility || DEFAULT_FRANCHISE_SECTION_VISIBILITY,
       location: {
-        city: "Wayanad",
-        country: "India",
+        city: city.trim() || (isEditMode && property?.location?.city) || "Wayanad",
+        country: country.trim() || (isEditMode && property?.location?.country) || "India",
       },
-      ...(pageData.galleryImages.length > 0
-        ? {
-            media: pageData.galleryImages.map((img, idx) => ({
-              url: img.url,
-              altText: img.caption || `${resolvedName} Image ${idx + 1}`,
-              orderIndex: idx,
-              isFeatured: Boolean(
-                img.isHero || (heroImageUrl && img.url === heroImageUrl) || idx === 0
-              ),
-            })),
-          }
-        : {}),
+      media: pageData.galleryImages.map((img, idx) => ({
+        url: img.url,
+        altText: img.caption || `${resolvedName} Image ${idx + 1}`,
+        orderIndex: idx,
+        isFeatured: Boolean(
+          heroImageUrl
+            ? img.url === heroImageUrl
+            : (img.isHero || idx === 0)
+        ),
+      })),
     };
 
     setSaving(true);
@@ -528,7 +588,15 @@ export const AdminFranchiseForm: React.FC = () => {
         const res = await api.post<ApiResponse<Property>>("/properties", propertyPayload);
         if (res.data.success && res.data.data) {
           const newId = res.data.data.id;
-          await api.put(`/franchise/${newId}/page`, finalPagePayload);
+          try {
+            await api.put(`/franchise/${newId}/page`, finalPagePayload);
+          } catch (pageErr) {
+            console.error("Failed to save franchise page details after creation:", pageErr);
+            toast.error("Franchise created, but editorial page setup had an error. Redirecting to complete...", { id: toastId });
+            localStorage.removeItem(draftKey);
+            navigate(`/admin/franchises/${newId}/edit`);
+            return;
+          }
           toast.success("Franchise registered successfully!", { id: toastId });
           localStorage.removeItem(draftKey);
           navigate(`/admin/franchises/${newId}`);
@@ -623,7 +691,7 @@ export const AdminFranchiseForm: React.FC = () => {
       {/* Draft Save Bar */}
       <DraftSaveBar
         storageKey={draftKey}
-        formState={pageData}
+        formState={{ ...pageData, _brochureUrl: brochureUrl, _city: city, _country: country }}
         onRestore={handleDraftRestore}
       />
 
@@ -765,6 +833,27 @@ export const AdminFranchiseForm: React.FC = () => {
                     onChange={(e) => setPageData((p) => ({ ...p, subheading: e.target.value }))}
                     placeholder="e.g. Ultra-luxury Ayurvedic wellness retreat overlooking lush valleys..."
                     className="w-full bg-secondary/40 border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary mt-1 resize-y"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">City / Location</Label>
+                  <Input
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="e.g. Wayanad, Goa, Dubai"
+                    className="bg-secondary/40 h-10 text-sm mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Country</Label>
+                  <Input
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    placeholder="e.g. India, United Arab Emirates"
+                    className="bg-secondary/40 h-10 text-sm mt-1"
                   />
                 </div>
               </div>
@@ -1243,7 +1332,11 @@ export const AdminFranchiseForm: React.FC = () => {
                   value={brochureUrl}
                   onChange={(url) => {
                     setBrochureUrl(url);
-                    toast.success("Brochure attached!");
+                    if (url) {
+                      toast.success("Brochure attached!");
+                    } else {
+                      toast.success("Brochure removed");
+                    }
                   }}
                 />
               </div>

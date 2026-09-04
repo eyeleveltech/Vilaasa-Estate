@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Prisma } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { prisma } from "../../config/db";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { ApiError } from "../../utils/ApiError";
@@ -57,6 +57,7 @@ export const createInquiry = asyncHandler(
         utmSource: data.utmSource,
         utmMedium: data.utmMedium,
         utmCampaign: data.utmCampaign,
+        assignedAgentId: req.user?.role === Role.CHANNEL_PARTNER ? req.user.id : undefined,
         notes: data.notes || (isViewUnlock ? "Confidential Dossier Unlocked" : undefined),
         timeline: {
           create: {
@@ -126,13 +127,18 @@ export const getInquiries = asyncHandler(
 
     const where: Prisma.InquiryWhereInput = {};
 
+    // Channel Partner Data Isolation: Only show leads assigned to this partner
+    if (req.user?.role === Role.CHANNEL_PARTNER && req.user) {
+      where.assignedAgentId = req.user.id;
+    }
+
     if (status) where.status = status;
     if (propertyId) where.propertyId = propertyId;
     if (source) where.source = source;
     if (investmentType) where.investmentType = investmentType;
 
     if (search) {
-      where.OR = [
+      const searchConditions: Prisma.InquiryWhereInput[] = [
         { name: { contains: search, mode: "insensitive" } },
         { email: { contains: search, mode: "insensitive" } },
         { phone: { contains: search, mode: "insensitive" } },
@@ -142,6 +148,15 @@ export const getInquiries = asyncHandler(
           },
         },
       ];
+      if (where.assignedAgentId) {
+        where.AND = [
+          { assignedAgentId: where.assignedAgentId },
+          { OR: searchConditions },
+        ];
+        delete where.assignedAgentId;
+      } else {
+        where.OR = searchConditions;
+      }
     }
 
     const [total, inquiries] = await Promise.all([
@@ -231,6 +246,16 @@ export const getInquiryById = asyncHandler(
 
     if (!inquiry) {
       throw ApiError.notFound(`Inquiry with id '${id}' not found`);
+    }
+
+    // Restrict Channel Partners to their assigned leads only
+    if (
+      req.user?.role === Role.CHANNEL_PARTNER &&
+      inquiry.assignedAgentId !== req.user.id
+    ) {
+      throw ApiError.forbidden(
+        "Access denied. You can only view leads assigned to your partner account.",
+      );
     }
 
     return res.status(200).json(
@@ -396,7 +421,11 @@ export const getInquiryTimeline = asyncHandler(
  * @access  Protected (Super Admin & Channel Partner)
  */
 export const getInquiryStats = asyncHandler(
-  async (_req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
+    const isPartner = req.user?.role === Role.CHANNEL_PARTNER;
+    const baseWhere: Prisma.InquiryWhereInput =
+      isPartner && req.user ? { assignedAgentId: req.user.id } : {};
+
     const [
       totalInquiries,
       newInquiries,
@@ -407,14 +436,14 @@ export const getInquiryStats = asyncHandler(
       closedWonInquiries,
       closedLostInquiries,
     ] = await Promise.all([
-      prisma.inquiry.count(),
-      prisma.inquiry.count({ where: { status: "NEW" } }),
-      prisma.inquiry.count({ where: { status: "CONTACTED" } }),
-      prisma.inquiry.count({ where: { status: "QUALIFIED" } }),
-      prisma.inquiry.count({ where: { status: "SITE_VISIT_SCHEDULED" } }),
-      prisma.inquiry.count({ where: { status: "NEGOTIATING" } }),
-      prisma.inquiry.count({ where: { status: "CLOSED_WON" } }),
-      prisma.inquiry.count({ where: { status: "CLOSED_LOST" } }),
+      prisma.inquiry.count({ where: baseWhere }),
+      prisma.inquiry.count({ where: { ...baseWhere, status: "NEW" } }),
+      prisma.inquiry.count({ where: { ...baseWhere, status: "CONTACTED" } }),
+      prisma.inquiry.count({ where: { ...baseWhere, status: "QUALIFIED" } }),
+      prisma.inquiry.count({ where: { ...baseWhere, status: "SITE_VISIT_SCHEDULED" } }),
+      prisma.inquiry.count({ where: { ...baseWhere, status: "NEGOTIATING" } }),
+      prisma.inquiry.count({ where: { ...baseWhere, status: "CLOSED_WON" } }),
+      prisma.inquiry.count({ where: { ...baseWhere, status: "CLOSED_LOST" } }),
     ]);
 
     const conversionRate =

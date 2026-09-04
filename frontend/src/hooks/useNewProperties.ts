@@ -233,13 +233,14 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
           .map((p) => p.trim())
           .filter(Boolean)
       : [prop.description || ""],
-    verdict: {
-      quote:
-        prop.verdictQuote ||
-        "An exceptional acquisition in an irreplaceable ultra-prime global enclave.",
-      author: prop.verdictAuthor || "Vilaasa Advisory Board",
-      title: prop.verdictTitle || "Director of Private Client Acquisitions",
-    },
+    verdict:
+      prop.verdictQuote && prop.verdictQuote.trim()
+        ? {
+            quote: prop.verdictQuote.trim(),
+            author: prop.verdictAuthor || "Vilaasa Advisory Board",
+            title: prop.verdictTitle || "Director of Private Client Acquisitions",
+          }
+        : undefined,
     specs,
     financials,
     configurations,

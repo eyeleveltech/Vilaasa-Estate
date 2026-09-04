@@ -259,10 +259,21 @@ export const normalizeFranchisePageData = (
 ): FranchisePageData => {
   if (!raw) return { ...DEFAULT_PAGE_DATA };
 
+  const isExistingRecord = Boolean(
+    (raw as any).id ||
+    (raw as any).propertyId ||
+    (raw as any).createdAt ||
+    (raw as any).updatedAt ||
+    raw.mainHeadline ||
+    raw.pageTitle ||
+    raw.visionDescription ||
+    (Array.isArray(raw.galleryImages) && raw.galleryImages.length > 0)
+  );
+
   // 1. Hero Metrics
   let heroMetrics: MetricBadge[] = [];
-  if (Array.isArray(raw.heroMetrics) && raw.heroMetrics.length > 0) {
-    heroMetrics = raw.heroMetrics;
+  if (Array.isArray(raw.heroMetrics)) {
+    heroMetrics = raw.heroMetrics.length > 0 ? raw.heroMetrics : (isExistingRecord ? [] : DEFAULT_PAGE_DATA.heroMetrics);
   } else {
     // Check legacy fields
     const legacyHero: MetricBadge[] = [];
@@ -278,13 +289,13 @@ export const normalizeFranchisePageData = (
     if (raw.metric4Label || raw.metric4Value) {
       legacyHero.push({ id: 'h4', label: raw.metric4Label || 'MODEL', value: raw.metric4Value || '' });
     }
-    heroMetrics = legacyHero.length > 0 ? legacyHero : DEFAULT_PAGE_DATA.heroMetrics;
+    heroMetrics = legacyHero.length > 0 ? legacyHero : (isExistingRecord ? [] : DEFAULT_PAGE_DATA.heroMetrics);
   }
 
   // 2. Blueprint Metrics
   let blueprintMetrics: MetricBadge[] = [];
-  if (Array.isArray(raw.blueprintMetrics) && raw.blueprintMetrics.length > 0) {
-    blueprintMetrics = raw.blueprintMetrics;
+  if (Array.isArray(raw.blueprintMetrics)) {
+    blueprintMetrics = raw.blueprintMetrics.length > 0 ? raw.blueprintMetrics : (isExistingRecord ? [] : DEFAULT_PAGE_DATA.blueprintMetrics);
   } else {
     const legacyBp: MetricBadge[] = [];
     if (raw.metric5Label || raw.metric5Value) {
@@ -299,13 +310,13 @@ export const normalizeFranchisePageData = (
     if (raw.metric8Label || raw.metric8Value) {
       legacyBp.push({ id: 'bp4', label: raw.metric8Label || 'YIELD PAYOUT', value: raw.metric8Value || '' });
     }
-    blueprintMetrics = legacyBp.length > 0 ? legacyBp : DEFAULT_PAGE_DATA.blueprintMetrics;
+    blueprintMetrics = legacyBp.length > 0 ? legacyBp : (isExistingRecord ? [] : DEFAULT_PAGE_DATA.blueprintMetrics);
   }
 
   // 3. Ecosystem Cards
   let ecosystemCards: SupportCard[] = [];
-  if (Array.isArray(raw.ecosystemCards) && raw.ecosystemCards.length > 0) {
-    ecosystemCards = raw.ecosystemCards;
+  if (Array.isArray(raw.ecosystemCards)) {
+    ecosystemCards = raw.ecosystemCards.length > 0 ? raw.ecosystemCards : (isExistingRecord ? [] : DEFAULT_PAGE_DATA.ecosystemCards);
   } else {
     const legacyEco: SupportCard[] = [];
     if (raw.support1Title) {
@@ -340,13 +351,13 @@ export const normalizeFranchisePageData = (
         icon: raw.support4Icon || 'campaign',
       });
     }
-    ecosystemCards = legacyEco.length > 0 ? legacyEco : DEFAULT_PAGE_DATA.ecosystemCards;
+    ecosystemCards = legacyEco.length > 0 ? legacyEco : (isExistingRecord ? [] : DEFAULT_PAGE_DATA.ecosystemCards);
   }
 
   // 4. Benefit Cards
   let benefitCards: BenefitCard[] = [];
-  if (Array.isArray(raw.benefitCards) && raw.benefitCards.length > 0) {
-    benefitCards = raw.benefitCards;
+  if (Array.isArray(raw.benefitCards)) {
+    benefitCards = raw.benefitCards.length > 0 ? raw.benefitCards : (isExistingRecord ? [] : DEFAULT_PAGE_DATA.benefitCards);
   } else {
     const legacyBen: BenefitCard[] = [];
     if (raw.benefit1Title) {
@@ -373,7 +384,7 @@ export const normalizeFranchisePageData = (
         icon: raw.benefit3Icon || 'trending_up',
       });
     }
-    benefitCards = legacyBen.length > 0 ? legacyBen : DEFAULT_PAGE_DATA.benefitCards;
+    benefitCards = legacyBen.length > 0 ? legacyBen : (isExistingRecord ? [] : DEFAULT_PAGE_DATA.benefitCards);
   }
 
   // 5. Gallery Images & Hero Image Sync

@@ -10,6 +10,7 @@ export const CreateSiteVisitSchema = z.object({
   timezone: z.string().default("Asia/Kolkata"),
   visitType: z.string().default("real-estate-india"),
   notes: z.string().optional(),
+  inquiryId: z.string().optional(),
 });
 
 export const UpdateSiteVisitStatusSchema = z.object({

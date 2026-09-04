@@ -66,6 +66,16 @@ const getStatusConfig = (rawStatus?: string) => {
   };
 };
 
+const sanitizeDescription = (text: string) => {
+  if (!text) return "";
+  return text
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
+    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, "")
+    .replace(/\son\w+=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/javascript:/gi, "");
+};
+
 const PropertyDetail = () => {
   const navigate = useNavigate();
   const [openCalendar, setOpenCalendar] = useState(false);
@@ -276,7 +286,7 @@ const PropertyDetail = () => {
                     .map((para, idx) => (
                       <p
                         key={idx}
-                        dangerouslySetInnerHTML={{ __html: para }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeDescription(para) }}
                         className="text-sm leading-relaxed text-muted-foreground md:text-base whitespace-pre-line"
                       />
                 ))}
@@ -351,18 +361,31 @@ const PropertyDetail = () => {
             {(property.brochure || property.virtualTour360Url) && (
               <div className="mt-8 flex flex-wrap gap-4">
                 {property.brochure && (
-                  <a
-                    href={property.brochure}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button variant="outline" className="w-full gap-2 sm:w-auto">
+                  isUnlocked ? (
+                    <a
+                      href={property.brochure}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button variant="outline" className="w-full gap-2 sm:w-auto">
+                        <span className="material-symbols-outlined text-lg">
+                          download
+                        </span>
+                        Download Brochure
+                      </Button>
+                    </a>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={() => setInquiryDialogOpen(true)}
+                      className="w-full gap-2 sm:w-auto"
+                    >
                       <span className="material-symbols-outlined text-lg">
-                        download
+                        lock
                       </span>
-                      Download Brochure
+                      Unlock Brochure (OTP)
                     </Button>
-                  </a>
+                  )
                 )}
                 {property.virtualTour360Url && (
                   <a
@@ -678,70 +701,53 @@ const PropertyDetail = () => {
       <CalanderDialog
         open={openCalendar}
         onOpenChange={setOpenCalendar}
+        propertyId={property.id}
         propertyName={property.name}
-        onConfirm={({ date, time }) => {
-          const LEAD_PROFILE_STORAGE_KEY = "vilaasa-lead-profile";
+        onConfirm={({ date, time, name, email, phone, notes }) => {
           const SITE_VISIT_WEBHOOK_URL =
             "https://automate.eyelevelstudio.in/webhook/site-visit";
-          let savedLead: {
-            name?: string;
-            email?: string;
-            phone?: string;
-            phoneCountryCode?: string;
-          } | null = null;
-
-          if (typeof window !== "undefined") {
-            try {
-              const raw = localStorage.getItem(LEAD_PROFILE_STORAGE_KEY);
-              savedLead = raw ? (JSON.parse(raw) as typeof savedLead) : null;
-            } catch (error) {
-              console.error("Failed to read saved lead profile:", error);
-            }
-          }
-
-          const fullPhone =
-            savedLead?.phone && savedLead?.phoneCountryCode
-              ? `${savedLead.phoneCountryCode} ${savedLead.phone}`.trim()
-              : savedLead?.phone?.trim() || "";
-
-          const payload = {
-            propertyId: property.id,
-            propertyName: property.name,
-            date: date.toISOString(),
-            time,
-            timezone: "Asia/Kolkata",
-            visitType:
-              property.country?.toLowerCase() === "india"
-                ? "real-estate-india"
-                : "real-estate-international",
-            source: "property-detail-sticky-cta",
-            name: savedLead?.name?.trim() || "",
-            email: savedLead?.email?.trim() || "",
-            phone: fullPhone,
-          };
 
           void (async () => {
             try {
-              // 1. Submit directly to PostgreSQL backend (deliberate inquiry: sendEmail = true)
-              await api.post("/inquiries", {
-                name: savedLead?.name?.trim() || "VIP Client",
-                email: savedLead?.email?.trim() || `vip-visit-${Date.now()}@client.com`,
-                phone: fullPhone || "+971 50 0000000",
-                investmentType: "real-estate",
-                investmentRange: property.priceValue || "Ultra Prime",
-                currency: "USD",
-                source: "SITE_VISIT_MODAL",
-                notes: `Private Inspection scheduled for ${date.toLocaleDateString()} at ${time}. Property: ${property.name}`,
-                sendEmail: true,
-                intent: "INQUIRY",
+              // 1. Submit directly to Vilaasa Site Visits API (creates SiteVisit & CRM Inquiry entry)
+              await api.post("/site-visits", {
+                propertyId: property.id,
+                name: name.trim(),
+                email: email.trim(),
+                phone: phone.trim(),
+                scheduledDate: date.toISOString(),
+                scheduledTime: time,
+                timezone: "Asia/Kolkata",
+                visitType:
+                  property.country?.toLowerCase() === "india"
+                    ? "real-estate-india"
+                    : "real-estate-international",
+                notes:
+                  notes?.trim() ||
+                  `Private inspection booked from property page: ${property.name}`,
               });
 
-              // 2. Also forward to webhook if available
+              // 2. Also forward to webhook if available (non-blocking)
               try {
                 await fetch(SITE_VISIT_WEBHOOK_URL, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(payload),
+                  body: JSON.stringify({
+                    propertyId: property.id,
+                    propertyName: property.name,
+                    date: date.toISOString(),
+                    time,
+                    timezone: "Asia/Kolkata",
+                    visitType:
+                      property.country?.toLowerCase() === "india"
+                        ? "real-estate-india"
+                        : "real-estate-international",
+                    source: "property-detail-sticky-cta",
+                    name: name.trim(),
+                    email: email.trim(),
+                    phone: phone.trim(),
+                    notes: notes?.trim() || undefined,
+                  }),
                 });
               } catch {
                 // Optional webhook fallback
@@ -751,11 +757,18 @@ const PropertyDetail = () => {
                 title: "Private Inspection Scheduled",
                 description: `Your private viewing for ${property.name} on ${date.toLocaleDateString()} at ${time} has been confirmed. Our Senior Partner will contact you shortly.`,
               });
-            } catch (error) {
+            } catch (error: unknown) {
               console.error("Site visit booking failed:", error);
+              const errMsg =
+                error && typeof error === "object" && "response" in error
+                  ? (error as { response?: { data?: { message?: string } } })
+                      .response?.data?.message
+                  : undefined;
+
               toast({
-                title: "Visit request failed",
-                description: "Could not schedule your visit. Please try again.",
+                title: "Visit Request Failed",
+                description:
+                  errMsg || "Could not schedule your visit. Please try again.",
                 variant: "destructive",
               });
             }

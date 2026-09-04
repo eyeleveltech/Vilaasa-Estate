@@ -75,9 +75,33 @@ export const CreatePropertySchema = z.object({
   price: z.coerce.number().nonnegative("Price must be non-negative").default(0),
   currency: z.nativeEnum(Currency).default(Currency.INR),
   priceOnApplication: z.boolean().default(false),
-  rentalYieldPercent: z.coerce.number().optional().nullable(),
-  expectedIrrPercent: z.coerce.number().optional().nullable(),
-  appreciationPercent: z.coerce.number().optional().nullable(),
+  rentalYieldPercent: z.preprocess(
+    (v) => (v === "" || v === undefined || v === null ? null : v),
+    z.coerce
+      .number({ invalid_type_error: "Rental yield must be a valid number" })
+      .min(0, "Rental yield cannot be negative")
+      .max(999.99, "Rental yield cannot exceed 999.99%")
+      .optional()
+      .nullable()
+  ),
+  expectedIrrPercent: z.preprocess(
+    (v) => (v === "" || v === undefined || v === null ? null : v),
+    z.coerce
+      .number({ invalid_type_error: "Expected IRR must be a valid number" })
+      .min(0, "Expected IRR cannot be negative")
+      .max(999.99, "Expected IRR cannot exceed 999.99%")
+      .optional()
+      .nullable()
+  ),
+  appreciationPercent: z.preprocess(
+    (v) => (v === "" || v === undefined || v === null ? null : v),
+    z.coerce
+      .number({ invalid_type_error: "Appreciation must be a valid number" })
+      .min(0, "Appreciation cannot be negative")
+      .max(999.99, "Appreciation cannot exceed 999.99%")
+      .optional()
+      .nullable()
+  ),
   totalAreaSqFt: z.coerce.number().positive().optional().nullable(),
   bedrooms: z.coerce.number().int().nonnegative().optional().nullable(),
   bathrooms: z.coerce.number().int().nonnegative().optional().nullable(),

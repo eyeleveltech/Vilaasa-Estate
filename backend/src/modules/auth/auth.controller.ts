@@ -386,7 +386,7 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
         phone: normalizedPhone || record.phone,
         passwordHash: dummyPasswordHash,
         name: defaultName,
-        role: "CHANNEL_PARTNER",
+        role: Role.VAULT_CLIENT,
       },
     });
   }

@@ -242,6 +242,7 @@ export const AdminPropertyViewingsList: React.FC = () => {
         scheduledTime: visitTime,
         visitType: "real-estate-india",
         notes: visitNotes || `Converted from Property Viewing unlock (Inquiry ID: ${siteVisitViewing.id})`,
+        inquiryId: siteVisitViewing.id,
       });
 
       if (res.data.success) {

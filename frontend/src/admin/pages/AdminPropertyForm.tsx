@@ -250,8 +250,14 @@ const mapToPropertyTypeEnum = (text: string): PropertyType => {
 
 const parseAmountNumber = (val: string | undefined): number => {
   if (!val) return 0;
-  const cleaned = val.replace(/[^0-9.]/g, "");
-  const num = parseFloat(cleaned);
+  const rangeMatch = val.match(/(\d+(?:\.\d+)?)\s*(?:-|to)\s*(\d+(?:\.\d+)?)/i);
+  let num: number;
+  if (rangeMatch) {
+    num = parseFloat(rangeMatch[1]);
+  } else {
+    const cleaned = val.replace(/[^0-9.]/g, "");
+    num = parseFloat(cleaned);
+  }
   if (isNaN(num)) return 0;
   if (/cr/i.test(val)) return num * 10000000;
   if (/l|lac|lakh/i.test(val)) return num * 100000;
@@ -880,22 +886,41 @@ export const AdminPropertyForm: React.FC = () => {
 
       const mappedType = mapToPropertyTypeEnum(propertyType);
 
+      const hasExplicitHero = galleryImages.some((img) => img.isHero);
       const mediaPayload = galleryImages.map((img, idx) => ({
         url: img.url,
         caption: img.caption?.trim() || undefined,
         altText: img.caption?.trim() || undefined,
-        mediaType: idx === 0 || img.isHero ? "HERO_IMAGE" : "GALLERY",
-        isFeatured: Boolean(img.isHero || idx === 0),
+        mediaType: (hasExplicitHero ? img.isHero : idx === 0) ? "HERO_IMAGE" : "GALLERY",
+        isFeatured: Boolean(hasExplicitHero ? img.isHero : idx === 0),
         orderIndex: idx,
       }));
 
+      const nonGalleryMedia = (existingMedia || [])
+        .filter(
+          (m) =>
+            m.mediaType !== "GALLERY" &&
+            m.mediaType !== "HERO_IMAGE" &&
+            m.mediaType !== "IMAGE"
+        )
+        .map((m, idx) => ({
+          url: m.url,
+          caption: m.caption || m.altText || undefined,
+          altText: m.altText || m.caption || undefined,
+          mediaType: m.mediaType,
+          isFeatured: Boolean(m.isFeatured),
+          orderIndex: galleryImages.length + idx,
+        }));
+
+      const fullMediaPayload = [...mediaPayload, ...nonGalleryMedia];
+
       const payload = {
         name: name.trim(),
-        tagline: tagline.trim() || undefined,
-        visionHeadline: visionHeadline.trim() || undefined,
-        verdictQuote: verdictQuote.trim() || undefined,
-        verdictAuthor: verdictAuthor.trim() || undefined,
-        verdictTitle: verdictTitle.trim() || undefined,
+        tagline: tagline.trim() || null,
+        visionHeadline: visionHeadline.trim() || null,
+        verdictQuote: verdictQuote.trim() || null,
+        verdictAuthor: verdictAuthor.trim() || null,
+        verdictTitle: verdictTitle.trim() || null,
         type: mappedType,
         customType: propertyType.trim(),
         status,
@@ -903,18 +928,18 @@ export const AdminPropertyForm: React.FC = () => {
           description.trim().length >= 10
             ? description.trim()
             : `${name.trim()} - Luxury investment estate opportunity with institutional management.`,
-        virtualTour360Url: virtualTour360Url.trim() || undefined,
-        brochureUrl: brochureUrl.trim() || undefined,
+        virtualTour360Url: virtualTour360Url.trim() || null,
+        brochureUrl: brochureUrl.trim() || null,
         customSpecs: cleanedCustomSpecs,
         sectionVisibility,
         price: priceOnApplication ? 0 : parseAmountNumber(price),
         currency,
         priceOnApplication,
-        rentalYieldPercent: rentalYieldPercent ? parseFloat(rentalYieldPercent) : undefined,
-        expectedIrrPercent: expectedIrrPercent ? parseFloat(expectedIrrPercent) : undefined,
+        rentalYieldPercent: rentalYieldPercent ? parseFloat(rentalYieldPercent) : null,
+        expectedIrrPercent: expectedIrrPercent ? parseFloat(expectedIrrPercent) : null,
         financialMetrics: cleanedFinancialMetrics,
         configurations: cleanedConfigurations,
-        media: mediaPayload.length > 0 ? mediaPayload : undefined,
+        media: fullMediaPayload,
         amenities: amenities
           .filter((a) => a.name.trim())
           .map((a) => ({
@@ -934,12 +959,12 @@ export const AdminPropertyForm: React.FC = () => {
         location: {
           city: city.trim() || (marketScope === "INTERNATIONAL" ? "Dubai" : "Goa"),
           country: country.trim() || (marketScope === "INTERNATIONAL" ? "United Arab Emirates" : "India"),
-          community: community.trim() || undefined,
-          addressLine: addressLine.trim() || undefined,
-          latitude: latitude ? parseFloat(latitude) : undefined,
-          longitude: longitude ? parseFloat(longitude) : undefined,
-          mapEmbedUrl: googleMapUrl.trim() || undefined,
-          googleMapUrl: googleMapUrl.trim() || undefined,
+          community: community.trim() || null,
+          addressLine: addressLine.trim() || null,
+          latitude: latitude && !isNaN(parseFloat(latitude)) ? parseFloat(latitude) : null,
+          longitude: longitude && !isNaN(parseFloat(longitude)) ? parseFloat(longitude) : null,
+          mapEmbedUrl: googleMapUrl.trim() || null,
+          googleMapUrl: googleMapUrl.trim() || null,
         },
       };
 
@@ -1221,7 +1246,11 @@ export const AdminPropertyForm: React.FC = () => {
                     value={brochureUrl}
                     onChange={(url) => {
                       setBrochureUrl(url);
-                      toast.success("Brochure attached!");
+                      if (url) {
+                        toast.success("Brochure attached!");
+                      } else {
+                        toast.success("Brochure removed");
+                      }
                     }}
                   />
                 </div>

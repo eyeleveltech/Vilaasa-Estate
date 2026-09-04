@@ -162,12 +162,28 @@ export const AdminPropertyDetail: React.FC = () => {
   const handleAddConfiguration = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!property) return;
+
+    if (!newConfig.unitType.trim()) {
+      toast.error("Unit type is required");
+      return;
+    }
+
+    const cleanAreaStr = newConfig.areaSqFt.replace(/[^0-9.]/g, "");
+    const cleanPriceStr = newConfig.price.replace(/[^0-9.]/g, "");
+    const parsedArea = cleanAreaStr ? parseFloat(cleanAreaStr) : 0;
+    const parsedPrice = cleanPriceStr ? parseFloat(cleanPriceStr) : 0;
+
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
+      toast.error("Please enter a valid price");
+      return;
+    }
+
     try {
       const payload = {
-        unitType: newConfig.unitType,
-        areaSqFt: parseFloat(newConfig.areaSqFt),
-        viewType: newConfig.viewType || undefined,
-        price: parseFloat(newConfig.price),
+        unitType: newConfig.unitType.trim(),
+        areaSqFt: isNaN(parsedArea) ? 0 : parsedArea,
+        viewType: newConfig.viewType.trim() || undefined,
+        price: parsedPrice,
         isAvailable: newConfig.isAvailable,
       };
       const res = await api.post(

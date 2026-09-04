@@ -76,7 +76,7 @@ export interface PropertyDetail {
   heroImage: string;
   heroVideo?: string;
   description: string[];
-  verdict: PropertyVerdict;
+  verdict?: PropertyVerdict;
   specs: PropertySpec[];
   financials: PropertyFinancial[];
   configurations: PropertyConfiguration[];
