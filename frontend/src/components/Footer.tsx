@@ -43,17 +43,17 @@ export const Footer = () => {
         <div className="px-4 md:px-10 max-w-[1280px] mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
             {/* Brand */}
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-6 md:col-span-2 lg:col-span-2">
               <img
                 src={vilaasaLogo}
                 alt="Vilaasa Estate"
                 className="h-10 w-fit"
               />
-              <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
+              <p className="text-muted-foreground text-sm leading-relaxed max-w-sm">
                 The intersection of luxury real estate and high-yield franchise
                 aggregation.
               </p>
-              <div className="flex flex-col gap-3 mt-2">
+              <div className="flex flex-col gap-3 mt-2 max-w-md">
                 <div className="flex items-start gap-2 text-muted-foreground text-sm">
                   <span className="material-symbols-outlined text-primary text-base mt-0.5">
                     location_on
@@ -144,26 +144,6 @@ export const Footer = () => {
               >
                 Become a Partner
               </Link>
-            </div>
-
-            {/* Newsletter */}
-            <div className="flex flex-col gap-4">
-              <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-2">
-                Intelligence
-              </h4>
-              <p className="text-muted-foreground text-sm mb-2">
-                Subscribe to the Vilaasa Standard.
-              </p>
-              <div className="flex items-center gap-2 border-b border-border pb-2">
-                <input
-                  className="bg-transparent border-none text-foreground placeholder-muted-foreground text-sm w-full focus:ring-0 focus:outline-none px-0"
-                  placeholder="Email Address"
-                  type="email"
-                />
-                <button className="text-primary hover:text-foreground transition-colors text-sm uppercase font-bold">
-                  Join
-                </button>
-              </div>
             </div>
           </div>
 
