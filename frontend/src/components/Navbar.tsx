@@ -101,19 +101,6 @@ export const Navbar = () => {
                 <CurrencyToggle />
               </div>
 
-              {/* Vault Login */}
-              <Link to="/vault">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="hidden sm:flex gap-2 text-xs text-gold hover:text-gold hover:bg-gold/10"
-                >
-                  <span className="material-symbols-outlined text-base">
-                    lock
-                  </span>
-                  The Vault
-                </Button>
-              </Link>
 
               <Link to="/calendar">
                 <Button variant="ghost" className="hidden sm:flex gap-2">
@@ -171,13 +158,6 @@ export const Navbar = () => {
                 ))}
               </div>
 
-              <Link
-                to="/vault"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="mt-2 block py-3 text-sm font-medium uppercase tracking-[0.1em] text-gold transition-colors hover:text-gold/80"
-              >
-                The Vault
-              </Link>
 
               <Link to="/calendar" onClick={() => setIsMobileMenuOpen(false)}>
                 <Button variant="ghost" className="mt-4 w-full gap-2">

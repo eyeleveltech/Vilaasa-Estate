@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
-import { CDN_ASSETS } from "@/config/cdnAssets";
 import {
   DEFAULT_PROPERTY_IMAGE,
   DEFAULT_PROPERTY_IMAGES,
@@ -241,179 +240,6 @@ interface ApiResponse<T> {
   message: string;
   data: T;
 }
-
-/* -------------------- CURATED FALLBACK DATA -------------------- */
-
-const FALLBACK_FRANCHISES: FranchiseItem[] = [
-  {
-    id: "wellness-resorts-kerala",
-    name: "Wellness Resorts Kerala",
-    category: "Franchises",
-    type: "Wellness Resort",
-    location: "Kerala & Pondicherry",
-    price: 7000000,
-    heroImage: CDN_ASSETS.franchise.wellnessKerala,
-    description: [
-      "An ultra-luxury Ayurvedic sanctuary bringing 5,000 years of transformative wellness wisdom to institutional hospitality.",
-      "Designed for high-yield investor aggregation with full operator-backed operational management under the FOCO framework.",
-    ],
-    spec: [
-      { label: "Min Investment", value: "₹70,00,000" },
-      { label: "Annual ROI", value: "24% Annually" },
-      { label: "Payback Period", value: "3.5 Years" },
-      { label: "Model", value: "FOCO (Franchise Owned Company Operated)" },
-    ],
-    galleryImages: [
-      {
-        name: "Ayurvedic Treatment Pavilion",
-        description: "Bespoke Healing Suite",
-        image:
-          "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1200&auto=format&fit=crop&q=80",
-      },
-      {
-        name: "Private Infinity Lagoon",
-        description: "Overwater Yoga Shala",
-        image:
-          "https://images.unsplash.com/photo-1507652313519-d4e9174996dd?w=1200&auto=format&fit=crop&q=80",
-      },
-    ],
-    financial: [
-      { label: "Total Project Cost", value: "₹25,00,00,000" },
-      { label: "Min Ticket Size", value: "₹70,00,000" },
-      { label: "Lock In Period", value: "3 Years" },
-      { label: "Yield Payout", value: "Quarterly Guaranteed" },
-    ],
-    support_training_para: [
-      "Turnkey institutional development covering location scouting, biophilic architectural styling, therapist certification, and international marketing.",
-    ],
-    support_training: [
-      {
-        icon: "storefront",
-        name: "Location Scouting",
-        description: "Rigorous demographic analysis and prime waterfront sourcing.",
-      },
-      {
-        icon: "design_services",
-        name: "Biophilic Design",
-        description: "Eco-luxe architecture harmonizing natural stone, timber, and water.",
-      },
-      {
-        icon: "school",
-        name: "Ayurveda Training",
-        description: "Certified training programs via Kerala Ayurveda University.",
-      },
-      {
-        icon: "campaign",
-        name: "Global Marketing",
-        description: "High-net-worth distribution across GCC, Europe, and India.",
-      },
-    ],
-    advantages: [
-      {
-        icon: "spa",
-        name: "Authentic Ayurveda",
-        description: "Physician-designed transformative treatments with 5,000-year lineage.",
-      },
-      {
-        icon: "self_improvement",
-        name: "Yoga & Meditation",
-        description: "Certified daily mindful journeys in serene natural settings.",
-      },
-      {
-        icon: "psychiatry",
-        name: "Transformative Journeys",
-        description: "Curated 7-to-21-day immersive retreats with high retention rates.",
-      },
-    ],
-  },
-  {
-    id: "carlton-wellness-spa",
-    name: "Carlton Wellness Spa",
-    category: "Franchises",
-    type: "Luxury Day Spa",
-    location: "Mumbai, Delhi, Bangalore",
-    price: 7000000,
-    heroImage: CDN_ASSETS.franchise.carltonSpa,
-    description: [
-      "Signature European thermal hydrotherapy and cryogenic healing suites tailored to tier-1 luxury metropolitan hubs.",
-      "High-margin recurring membership model with established private clientele across prime real estate districts.",
-    ],
-    spec: [
-      { label: "Min Investment", value: "₹70,00,000" },
-      { label: "Annual ROI", value: "26% Annually" },
-      { label: "Payback Period", value: "3 Years" },
-      { label: "Model", value: "FOCO Institutional" },
-    ],
-    galleryImages: [
-      {
-        name: "Hydrotherapy Suite",
-        description: "Thermal Mineral Bath",
-        image:
-          "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1200&auto=format&fit=crop&q=80",
-      },
-    ],
-    financial: [
-      { label: "Total Project Cost", value: "₹18,00,00,000" },
-      { label: "Min Ticket Size", value: "₹70,00,000" },
-      { label: "Lock In Period", value: "2 Years" },
-      { label: "Yield Payout", value: "Monthly Dividend" },
-    ],
-    support_training_para: [
-      "Complete operational handover with proprietary client CRM and luxury brand ambassadorship.",
-    ],
-    support_training: [
-      {
-        icon: "storefront",
-        name: "Location Scouting",
-        description: "Prime high-street & 5-star hotel lobby leasing.",
-      },
-      {
-        icon: "design_services",
-        name: "Biophilic Design",
-        description: "Soundproofed ambient sensory architecture.",
-      },
-    ],
-    advantages: [
-      {
-        icon: "spa",
-        name: "Thermal Healing",
-        description: "Bespoke hydrothermal and infrared saunas.",
-      },
-    ],
-  },
-  {
-    id: "colton-resort-chennai",
-    name: "Colton Beach Resort",
-    category: "Franchises",
-    type: "Boutique Beach Resort",
-    location: "Chennai ECR",
-    price: 7000000,
-    heroImage: CDN_ASSETS.franchise.coltonResort,
-    description: [
-      "Exclusive beachfront hospitality destination on Chennai East Coast Road with private cabana villas and coastal dining.",
-    ],
-    spec: [
-      { label: "Min Investment", value: "₹70,00,000" },
-      { label: "Annual ROI", value: "22% Annually" },
-      { label: "Payback Period", value: "4 Years" },
-      { label: "Model", value: "FOCO" },
-    ],
-    galleryImages: [
-      {
-        name: "Beachfront Villa",
-        description: "Ocean View",
-        image:
-          "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&auto=format&fit=crop&q=80",
-      },
-    ],
-    financial: [
-      { label: "Total Project Cost", value: "₹30,00,00,000" },
-      { label: "Min Ticket Size", value: "₹70,00,000" },
-      { label: "Lock In Period", value: "3 Years" },
-      { label: "Yield Payout", value: "Quarterly" },
-    ],
-  },
-];
 
 /* -------------------- TRANSFORMS -------------------- */
 
@@ -746,16 +572,11 @@ export function useFranchise(slug?: string) {
         if (res.data.success && res.data.data) {
           return transformPropertyToFranchise(res.data.data);
         }
-      } catch {
-        // Check fallback dataset if not found in backend DB
-        const fallback = FALLBACK_FRANCHISES.find((f) => f.id === slug);
-        if (fallback) return fallback;
+        throw new Error(`Franchise with slug '${slug}' not found`);
+      } catch (err) {
+        console.error(`[useFranchise] Error fetching franchise '${slug}':`, err);
+        throw err;
       }
-
-      const fallback = FALLBACK_FRANCHISES.find((f) => f.id === slug);
-      if (fallback) return fallback;
-
-      throw new Error(`Franchise with slug '${slug}' not found`);
     },
     enabled: !!slug,
     staleTime: 5 * 60 * 1000,
@@ -774,30 +595,14 @@ export function useFranchiseList() {
           params: { type: "FRANCHISE", limit: 50 },
         });
 
-        if (res.data.success && res.data.data && res.data.data.length > 0) {
+        if (res.data.success && Array.isArray(res.data.data)) {
           return res.data.data.map(transformPropertyToFranchiseListItem);
         }
-      } catch {
-        // Fallback to curated dataset
+        return [];
+      } catch (err) {
+        console.error("[useFranchiseList] Error fetching franchise list:", err);
+        throw err;
       }
-
-      // Return curated list
-      return FALLBACK_FRANCHISES.map((f) => ({
-        id: f.id,
-        name: f.name,
-        type: f.type,
-        location: f.location,
-        price: f.price,
-        category: f.category,
-        image: f.heroImage,
-        investment: f.spec.find((s) => s.label === "Min Investment")?.value || "₹70,00,000",
-        expectedROI: f.spec.find((s) => s.label === "Annual ROI")?.value || "24% Annually",
-        features: [
-          "FOCO Business Model",
-          "Quarterly Dividend Payouts",
-          "Turnkey Operational Management",
-        ],
-      }));
     },
     staleTime: 5 * 60 * 1000,
   });

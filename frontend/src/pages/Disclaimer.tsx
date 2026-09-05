@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { SEO } from "@/components/SEO";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { DiamondIcon } from "@/components/icons/DiamondIcon";
@@ -6,6 +7,11 @@ import { DiamondIcon } from "@/components/icons/DiamondIcon";
 const Disclaimer = () => {
   return (
     <div className="overflow-x-hidden bg-background">
+      <SEO
+        title="Disclaimer | Investment & Real Estate Disclosures"
+        description="Important statutory, legal, and investment risk disclosures regarding properties and franchise opportunities."
+        canonical="https://www.vilaasaestates.com/disclaimer"
+      />
       <Navbar />
       
       {/* Hero Section */}

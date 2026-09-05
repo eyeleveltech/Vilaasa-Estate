@@ -153,6 +153,8 @@ export interface ConstructionAsset {
   gallery?: ConstructionGalleryItem[];
 }
 
+export type FranchiseModuleItem = string | { name?: string; icon?: string; description?: string };
+
 export interface Property {
   id: string;
   slug: string;
@@ -193,8 +195,8 @@ export interface Property {
   lockInPeriodYears?: number | null;
   expectedAnnualRoi?: number | null;
   yieldPayoutFrequency?: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
-  supportModules?: string[] | null;
-  advantages?: string[] | null;
+  supportModules?: FranchiseModuleItem[] | null;
+  advantages?: FranchiseModuleItem[] | null;
   sectionVisibility?: Record<string, boolean> | null;
   locationId: string;
   location: Location;
@@ -358,71 +360,6 @@ export interface PropertyFilterParams {
   sortBy?: "price_asc" | "price_desc" | "newest" | "oldest" | "area_asc" | "area_desc";
 }
 
-export interface VaultAdminOverview {
-  totalAum: number;
-  totalInvested: number;
-  totalAppreciation: number;
-  appreciationPercent: number;
-  totalMonthlyRental: number;
-  annualRentalIncome: number;
-  totalInvestors: number;
-  totalUnits: number;
-  byOccupancy: {
-    OCCUPIED: number;
-    VACANT: number;
-    UNDER_MAINTENANCE: number;
-  };
-}
-
-export interface VaultAdminAsset {
-  id: string;
-  userId: string;
-  propertyId: string;
-  unitNumber: string;
-  purchaseDate: string;
-  purchasePrice: number;
-  currentValuation: number;
-  monthlyRentalYield: number;
-  appreciation: number;
-  appreciationPercent: number;
-  occupancyStatus: "OCCUPIED" | "VACANT" | "UNDER_MAINTENANCE" | string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    phone?: string | null;
-  };
-  property: {
-    id: string;
-    name: string;
-    slug: string;
-    type: string;
-    currency: Currency;
-    location: {
-      city: string;
-      country: string;
-      community?: string | null;
-    };
-  };
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface VaultAdminInvestor {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string | null;
-  phoneCode?: string | null;
-  isActive: boolean;
-  createdAt: string;
-  totalUnits: number;
-  totalInvested: number;
-  currentValue: number;
-  totalAppreciation: number;
-  appreciationPercent: number;
-  monthlyRental: number;
-}
 
 export type {
   FranchisePageData,

@@ -8,6 +8,7 @@ import {
   Mail,
   Phone,
   Calendar as CalendarIcon,
+  CalendarCheck,
   Building2,
   Download,
   Clock,
@@ -21,7 +22,8 @@ import {
   ChevronUp,
   MapPin,
   Sparkles,
-  CalendarCheck,
+  ChevronLeft,
+  ChevronRight,
   ShieldCheck,
   Copy,
   Check,
@@ -69,6 +71,10 @@ export const AdminPropertyViewingsList: React.FC = () => {
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const limit = 20;
 
   // Status / Note Modal State
   const [selectedViewing, setSelectedViewing] = useState<Inquiry | null>(null);
@@ -106,7 +112,8 @@ export const AdminPropertyViewingsList: React.FC = () => {
     setLoading(true);
     try {
       const params: Record<string, string | number> = {
-        limit: 100,
+        page,
+        limit,
         investmentType: "real-estate",
       };
       if (statusFilter) params.status = statusFilter;
@@ -140,13 +147,20 @@ export const AdminPropertyViewingsList: React.FC = () => {
           );
         }
         setViewings(filtered);
+        if (res.data.meta) {
+          setTotalPages(res.data.meta.totalPages || 1);
+          setTotalCount(res.data.meta.total || filtered.length);
+        } else {
+          setTotalPages(Math.ceil(filtered.length / limit) || 1);
+          setTotalCount(filtered.length);
+        }
       }
     } catch {
       toast.error("Failed to load property viewing records");
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, selectedPropertyId, search, dateFrom, dateTo]);
+  }, [page, limit, statusFilter, selectedPropertyId, search, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchViewingRecords();
@@ -405,7 +419,10 @@ export const AdminPropertyViewingsList: React.FC = () => {
             <Input
               placeholder="Search client, email, estate..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
               className="pl-9 bg-background/50 border-border/60 text-sm"
             />
           </div>
@@ -414,7 +431,10 @@ export const AdminPropertyViewingsList: React.FC = () => {
           <div>
             <select
               value={selectedPropertyId}
-              onChange={(e) => setSelectedPropertyId(e.target.value)}
+              onChange={(e) => {
+                setSelectedPropertyId(e.target.value);
+                setPage(1);
+              }}
               className="w-full h-10 px-3 rounded-md bg-background/50 border border-border/60 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value="">All Estates &amp; Properties</option>
@@ -430,7 +450,10 @@ export const AdminPropertyViewingsList: React.FC = () => {
           <div>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as InquiryStatus | "")}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as InquiryStatus | "");
+                setPage(1);
+              }}
               className="w-full h-10 px-3 rounded-md bg-background/50 border border-border/60 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value="">All Pipeline Statuses</option>
@@ -447,7 +470,10 @@ export const AdminPropertyViewingsList: React.FC = () => {
             <Input
               type="date"
               value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
+              onChange={(e) => {
+                setDateFrom(e.target.value);
+                setPage(1);
+              }}
               className="bg-background/50 border-border/60 text-xs"
               title="From date"
             />
@@ -455,7 +481,10 @@ export const AdminPropertyViewingsList: React.FC = () => {
             <Input
               type="date"
               value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
+              onChange={(e) => {
+                setDateTo(e.target.value);
+                setPage(1);
+              }}
               className="bg-background/50 border-border/60 text-xs"
               title="To date"
             />
@@ -473,6 +502,7 @@ export const AdminPropertyViewingsList: React.FC = () => {
                 setStatusFilter("");
                 setDateFrom("");
                 setDateTo("");
+                setPage(1);
               }}
               className="text-xs text-muted-foreground hover:text-foreground h-7"
             >
@@ -633,6 +663,45 @@ export const AdminPropertyViewingsList: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Desktop Pagination */}
+        <div className="flex items-center justify-between border-t border-border/50 px-5 py-3.5 text-xs text-muted-foreground bg-card/40">
+          <div className="flex items-center space-x-2">
+            <span>
+              Showing{" "}
+              <span className="font-semibold text-foreground">
+                {viewings.length}
+              </span>{" "}
+              of <span className="font-semibold text-foreground">{totalCount}</span>{" "}
+              records
+            </span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="font-mono">
+              Page {page} of {totalPages}
+            </span>
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                disabled={page <= 1 || loading}
+                className="px-2 border-border/60"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                disabled={page >= totalPages || loading}
+                className="px-2 border-border/60"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Mobile Card View (viewing records) */}
@@ -702,6 +771,34 @@ export const AdminPropertyViewingsList: React.FC = () => {
             );
           })
         )}
+
+        {/* Mobile Pagination */}
+        <div className="flex items-center justify-between border border-border/50 rounded-xl px-4 py-3 text-xs text-muted-foreground bg-card/40 mt-3">
+          <div className="flex flex-col">
+            <span>{viewings.length} of {totalCount} records</span>
+            <span className="font-mono">Page {page} of {totalPages}</span>
+          </div>
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(p - 1, 1))}
+              disabled={page <= 1 || loading}
+              className="px-2 border-border/60"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+              disabled={page >= totalPages || loading}
+              className="px-2 border-border/60"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Modal 1: Update Status & Private Notes */}

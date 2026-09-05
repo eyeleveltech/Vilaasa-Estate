@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { SEO } from "@/components/SEO";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -126,6 +127,7 @@ const PropertyDetail = () => {
   if (isError || !property) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
+        <SEO title="Property Not Found" description="The requested property dossier could not be located." noindex />
         <div className="text-center">
           <span className="material-symbols-outlined text-5xl text-red-500/50">
             error
@@ -147,6 +149,16 @@ const PropertyDetail = () => {
 
   return (
     <div className="overflow-x-hidden bg-background pb-24 sm:pb-0">
+      <SEO
+        title={`${property.name} | Luxury Estate`}
+        description={
+          property.tagline ||
+          (Array.isArray(property.description) ? property.description.join(" ") : property.description) ||
+          `Explore ${property.name}, an ultra-luxury residence curated by Vilaasa Estate.`
+        }
+        image={property.heroImage}
+        canonical={`https://www.vilaasaestates.com/property/${property.id}`}
+      />
       <Navbar />
 
       {/* Hero Section */}

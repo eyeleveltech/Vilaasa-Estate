@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SEO } from "@/components/SEO";
 import { SplashGateway } from "@/components/SplashGateway";
 import { Navbar } from "@/components/Navbar";
 import { HeroSection } from "@/components/HeroSection";
@@ -14,7 +15,11 @@ const Index = () => {
 
   return (
     <div className="overflow-x-hidden">
-     
+      <SEO
+        title="Ultra-Luxury Real Estate & High-Yield Franchises"
+        description="Discover exclusive residences and curated high-yield franchise opportunities across India and Dubai with guaranteed certainty."
+        canonical="https://www.vilaasaestates.com/"
+      />
       <Navbar />
       <main>
         <HeroSection />

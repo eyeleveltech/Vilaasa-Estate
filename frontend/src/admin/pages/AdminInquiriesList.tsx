@@ -16,7 +16,8 @@ import {
   UserCheck,
   X,
   Plus,
-  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
   MessageCircle,
   CalendarCheck,
 } from "lucide-react";
@@ -42,6 +43,10 @@ export const AdminInquiriesList: React.FC = () => {
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [search, setSearch] = useState<string>("");
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const limit = 20;
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [expandedTimeline, setExpandedTimeline] = useState<
     Record<string, InquiryTimeline[]>
@@ -84,7 +89,10 @@ export const AdminInquiriesList: React.FC = () => {
   const fetchInquiries = useCallback(async () => {
     setLoading(true);
     try {
-      const params: Record<string, string | number> = { limit: 100 };
+      const params: Record<string, string | number> = {
+        page,
+        limit,
+      };
       if (statusFilter) params.status = statusFilter;
       if (search.trim()) params.search = search.trim();
 
@@ -124,13 +132,20 @@ export const AdminInquiriesList: React.FC = () => {
           );
         }
         setInquiries(filtered);
+        if (res.data.meta) {
+          setTotalPages(res.data.meta.totalPages || 1);
+          setTotalCount(res.data.meta.total || filtered.length);
+        } else {
+          setTotalPages(Math.ceil(filtered.length / limit) || 1);
+          setTotalCount(filtered.length);
+        }
       }
     } catch {
       toast.error("Failed to load client inquiries pipeline");
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, investmentTypeFilter, dateFrom, dateTo, search]);
+  }, [page, limit, statusFilter, investmentTypeFilter, dateFrom, dateTo, search]);
 
   useEffect(() => {
     fetchInquiries();
@@ -142,6 +157,7 @@ export const AdminInquiriesList: React.FC = () => {
     setDateFrom("");
     setDateTo("");
     setSearch("");
+    setPage(1);
   };
 
   // Toggle Timeline View
@@ -431,7 +447,10 @@ export const AdminInquiriesList: React.FC = () => {
               type="text"
               placeholder="Search name, email, phone..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
               className="bg-secondary/40 pl-9 text-xs h-9"
             />
           </div>
@@ -440,9 +459,10 @@ export const AdminInquiriesList: React.FC = () => {
           <div className="relative">
             <select
               value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(e.target.value as InquiryStatus | "")
-              }
+              onChange={(e) => {
+                setStatusFilter(e.target.value as InquiryStatus | "");
+                setPage(1);
+              }}
               className="w-full appearance-none rounded-md border border-input bg-secondary/40 px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none cursor-pointer"
             >
               <option value="">All Statuses</option>
@@ -457,7 +477,10 @@ export const AdminInquiriesList: React.FC = () => {
           <div className="relative">
             <select
               value={investmentTypeFilter}
-              onChange={(e) => setInvestmentTypeFilter(e.target.value)}
+              onChange={(e) => {
+                setInvestmentTypeFilter(e.target.value);
+                setPage(1);
+              }}
               className="w-full appearance-none rounded-md border border-input bg-secondary/40 px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none cursor-pointer"
             >
               <option value="">All Types</option>
@@ -473,7 +496,10 @@ export const AdminInquiriesList: React.FC = () => {
               type="date"
               title="From Date"
               value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
+              onChange={(e) => {
+                setDateFrom(e.target.value);
+                setPage(1);
+              }}
               className="bg-secondary/40 text-xs h-9"
             />
           </div>
@@ -484,7 +510,10 @@ export const AdminInquiriesList: React.FC = () => {
               type="date"
               title="To Date"
               value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
+              onChange={(e) => {
+                setDateTo(e.target.value);
+                setPage(1);
+              }}
               className="bg-secondary/40 text-xs h-9 flex-1"
             />
             {(statusFilter ||
@@ -760,6 +789,45 @@ export const AdminInquiriesList: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Desktop Pagination */}
+        <div className="flex items-center justify-between border-t border-border px-5 py-3.5 text-xs text-muted-foreground bg-secondary/20">
+          <div className="flex items-center space-x-2">
+            <span>
+              Showing{" "}
+              <span className="font-semibold text-foreground">
+                {inquiries.length}
+              </span>{" "}
+              of <span className="font-semibold text-foreground">{totalCount}</span>{" "}
+              inquiries
+            </span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="font-mono">
+              Page {page} of {totalPages}
+            </span>
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                disabled={page <= 1 || loading}
+                className="px-2"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                disabled={page >= totalPages || loading}
+                className="px-2"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Mobile Card View (inquiries) */}
@@ -836,6 +904,34 @@ export const AdminInquiriesList: React.FC = () => {
             );
           })
         )}
+
+        {/* Mobile Pagination */}
+        <div className="flex items-center justify-between border border-border rounded-xl px-4 py-3 text-xs text-muted-foreground bg-secondary/20 mt-3">
+          <div className="flex flex-col">
+            <span>{inquiries.length} of {totalCount} inquiries</span>
+            <span className="font-mono">Page {page} of {totalPages}</span>
+          </div>
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(p - 1, 1))}
+              disabled={page <= 1 || loading}
+              className="px-2"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+              disabled={page >= totalPages || loading}
+              className="px-2"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Status Update Modal */}

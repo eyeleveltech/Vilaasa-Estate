@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { SEO } from "@/components/SEO";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -98,6 +99,11 @@ const International = () => {
 
   return (
     <div className="overflow-x-hidden bg-background">
+      <SEO
+        title="International Luxury Real Estate | Dubai & Global Reserves"
+        description="Exclusive residences, beachfront penthouses, and tax-efficient investments in Dubai and premier global markets."
+        canonical="https://www.vilaasaestates.com/international"
+      />
       <Navbar />
 
       {/* Hero Section */}

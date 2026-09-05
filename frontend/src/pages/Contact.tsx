@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { SEO } from "@/components/SEO";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -146,7 +147,12 @@ const Contact = () => {
   };
 
   return (
-    <div className="overflow-x-hidden bg-background">
+    <div className="overflow-x-hidden">
+      <SEO
+        title="Contact Private Concierge | Acquisition & Advisory"
+        description="Connect with our private wealth advisors and real estate specialists in Chennai and Dubai for bespoke acquisitions."
+        canonical="https://www.vilaasaestates.com/contact"
+      />
       <Navbar />
 
       {/* Hero Section */}

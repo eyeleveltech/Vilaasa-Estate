@@ -11,53 +11,42 @@ export interface HeroHighlightItem {
   isActive: boolean;
 }
 
-const fallbackHighlights: HeroHighlightItem[] = [
-  {
-    id: "default-1",
-    name: "Carlton",
-    tagline: "Luxury Experiences • Andhra Pradesh",
-    linkUrl: "/property/carlton",
-    icon: "hotel_class",
-    order: 1,
-    isActive: true,
-  },
-  {
-    id: "default-2",
-    name: "Oxygen Forest",
-    tagline: "Luxury Farm Living • Hyderabad",
-    linkUrl: "/property/oxygen-forest",
-    icon: "park",
-    order: 2,
-    isActive: true,
-  },
-  {
-    id: "default-3",
-    name: "Ayurvedic Sanctuary",
-    tagline: "Holistic Wellness • Kerala",
-    linkUrl: "/franchise/carlton-wellness-spa",
-    icon: "spa",
-    order: 3,
-    isActive: true,
-  },
-];
-
 export function useHeroHighlights() {
-  const [highlights, setHighlights] = useState<HeroHighlightItem[]>(fallbackHighlights);
+  const [highlights, setHighlights] = useState<HeroHighlightItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
     async function fetchHighlights() {
       try {
+        setLoading(true);
+        setError(null);
         const res = await api.get("/hero-highlights");
-        if (isMounted && res.data.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
-          setHighlights(res.data.data);
+        if (isMounted) {
+          if (res.data.success && Array.isArray(res.data.data)) {
+            // Sort by order ascending and ensure active items only
+            const activeItems = res.data.data
+              .filter((item: HeroHighlightItem) => item.isActive !== false)
+              .sort((a: HeroHighlightItem, b: HeroHighlightItem) => a.order - b.order);
+            setHighlights(activeItems);
+          } else {
+            setHighlights([]);
+          }
         }
-      } catch (err) {
-        console.warn("[HeroHighlights] Using fallback highlights:", err);
+      } catch (err: unknown) {
+        if (isMounted) {
+          const message =
+            err instanceof Error ? err.message : "Failed to load hero highlights from API";
+          console.error("[HeroHighlights] Failed to load highlights:", message);
+          setError(message);
+          setHighlights([]);
+        }
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
@@ -68,5 +57,5 @@ export function useHeroHighlights() {
     };
   }, []);
 
-  return { highlights, loading };
+  return { highlights, loading, error };
 }

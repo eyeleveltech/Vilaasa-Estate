@@ -27,6 +27,10 @@ export interface BenefitCard {
 }
 
 export interface FranchisePageData {
+  id?: string;
+  propertyId?: string;
+  createdAt?: string;
+  updatedAt?: string;
   pageTitle: string;
   mainHeadline: string;
   subheading: string;
@@ -260,10 +264,10 @@ export const normalizeFranchisePageData = (
   if (!raw) return { ...DEFAULT_PAGE_DATA };
 
   const isExistingRecord = Boolean(
-    (raw as any).id ||
-    (raw as any).propertyId ||
-    (raw as any).createdAt ||
-    (raw as any).updatedAt ||
+    raw.id ||
+    raw.propertyId ||
+    raw.createdAt ||
+    raw.updatedAt ||
     raw.mainHeadline ||
     raw.pageTitle ||
     raw.visionDescription ||

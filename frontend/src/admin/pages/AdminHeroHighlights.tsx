@@ -18,6 +18,7 @@ import {
   Building,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import axios from "axios";
 import api from "../../api/axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -198,10 +199,11 @@ export const AdminHeroHighlights: React.FC = () => {
       });
 
       fetchHighlights();
-    } catch (err: any) {
-      toast.error(
-        err.response?.data?.message || "Failed to save hero highlight",
-      );
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err)
+        ? err.response?.data?.message || "Failed to save hero highlight"
+        : "Failed to save hero highlight";
+      toast.error(message);
     } finally {
       setModal((prev) => ({ ...prev, submitting: false }));
     }
@@ -222,8 +224,11 @@ export const AdminHeroHighlights: React.FC = () => {
         `Highlight ${!item.isActive ? "activated" : "deactivated"}`,
       );
       fetchHighlights();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to toggle status");
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err)
+        ? err.response?.data?.message || "Failed to toggle status"
+        : "Failed to toggle status";
+      toast.error(message);
     }
   };
 
