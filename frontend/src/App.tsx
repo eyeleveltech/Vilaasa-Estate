@@ -5,14 +5,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster as HotToaster } from "react-hot-toast";
 import { lazy, Suspense } from "react";
+import { HelmetProvider } from "react-helmet-async";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
 import { LiveConcierge } from "./components/LiveConcierge";
 import { AdminProtectedRoute } from "./admin/components/AdminProtectedRoute";
 import { AdminLayout } from "./admin/components/AdminLayout";
 import { PartnerProtectedRoute } from "./partner/components/PartnerProtectedRoute";
 import { PartnerLayout } from "./partner/components/PartnerLayout";
-import { VaultProtectedRoute } from "./vault/components/VaultProtectedRoute";
-import { VaultLayout } from "./vault/components/VaultLayout";
 import { ScrollToTop } from "./components/ScrollToTop";
 
 // Public Pages
@@ -26,50 +25,6 @@ const FranchiseDetail = lazy(() => import("./pages/FranchiseDetail"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Calendar = lazy(() => import("./pages/Calendar"));
 const WealthProjector = lazy(() => import("./pages/WealthProjector"));
-// The Vault Investor Portal Pages
-const VaultLogin = lazy(() =>
-  import("./vault/pages/VaultLogin").then((m) => ({ default: m.VaultLogin })),
-);
-const VaultDashboard = lazy(() =>
-  import("./vault/pages/VaultDashboard").then((m) => ({
-    default: m.VaultDashboard,
-  })),
-);
-const VaultPortfolio = lazy(() =>
-  import("./vault/pages/VaultPortfolio").then((m) => ({
-    default: m.VaultPortfolio,
-  })),
-);
-const VaultTenancyPage = lazy(() =>
-  import("./vault/pages/VaultTenancyPage").then((m) => ({
-    default: m.VaultTenancyPage,
-  })),
-);
-const VaultConstructionPage = lazy(() =>
-  import("./vault/pages/VaultConstructionPage").then((m) => ({
-    default: m.VaultConstructionPage,
-  })),
-);
-const VaultPaymentsPage = lazy(() =>
-  import("./vault/pages/VaultPaymentsPage").then((m) => ({
-    default: m.VaultPaymentsPage,
-  })),
-);
-const VaultDocumentsPage = lazy(() =>
-  import("./vault/pages/VaultDocumentsPage").then((m) => ({
-    default: m.VaultDocumentsPage,
-  })),
-);
-const VaultConciergePage = lazy(() =>
-  import("./vault/pages/VaultConciergePage").then((m) => ({
-    default: m.VaultConciergePage,
-  })),
-);
-const VaultNomineePage = lazy(() =>
-  import("./vault/pages/VaultNomineePage").then((m) => ({
-    default: m.VaultNomineePage,
-  })),
-);
 const NotFound = lazy(() => import("./pages/NotFound"));
 const SplashGateway = lazy(() =>
   import("./components/SplashGateway").then((m) => ({
@@ -144,11 +99,6 @@ const AdminFranchisePage = lazy(() =>
     default: m.AdminFranchisePage,
   })),
 );
-const AdminVaultManagement = lazy(() =>
-  import("./admin/pages/AdminVaultManagement").then((m) => ({
-    default: m.AdminVaultManagement,
-  })),
-);
 const AdminHeroHighlights = lazy(() =>
   import("./admin/pages/AdminHeroHighlights").then((m) => ({
     default: m.AdminHeroHighlights,
@@ -190,9 +140,10 @@ const PartnerLeads = lazy(() =>
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <CurrencyProvider>
-      <TooltipProvider>
+  <HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <CurrencyProvider>
+        <TooltipProvider>
         <Toaster />
         <Sonner />
         <HotToaster
@@ -230,26 +181,6 @@ const App = () => (
               <Route path="/terms" element={<Terms />} />
               <Route path="/disclaimer" element={<Disclaimer />} />
 
-              {/* The Vault Investor Portal Routes */}
-              <Route path="/vault/login" element={<VaultLogin />} />
-              <Route
-                path="/vault"
-                element={
-                  <VaultProtectedRoute>
-                    <VaultLayout />
-                  </VaultProtectedRoute>
-                }
-              >
-                <Route index element={<Navigate to="/vault/dashboard" replace />} />
-                <Route path="dashboard" element={<VaultDashboard />} />
-                <Route path="portfolio" element={<VaultPortfolio />} />
-                <Route path="tenancy" element={<VaultTenancyPage />} />
-                <Route path="construction" element={<VaultConstructionPage />} />
-                <Route path="payments" element={<VaultPaymentsPage />} />
-                <Route path="documents" element={<VaultDocumentsPage />} />
-                <Route path="concierge" element={<VaultConciergePage />} />
-                <Route path="nominees" element={<VaultNomineePage />} />
-              </Route>
 
               {/* Dedicated Partner Portal Routes */}
               <Route path="/partner/login" element={<PartnerLogin />} />
@@ -328,6 +259,7 @@ const App = () => (
       </TooltipProvider>
     </CurrencyProvider>
   </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;

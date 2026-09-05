@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { SEO } from "@/components/SEO";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { DiamondIcon } from "@/components/icons/DiamondIcon";
@@ -6,6 +7,11 @@ import { DiamondIcon } from "@/components/icons/DiamondIcon";
 const Privacy = () => {
   return (
     <div className="overflow-x-hidden bg-background">
+      <SEO
+        title="Privacy Policy | Client Confidentiality"
+        description="Learn how Vilaasa Estate protects client confidentiality, wealth inquiry data, and personal information."
+        canonical="https://www.vilaasaestates.com/privacy"
+      />
       <Navbar />
       
       {/* Hero Section */}

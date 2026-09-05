@@ -101,6 +101,15 @@ export const AdminPropertyDetail: React.FC = () => {
     icon: "savings",
   });
 
+  // Delete confirmation modal state for sub-items
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    type: "configuration" | "amenity" | "nearby" | "financial";
+    id: string;
+    title: string;
+    description?: string;
+  } | null>(null);
+  const [isDeletingItem, setIsDeletingItem] = useState<boolean>(false);
+
   // Vault assets state
   const [vaultAssets, setVaultAssets] = useState<AdminVaultAsset[]>([]);
   const [showVaultModal, setShowVaultModal] = useState<boolean>(false);
@@ -207,15 +216,13 @@ export const AdminPropertyDetail: React.FC = () => {
     }
   };
 
-  const handleDeleteConfiguration = async (configId: string) => {
-    if (!property) return;
-    try {
-      await api.delete(`/properties/${property.id}/configurations/${configId}`);
-      toast.success("Unit layout deleted");
-      fetchPropertyData();
-    } catch {
-      toast.error("Failed to delete configuration");
-    }
+  const handleDeleteConfiguration = (configId: string, title?: string, desc?: string) => {
+    setDeleteConfirm({
+      type: "configuration",
+      id: configId,
+      title: title || "Unit Layout",
+      description: desc,
+    });
   };
 
   // Handle Assign Amenity
@@ -238,15 +245,13 @@ export const AdminPropertyDetail: React.FC = () => {
     }
   };
 
-  const handleRemoveAmenity = async (amenityId: string) => {
-    if (!property) return;
-    try {
-      await api.delete(`/properties/${property.id}/amenities/${amenityId}`);
-      toast.success("Amenity unlinked");
-      fetchPropertyData();
-    } catch {
-      toast.error("Failed to remove amenity");
-    }
+  const handleRemoveAmenity = (amenityId: string, title?: string, desc?: string) => {
+    setDeleteConfirm({
+      type: "amenity",
+      id: amenityId,
+      title: title || "Amenity",
+      description: desc,
+    });
   };
 
   // Handle Add Nearby Place
@@ -266,15 +271,13 @@ export const AdminPropertyDetail: React.FC = () => {
     }
   };
 
-  const handleDeleteNearby = async (placeId: string) => {
-    if (!property) return;
-    try {
-      await api.delete(`/properties/${property.id}/nearby/${placeId}`);
-      toast.success("Nearby landmark removed");
-      fetchPropertyData();
-    } catch {
-      toast.error("Failed to delete nearby place");
-    }
+  const handleDeleteNearby = (placeId: string, title?: string, desc?: string) => {
+    setDeleteConfirm({
+      type: "nearby",
+      id: placeId,
+      title: title || "Nearby Landmark",
+      description: desc,
+    });
   };
 
   // Handle Add Financial Metric
@@ -297,14 +300,38 @@ export const AdminPropertyDetail: React.FC = () => {
     }
   };
 
-  const handleDeleteFinancial = async (metricId: string) => {
-    if (!property) return;
+  const handleDeleteFinancial = (metricId: string, title?: string, desc?: string) => {
+    setDeleteConfirm({
+      type: "financial",
+      id: metricId,
+      title: title || "Financial Metric",
+      description: desc,
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirm || !property) return;
+    setIsDeletingItem(true);
     try {
-      await api.delete(`/properties/${property.id}/financials/${metricId}`);
-      toast.success("Metric removed");
+      if (deleteConfirm.type === "configuration") {
+        await api.delete(`/properties/${property.id}/configurations/${deleteConfirm.id}`);
+        toast.success("Unit layout deleted");
+      } else if (deleteConfirm.type === "amenity") {
+        await api.delete(`/properties/${property.id}/amenities/${deleteConfirm.id}`);
+        toast.success("Amenity unlinked");
+      } else if (deleteConfirm.type === "nearby") {
+        await api.delete(`/properties/${property.id}/nearby/${deleteConfirm.id}`);
+        toast.success("Nearby landmark removed");
+      } else if (deleteConfirm.type === "financial") {
+        await api.delete(`/properties/${property.id}/financials/${deleteConfirm.id}`);
+        toast.success("Financial metric removed");
+      }
+      setDeleteConfirm(null);
       fetchPropertyData();
     } catch {
-      toast.error("Failed to delete metric");
+      toast.error(`Failed to delete ${deleteConfirm.title.toLowerCase()}`);
+    } finally {
+      setIsDeletingItem(false);
     }
   };
 
@@ -859,8 +886,9 @@ export const AdminPropertyDetail: React.FC = () => {
                       </td>
                       <td className="py-3 px-3 text-right">
                         <button
-                          onClick={() => config.id && handleDeleteConfiguration(config.id)}
+                          onClick={() => config.id && handleDeleteConfiguration(config.id, config.unitType, config.areaSqFt > 0 ? `${config.areaSqFt.toLocaleString()} Sq.Ft.` : undefined)}
                           className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors"
+                          title="Delete layout"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -1045,7 +1073,7 @@ export const AdminPropertyDetail: React.FC = () => {
                     </div>
                   </div>
                   <button
-                    onClick={() => handleRemoveAmenity(item.amenityId)}
+                    onClick={() => handleRemoveAmenity(item.amenityId, item.amenity.name, item.description)}
                     title="Remove amenity"
                     className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0"
                   >
@@ -1109,7 +1137,8 @@ export const AdminPropertyDetail: React.FC = () => {
                     )}
                   </div>
                   <button
-                    onClick={() => place.id && handleDeleteNearby(place.id)}
+                    onClick={() => place.id && handleDeleteNearby(place.id, place.name, place.distance || place.category)}
+                    title="Remove nearby landmark"
                     className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -1261,7 +1290,8 @@ export const AdminPropertyDetail: React.FC = () => {
                     )}
                   </div>
                   <button
-                    onClick={() => metric.id && handleDeleteFinancial(metric.id)}
+                    onClick={() => metric.id && handleDeleteFinancial(metric.id, metric.label, metric.value)}
+                    title="Remove financial metric"
                     className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -1736,6 +1766,56 @@ export const AdminPropertyDetail: React.FC = () => {
               </div>
             </div>
           )}
+
+      {/* Sub-item Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md space-y-4 rounded-xl border border-border bg-card p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center space-x-3 text-destructive">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 border border-destructive/20">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">
+                  Confirm Deletion
+                </h3>
+                <p className="text-xs text-muted-foreground font-mono">
+                  {deleteConfirm.title}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Are you sure you want to permanently delete this{" "}
+              {deleteConfirm.type === "configuration"
+                ? "unit layout"
+                : deleteConfirm.type === "amenity"
+                ? "assigned amenity"
+                : deleteConfirm.type === "nearby"
+                ? "nearby landmark"
+                : "financial metric"}
+              {deleteConfirm.description ? ` (${deleteConfirm.description})` : ""}? This action cannot be undone.
+            </p>
+            <div className="flex items-center justify-end space-x-3 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDeleteConfirm(null)}
+                disabled={isDeletingItem}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleConfirmDelete}
+                disabled={isDeletingItem}
+              >
+                {isDeletingItem ? "Deleting..." : "Delete Permanently"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };

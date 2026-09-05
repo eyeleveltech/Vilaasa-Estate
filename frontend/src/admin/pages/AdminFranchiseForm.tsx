@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import {
   DndContext,
@@ -276,6 +276,50 @@ export const AdminFranchiseForm: React.FC = () => {
     } catch {
       toast.error("Failed to restore draft.");
     }
+  };
+
+  /* ---------------- Unsaved Changes & Dirty Tracking ---------------------- */
+  const initialFormStateRef = useRef<string | null>(null);
+
+  const currentFormState = JSON.stringify({
+    pageData,
+    brochureUrl,
+    city,
+    country,
+  });
+
+  useEffect(() => {
+    if (!loading && initialFormStateRef.current === null) {
+      initialFormStateRef.current = currentFormState;
+    }
+  }, [loading, currentFormState]);
+
+  const isDirty =
+    initialFormStateRef.current !== null &&
+    initialFormStateRef.current !== currentFormState;
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+        return e.returnValue;
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
+
+  const handleCancel = () => {
+    if (
+      isDirty &&
+      !window.confirm(
+        "You have unsaved changes on this franchise. Are you sure you want to discard them?"
+      )
+    ) {
+      return;
+    }
+    navigate(isEditMode ? `/admin/franchises/${id}` : "/admin/franchises");
   };
 
   /* -------------------- Generic DnD reorder helper ----------------------- */
@@ -583,6 +627,7 @@ export const AdminFranchiseForm: React.FC = () => {
         await api.put(`/franchise/${id}/page`, finalPagePayload);
         toast.success("Franchise updated successfully!", { id: toastId });
         localStorage.removeItem(draftKey);
+        initialFormStateRef.current = null;
         navigate(`/admin/franchises/${id}`);
       } else {
         const res = await api.post<ApiResponse<Property>>("/properties", propertyPayload);
@@ -594,11 +639,13 @@ export const AdminFranchiseForm: React.FC = () => {
             console.error("Failed to save franchise page details after creation:", pageErr);
             toast.error("Franchise created, but editorial page setup had an error. Redirecting to complete...", { id: toastId });
             localStorage.removeItem(draftKey);
+            initialFormStateRef.current = null;
             navigate(`/admin/franchises/${newId}/edit`);
             return;
           }
           toast.success("Franchise registered successfully!", { id: toastId });
           localStorage.removeItem(draftKey);
+          initialFormStateRef.current = null;
           navigate(`/admin/franchises/${newId}`);
         } else {
           throw new Error(res.data.message || "Failed to create franchise");
@@ -698,13 +745,14 @@ export const AdminFranchiseForm: React.FC = () => {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-5">
         <div>
-          <Link
-            to="/admin/franchises"
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2"
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2 cursor-pointer"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             <span>Back to Franchises</span>
-          </Link>
+          </button>
           <div className="flex items-center gap-2.5">
             <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground truncate max-w-[240px] sm:max-w-xl">
               {isEditMode
@@ -1447,7 +1495,7 @@ export const AdminFranchiseForm: React.FC = () => {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => navigate(isEditMode ? `/admin/franchises/${id}` : "/admin/franchises")}
+            onClick={handleCancel}
             className="text-xs h-9 w-full sm:w-auto border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
           >
             Cancel

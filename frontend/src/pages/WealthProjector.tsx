@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { SEO } from "@/components/SEO";
 import {
   Bar,
   BarChart,
@@ -374,6 +375,11 @@ const WealthProjector = () => {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-background">
+      <SEO
+        title="Wealth Projector & Yield Calculator | Private Banking Tools"
+        description="Project capital appreciation, cash yields, and currency-adjusted returns across luxury real estate and franchise investments."
+        canonical="https://www.vilaasaestates.com/wealth-projector"
+      />
       <Navbar />
 
       <header className="bg-gradient-to-b from-[#0c1a14] to-background px-4 pb-12 pt-24 md:px-10 md:pb-16 md:pt-32">

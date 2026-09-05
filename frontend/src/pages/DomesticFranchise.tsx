@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
+import { SEO } from "@/components/SEO";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CDN_ASSETS } from "@/config/cdnAssets";
@@ -79,6 +80,11 @@ const DomesticFranchise = () => {
 
   return (
     <div className="overflow-x-hidden">
+      <SEO
+        title="High-Yield Franchise Opportunities | Vilaasa Aggregation"
+        description="Institutional-grade franchise investments offering predictable returns, operational security, and turnkey management."
+        canonical="https://www.vilaasaestates.com/domestic/franchise"
+      />
       <Navbar />
 
       {/* Hero Section */}

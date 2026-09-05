@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
+import { SEO } from "@/components/SEO";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -253,6 +254,11 @@ const Calendar_Page = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Schedule a Private Site Visit | Vilaasa Concierge"
+        description="Book a personalized architectural walkthrough or virtual consultation with our Senior Estate Directors."
+        canonical="https://www.vilaasaestates.com/calendar"
+      />
       <Navbar />
 
       <main className="px-4 pb-14 pt-24 sm:pb-16 sm:pt-28 md:px-10 md:pb-20 md:pt-32">

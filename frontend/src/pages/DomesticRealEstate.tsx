@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
+import { SEO } from "@/components/SEO";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CDN_ASSETS } from "@/config/cdnAssets";
@@ -65,6 +66,11 @@ const DomesticRealEstate = () => {
 
   return (
     <div className="overflow-x-hidden">
+      <SEO
+        title="India Real Estate | Curated Luxury Estates & Villas"
+        description="Explore ultra-luxury residences, heritage estates, and penthouses across India with absolute title certainty."
+        canonical="https://www.vilaasaestates.com/domestic/real-estate"
+      />
       <Navbar />
 
       {/* Hero Section */}

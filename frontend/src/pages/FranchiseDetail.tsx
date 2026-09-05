@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { SEO } from "@/components/SEO";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -112,6 +113,7 @@ const FranchiseDetail = () => {
   if (!franchise || isError) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
+        <SEO title="Franchise Not Found" description="The requested franchise opportunity could not be located." noindex />
         <div className="text-center">
           <h1 className="text-4xl font-light text-foreground mb-4">
             Franchise Not Found
@@ -212,6 +214,16 @@ const FranchiseDetail = () => {
 
   return (
     <div className="overflow-x-hidden bg-background">
+      <SEO
+        title={`${franchise.name} | Franchise Opportunity`}
+        description={
+          franchise.tagline ||
+          (Array.isArray(franchise.description) ? franchise.description.join(" ") : franchise.description) ||
+          `Explore ${franchise.name}, high-yield franchise investment aggregated by Vilaasa Estate.`
+        }
+        image={heroImageSrc}
+        canonical={`https://www.vilaasaestates.com/franchise/${franchise.id}`}
+      />
       <Navbar />
 
       {/* Hero Section */}

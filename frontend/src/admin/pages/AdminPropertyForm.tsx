@@ -574,6 +574,74 @@ export const AdminPropertyForm: React.FC = () => {
     }
   };
 
+  /* ---------------- Unsaved Changes & Dirty Tracking ---------------------- */
+  const initialFormStateRef = useRef<string | null>(null);
+
+  const currentFormState = JSON.stringify({
+    name,
+    tagline,
+    description,
+    visionHeadline,
+    verdictQuote,
+    verdictAuthor,
+    verdictTitle,
+    propertyType,
+    price,
+    currency,
+    priceOnApplication,
+    rentalYieldPercent,
+    expectedIrrPercent,
+    customSpecs,
+    financialMetrics,
+    configurations,
+    amenities,
+    nearbyPlaces,
+    city,
+    country,
+    community,
+    addressLine,
+    latitude,
+    longitude,
+    googleMapUrl,
+    virtualTour360Url,
+    brochureUrl,
+    galleryImages,
+  });
+
+  useEffect(() => {
+    if (!loading && initialFormStateRef.current === null) {
+      initialFormStateRef.current = currentFormState;
+    }
+  }, [loading, currentFormState]);
+
+  const isDirty =
+    initialFormStateRef.current !== null &&
+    initialFormStateRef.current !== currentFormState;
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+        return e.returnValue;
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
+
+  const handleCancel = () => {
+    if (
+      isDirty &&
+      !window.confirm(
+        "You have unsaved changes on this property. Are you sure you want to discard them?"
+      )
+    ) {
+      return;
+    }
+    navigate("/admin/properties");
+  };
+
   /* -------------------- Generic DnD/Clone helpers ----------------------- */
   const reorderById = <T extends { id: string }>(arr: T[], activeId: string, overId: string): T[] => {
     const ai = arr.findIndex((x) => x.id === activeId);
@@ -974,6 +1042,7 @@ export const AdminPropertyForm: React.FC = () => {
           queryClient.invalidateQueries({ queryKey: ["properties"] });
           queryClient.invalidateQueries({ queryKey: ["property", id] });
           toast.success("Property updated successfully!");
+          initialFormStateRef.current = null;
           navigate("/admin/properties");
         }
       } else {
@@ -981,6 +1050,7 @@ export const AdminPropertyForm: React.FC = () => {
         if (res.data.success) {
           queryClient.invalidateQueries({ queryKey: ["properties"] });
           toast.success("Property created successfully!");
+          initialFormStateRef.current = null;
           navigate("/admin/properties");
         }
       }
@@ -1030,7 +1100,7 @@ export const AdminPropertyForm: React.FC = () => {
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => navigate("/admin/properties")}
+            onClick={handleCancel}
             className="h-8 w-8 p-0"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -2086,7 +2156,7 @@ export const AdminPropertyForm: React.FC = () => {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => navigate("/admin/properties")}
+            onClick={handleCancel}
             className="text-xs h-9 w-full sm:w-auto border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
           >
             Cancel

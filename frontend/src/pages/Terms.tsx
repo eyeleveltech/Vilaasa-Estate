@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { SEO } from "@/components/SEO";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { DiamondIcon } from "@/components/icons/DiamondIcon";
@@ -6,6 +7,11 @@ import { DiamondIcon } from "@/components/icons/DiamondIcon";
 const Terms = () => {
   return (
     <div className="overflow-x-hidden bg-background">
+      <SEO
+        title="Terms of Service | Vilaasa Estate"
+        description="Review the terms and conditions governing acquisitions, franchise inquiries, and site access at Vilaasa Estate."
+        canonical="https://www.vilaasaestates.com/terms"
+      />
       <Navbar />
       
       {/* Hero Section */}

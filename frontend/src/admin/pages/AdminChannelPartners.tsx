@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import axios from "axios";
 import api from "../../api/axios";
 import { ChannelPartner, ApiResponse } from "../types/admin.types";
 import { Button } from "@/components/ui/button";
@@ -189,8 +190,11 @@ export const AdminChannelPartners: React.FC = () => {
         fetchPartners();
         fetchStats();
       }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to onboard channel partner");
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err)
+        ? err.response?.data?.message || "Failed to onboard channel partner"
+        : "Failed to onboard channel partner";
+      toast.error(message);
     } finally {
       setOnboardModal((prev) => ({ ...prev, submitting: false }));
     }

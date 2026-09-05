@@ -3,7 +3,6 @@ import api from "@/api/axios";
 import {
   PropertyListItem,
   PropertyDetail,
-  ConstructionAsset,
   DEFAULT_PROPERTY_IMAGES,
   DEFAULT_PROPERTY_IMAGE,
 } from "@/types/property";
@@ -306,53 +305,3 @@ export function useProperty(slug: string) {
 }
 
 export const usePropertyBySlug = useProperty;
-
-/**
- * Fetch construction progress assets from backend API
- */
-export function useConstructionAssets() {
-  return useQuery({
-    queryKey: ["construction-assets"],
-    queryFn: async (): Promise<ConstructionAsset[]> => {
-      try {
-        const res = await api.get<ApiResponse<BackendProperty[]>>("/properties", {
-          params: { limit: 50 },
-        });
-
-        if (res.data.success && res.data.data) {
-          return res.data.data
-            .filter((p) => p.constructionAsset)
-            .map((p) => ({
-              id: p.slug || p.id,
-              name: p.name,
-              location: p.location
-                ? `${p.location.city}, ${p.location.country}`
-                : "Dubai, UAE",
-              image: p.media?.[0]?.url || DEFAULT_PROPERTY_IMAGE,
-              structureProgress: p.constructionAsset?.structureProgress || 0,
-              interiorProgress: p.constructionAsset?.interiorProgress || 0,
-              overallProgress: p.constructionAsset?.overallProgress || 0,
-              lastUpdate: p.constructionAsset?.lastUpdate
-                ? new Date(p.constructionAsset.lastUpdate).toISOString()
-                : new Date().toISOString(),
-              milestones: (p.constructionAsset?.milestones || []).map((m) => ({
-                id: m.id || Math.random().toString(),
-                name: m.name,
-                status: (m.status.toLowerCase() as "completed" | "in-progress" | "upcoming") || "upcoming",
-                date: m.targetDate ? new Date(m.targetDate).toLocaleDateString() : new Date().toLocaleDateString(),
-              })),
-              gallery: (p.constructionAsset?.gallery || []).map((g) => ({
-                id: g.id || Math.random().toString(),
-                url: g.imageUrl,
-                date: g.date ? new Date(g.date).toLocaleDateString() : new Date().toLocaleDateString(),
-                caption: g.caption || "Construction Update",
-              })),
-            }));
-        }
-        return [];
-      } catch {
-        return [];
-      }
-    },
-  });
-}

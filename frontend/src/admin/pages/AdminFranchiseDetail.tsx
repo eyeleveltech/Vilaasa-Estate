@@ -28,6 +28,7 @@ import {
   Property,
   Inquiry,
   ApiResponse,
+  FranchiseModuleItem,
 } from "../types/admin.types";
 import { MediaUploader } from "../components/MediaUploader";
 import { Button } from "@/components/ui/button";
@@ -316,7 +317,7 @@ export const AdminFranchiseDetail: React.FC = () => {
                     </span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {franchise.customSpecs.map((spec: any, idx: number) => (
+                    {franchise.customSpecs.map((spec: { label: string; value: string }, idx: number) => (
                       <div
                         key={idx}
                         className="p-3 rounded-lg bg-secondary/30 border border-border"
@@ -347,7 +348,7 @@ export const AdminFranchiseDetail: React.FC = () => {
                 {Array.isArray(franchise.supportModules) &&
                 franchise.supportModules.length > 0 ? (
                   <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                    {franchise.supportModules.map((module: any, idx) => {
+                    {franchise.supportModules.map((module: FranchiseModuleItem, idx) => {
                       const name = typeof module === "object" && module !== null ? module.name : String(module);
                       const icon = typeof module === "object" && module !== null && module.icon ? module.icon : "storefront";
                       const desc = typeof module === "object" && module !== null ? module.description : null;
@@ -394,7 +395,7 @@ export const AdminFranchiseDetail: React.FC = () => {
                 {Array.isArray(franchise.advantages) &&
                 franchise.advantages.length > 0 ? (
                   <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                    {franchise.advantages.map((adv: any, idx) => {
+                    {franchise.advantages.map((adv: FranchiseModuleItem, idx) => {
                       const name = typeof adv === "object" && adv !== null ? adv.name : String(adv);
                       const icon = typeof adv === "object" && adv !== null && adv.icon ? adv.icon : "verified_user";
                       const desc = typeof adv === "object" && adv !== null ? adv.description : null;
