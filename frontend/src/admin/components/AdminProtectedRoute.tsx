@@ -17,9 +17,12 @@ export const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
 
-  // If a Channel Partner accesses /admin/*, redirect to their dedicated /partner/dashboard
-  if (user && user.role === "CHANNEL_PARTNER") {
-    return <Navigate to="/partner/dashboard" replace />;
+  // Positive role verification: Only SUPER_ADMIN and ADMIN can access executive admin routes
+  if (user && user.role !== "SUPER_ADMIN" && user.role !== "ADMIN") {
+    if (user.role === "CHANNEL_PARTNER") {
+      return <Navigate to="/partner/dashboard" replace />;
+    }
+    return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;

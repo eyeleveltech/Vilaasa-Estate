@@ -17,6 +17,7 @@ export interface FranchiseItem {
   category: string;
   location: string;
   price: number;
+  currency?: string;
   galleryImages: PropertyGalleryImage[];
   type: string;
   spec: PropertySpec[];
@@ -92,6 +93,7 @@ export interface FranchiseListItem {
   category: string;
   location: string;
   price: number;
+  currency?: string;
   image: string;
   type: string;
   franchiseModel?: string;
@@ -416,6 +418,7 @@ export function transformPropertyToFranchise(prop: BackendProperty): FranchiseIt
       richSpecs?.targetLocations ||
       (prop.location ? `${prop.location.city}, ${prop.location.country}` : "Prime Locations"),
     price: minTicket,
+    currency: prop.currency || "INR",
     heroImage: heroUrl,
     visionHeadline: richSpecs?.vision?.headline || prop.visionHeadline || undefined,
     description: prop.description
@@ -543,6 +546,7 @@ export function transformPropertyToFranchiseListItem(
       richSpecs?.location ||
       (prop.location ? `${prop.location.city}, ${prop.location.country}` : "Prime Location"),
     price: minTicket,
+    currency: prop.currency || "INR",
     category: "Franchises",
     image: imageUrl,
     franchiseModel: richSpecs?.operatingModel || prop.franchiseModel || "FOCO",

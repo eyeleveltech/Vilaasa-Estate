@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { getFranchisePage, upsertFranchisePage } from "./franchise.controller";
+import { FranchisePageSchema } from "./franchise.schema";
+import { validate } from "../../middlewares/validate";
 import { verifyJWT } from "../../middlewares/auth";
 import { authorizeRoles } from "../../middlewares/role";
 import { Role } from "@prisma/client";
@@ -14,6 +16,7 @@ router.put(
   "/:propertyId/page",
   verifyJWT,
   authorizeRoles(Role.SUPER_ADMIN),
+  validate(FranchisePageSchema),
   upsertFranchisePage,
 );
 

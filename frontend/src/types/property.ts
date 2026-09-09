@@ -5,6 +5,7 @@ export interface PropertyListItem {
   name: string;
   location: string;
   price: number;
+  currency?: string;
   type: string;
   roi: string;
   status: string;
@@ -33,6 +34,7 @@ export interface PropertyConfiguration {
   area: string;
   view: string;
   price: number;
+  currency?: string;
 }
 
 export interface PropertyGalleryImage {
@@ -70,6 +72,7 @@ export interface PropertyDetail {
   country: string;
   type: string;
   price: number;
+  currency?: string;
   priceValue: string;
   status: string;
   brochure: string;

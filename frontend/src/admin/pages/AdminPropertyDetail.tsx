@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NEARBY_CATEGORY_OPTIONS } from "../lib/franchisePageHelpers";
+import { getDisplayProximity } from "@/lib/utils";
 
 interface AdminVaultAsset {
   id: string;
@@ -259,7 +260,30 @@ export const AdminPropertyDetail: React.FC = () => {
     e.preventDefault();
     if (!property) return;
     try {
-      const res = await api.post(`/properties/${property.id}/nearby`, newNearby);
+      const dist = newNearby.distance.trim();
+      const time = newNearby.travelTime.trim();
+      let finalDist = dist || time || "Nearby";
+      let finalTime: string | null = time || null;
+
+      if (dist && time) {
+        const dNorm = dist.toLowerCase();
+        const tNorm = time.toLowerCase();
+        if (dNorm === tNorm || dNorm.includes(tNorm) || tNorm.includes(dNorm)) {
+          finalTime = null;
+        }
+      } else if (!dist && time) {
+        finalTime = null;
+      }
+
+      finalDist = finalDist.replace(/\b(drive)(\s+\1)+\b/gi, "$1");
+
+      const payload = {
+        ...newNearby,
+        distance: finalDist,
+        travelTime: finalTime,
+      };
+
+      const res = await api.post(`/properties/${property.id}/nearby`, payload);
       if (res.data.success) {
         toast.success("Nearby place added");
         setShowNearbyModal(false);
@@ -1114,37 +1138,40 @@ export const AdminPropertyDetail: React.FC = () => {
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {property.nearbyPlaces && property.nearbyPlaces.length > 0 ? (
-              property.nearbyPlaces.map((place) => (
-                <div
-                  key={place.id}
-                  className="flex items-center justify-between rounded-lg border border-border bg-secondary/30 p-3.5 hover:border-primary/40 transition-colors"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] uppercase tracking-wider text-primary font-bold">
-                        {place.category || "Landmark"}
-                      </span>
-                      {place.travelTime && (
-                        <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">
-                          {place.travelTime}
+              property.nearbyPlaces.map((place) => {
+                const proximity = getDisplayProximity(place.distance, place.travelTime);
+                return (
+                  <div
+                    key={place.id}
+                    className="flex items-center justify-between rounded-lg border border-border bg-secondary/30 p-3.5 hover:border-primary/40 transition-colors"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] uppercase tracking-wider text-primary font-bold">
+                          {place.category || "Landmark"}
                         </span>
+                        {proximity.secondary && (
+                          <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">
+                            {proximity.secondary}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs font-semibold text-foreground">{place.name}</p>
+                      <p className="text-[11px] text-muted-foreground">{proximity.primary}</p>
+                      {place.description && (
+                        <p className="text-[10px] text-muted-foreground/80 italic">{place.description}</p>
                       )}
                     </div>
-                    <p className="text-xs font-semibold text-foreground">{place.name}</p>
-                    <p className="text-[11px] text-muted-foreground">{place.distance}</p>
-                    {place.description && (
-                      <p className="text-[10px] text-muted-foreground/80 italic">{place.description}</p>
-                    )}
+                    <button
+                      onClick={() => place.id && handleDeleteNearby(place.id, place.name, place.distance || place.category)}
+                      title="Remove nearby landmark"
+                      className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => place.id && handleDeleteNearby(place.id, place.name, place.distance || place.category)}
-                    title="Remove nearby landmark"
-                    className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="col-span-full py-8 text-center text-xs text-muted-foreground">
                 No nearby places added yet.

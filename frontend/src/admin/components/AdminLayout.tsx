@@ -20,11 +20,26 @@ import { useAdminAuth } from "../hooks/useAdminAuth";
 import vilaasaLogo from "@/assets/vilaasa-logo.svg";
 
 import { ErrorBoundary } from "../../components/ErrorBoundary";
+import {
+  AdminDirtyFormProvider,
+  useAdminDirtyForm,
+} from "../contexts/AdminDirtyFormContext";
+import { UnsavedChangesDialog } from "./UnsavedChangesDialog";
 
-export const AdminLayout: React.FC = () => {
+const AdminLayoutContent: React.FC = () => {
   const location = useLocation();
   const { user, logout } = useAdminAuth();
+  const { isFormDirty, setIsFormDirty } = useAdminDirtyForm();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleLogoutClick = () => {
+    if (isFormDirty) {
+      setShowLogoutConfirm(true);
+    } else {
+      logout();
+    }
+  };
 
   const allNavItems = [
     {
@@ -205,9 +220,9 @@ export const AdminLayout: React.FC = () => {
               </div>
             </div>
             <button
-              onClick={logout}
+              onClick={handleLogoutClick}
               title="Logout"
-              className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded hover:bg-secondary"
+              className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded hover:bg-secondary cursor-pointer"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -249,7 +264,27 @@ export const AdminLayout: React.FC = () => {
           </ErrorBoundary>
         </main>
       </div>
+
+      <UnsavedChangesDialog
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirmDiscard={() => {
+          setShowLogoutConfirm(false);
+          setIsFormDirty(false);
+          logout();
+        }}
+        title="Discard Changes & Log Out?"
+        description="You have unsaved changes in this form. If you log out now, your changes will be discarded."
+        confirmLabel="Discard & Log Out"
+        cancelLabel="Keep Editing"
+      />
     </div>
   );
 };
+
+export const AdminLayout: React.FC = () => (
+  <AdminDirtyFormProvider>
+    <AdminLayoutContent />
+  </AdminDirtyFormProvider>
+);
 

@@ -14,6 +14,7 @@ import { useProperty } from "@/hooks/useNewProperties";
 import { useToast } from "@/hooks/use-toast";
 import { InquiryFormDialog } from "@/components/InquiryFormDialog";
 import { trackSilentPropertyView, isOtpVerified } from "@/lib/otpAccess";
+import { getDisplayProximity } from "@/lib/utils";
 import api from "@/api/axios";
 
 const getStatusConfig = (rawStatus?: string) => {
@@ -65,16 +66,6 @@ const getStatusConfig = (rawStatus?: string) => {
     dotColor: "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]",
     badgeClass: "border-emerald-500/40 bg-emerald-500/10 text-emerald-400",
   };
-};
-
-const sanitizeDescription = (text: string) => {
-  if (!text) return "";
-  return text
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
-    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, "")
-    .replace(/\son\w+=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-    .replace(/javascript:/gi, "");
 };
 
 const PropertyDetail = () => {
@@ -227,7 +218,7 @@ const PropertyDetail = () => {
                   <div className="flex items-center h-8">
                     <span className="text-xl font-medium text-foreground sm:text-2xl leading-none">
                       {property.price && Number(property.price) > 0
-                        ? formatDynamicValue(property.price)
+                        ? formatDynamicValue(property.price, property.currency)
                         : "Price on Application"}
                     </span>
                   </div>
@@ -298,9 +289,10 @@ const PropertyDetail = () => {
                     .map((para, idx) => (
                       <p
                         key={idx}
-                        dangerouslySetInnerHTML={{ __html: sanitizeDescription(para) }}
                         className="text-sm leading-relaxed text-muted-foreground md:text-base whitespace-pre-line"
-                      />
+                      >
+                        {para}
+                      </p>
                 ))}
               </motion.div>
             )}
@@ -362,7 +354,7 @@ const PropertyDetail = () => {
                         {spec.label}
                       </span>
                       <span className="text-foreground font-medium text-sm sm:text-base break-words">
-                        {formatDynamicValue(spec.value)}
+                        {formatDynamicValue(spec.value, property.currency)}
                       </span>
                     </motion.div>
                   ))}
@@ -458,7 +450,7 @@ const PropertyDetail = () => {
                     </span>
                   </div>
                   <p className="mb-2 text-2xl font-light text-foreground md:text-3xl">
-                    {formatDynamicValue(item.value)}
+                    {formatDynamicValue(item.value, property.currency)}
                   </p>
                   <p className="text-muted-foreground text-sm">{item.note}</p>
                 </motion.div>
@@ -536,7 +528,7 @@ const PropertyDetail = () => {
                         {hasPrice && (
                           <td className="py-4 px-4 text-foreground whitespace-nowrap">
                             {config.price && Number(config.price) > 0
-                              ? formatDynamicValue(config.price)
+                              ? formatDynamicValue(config.price, property.currency || config.currency)
                               : "Price on Request"}
                           </td>
                         )}
@@ -651,27 +643,30 @@ const PropertyDetail = () => {
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                     Proximity &amp; Commute
                   </h3>
-                  {property.nearbyLocations.map((pl, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between rounded-lg border border-border/80 bg-background p-3.5"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{pl.name}</p>
-                        {pl.description && (
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                            {pl.description}
-                          </span>
-                        )}
+                  {property.nearbyLocations.map((pl, idx) => {
+                    const proximity = getDisplayProximity(pl.distance, pl.travelTime);
+                    return (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between rounded-lg border border-border/80 bg-background p-3.5"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{pl.name}</p>
+                          {pl.description && (
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                              {pl.description}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-semibold text-primary">{proximity.primary}</p>
+                          {proximity.secondary && (
+                            <p className="text-[11px] text-muted-foreground">{proximity.secondary}</p>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs font-semibold text-primary">{pl.distance}</p>
-                        {pl.travelTime && (
-                          <p className="text-[11px] text-muted-foreground">{pl.travelTime}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -687,7 +682,7 @@ const PropertyDetail = () => {
             <div>
               <p className="text-foreground font-medium">{property.name}</p>
               <p className="text-muted-foreground text-sm">
-                {formatDynamicValue(property.price)}
+                {formatDynamicValue(property.price, property.currency)}
               </p>
             </div>
           </div>

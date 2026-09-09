@@ -399,18 +399,27 @@ export const createProperty = asyncHandler(
               }
             : undefined,
           media: data.media?.length
-            ? {
-                createMany: {
-                  data: data.media.map((m, idx) => ({
-                    mediaType: m.mediaType || "GALLERY",
-                    url: m.url,
-                    thumbnailUrl: m.thumbnailUrl,
-                    altText: m.altText || m.caption,
-                    orderIndex: m.orderIndex ?? idx,
-                    isFeatured: m.isFeatured ?? idx === 0,
-                  })),
-                },
-              }
+            ? (() => {
+                const hasExplicitFeatured = data.media.some((m) => m.isFeatured);
+                let featuredAssigned = false;
+                return {
+                  createMany: {
+                    data: data.media.map((m, idx) => {
+                      const isFeatured = hasExplicitFeatured
+                        ? Boolean(m.isFeatured && !featuredAssigned && (featuredAssigned = true))
+                        : idx === 0;
+                      return {
+                        mediaType: m.mediaType || (isFeatured ? "HERO_IMAGE" : "GALLERY"),
+                        url: m.url,
+                        thumbnailUrl: m.thumbnailUrl,
+                        altText: m.altText || m.caption,
+                        orderIndex: m.orderIndex ?? idx,
+                        isFeatured,
+                      };
+                    }),
+                  },
+                };
+              })()
             : undefined,
           amenities: data.amenities?.length
             ? {
@@ -639,16 +648,23 @@ export const updateProperty = asyncHandler(
         where: { propertyId: property.id },
       });
       if (data.media.length > 0) {
+        const hasExplicitFeatured = data.media.some((m) => m.isFeatured);
+        let featuredAssigned = false;
         await prisma.propertyMedia.createMany({
-          data: data.media.map((m, idx) => ({
-            propertyId: property.id,
-            mediaType: m.mediaType || "GALLERY",
-            url: m.url,
-            thumbnailUrl: m.thumbnailUrl,
-            altText: m.altText || m.caption,
-            orderIndex: m.orderIndex ?? idx,
-            isFeatured: m.isFeatured ?? idx === 0,
-          })),
+          data: data.media.map((m, idx) => {
+            const isFeatured = hasExplicitFeatured
+              ? Boolean(m.isFeatured && !featuredAssigned && (featuredAssigned = true))
+              : idx === 0;
+            return {
+              propertyId: property.id,
+              mediaType: m.mediaType || (isFeatured ? "HERO_IMAGE" : "GALLERY"),
+              url: m.url,
+              thumbnailUrl: m.thumbnailUrl,
+              altText: m.altText || m.caption,
+              orderIndex: m.orderIndex ?? idx,
+              isFeatured,
+            };
+          }),
         });
       }
     }

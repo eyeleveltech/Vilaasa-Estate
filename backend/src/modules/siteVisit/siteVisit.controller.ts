@@ -289,10 +289,24 @@ export const updateSiteVisitStatus = asyncHandler(
 
     const visit = await prisma.siteVisit.findUnique({
       where: { id },
+      include: {
+        property: true,
+      },
     });
 
     if (!visit) {
       throw ApiError.notFound(`Site visit with id '${id}' not found`);
+    }
+
+    // Restrict Channel Partners to their own site visits or properties
+    if (
+      req.user?.role === Role.CHANNEL_PARTNER &&
+      visit.email !== req.user.email &&
+      visit.property.adminId !== req.user.id
+    ) {
+      throw ApiError.forbidden(
+        "Access denied. You can only update site visits for your partner account or properties.",
+      );
     }
 
     const dataToUpdate: Record<string, unknown> = {

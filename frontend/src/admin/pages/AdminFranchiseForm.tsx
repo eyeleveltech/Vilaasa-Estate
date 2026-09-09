@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams, Link, useBlocker } from "react-router-dom";
 import {
   DndContext,
   closestCenter,
@@ -60,6 +60,8 @@ import { SortableArrayItem } from "../components/SortableArrayItem";
 import { DraftSaveBar } from "../components/DraftSaveBar";
 import { BrochureUploader } from "../components/BrochureUploader";
 import { FormSectionHeader } from "../components/FormSectionHeader";
+import { UnsavedChangesDialog } from "../components/UnsavedChangesDialog";
+import { useAdminDirtyForm } from "../contexts/AdminDirtyFormContext";
 
 /* -------------------------------------------------------------------------- */
 /*                                HELPER UTILS                                */
@@ -160,6 +162,8 @@ export const AdminFranchiseForm: React.FC = () => {
   const [brochureUrl, setBrochureUrl] = useState<string>("");
   const [city, setCity] = useState<string>("Wayanad");
   const [country, setCountry] = useState<string>("India");
+  const [showDiscardModal, setShowDiscardModal] = useState<boolean>(false);
+  const [pendingNavigationPath, setPendingNavigationPath] = useState<string | null>(null);
 
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
     DEFAULT_FRANCHISE_SECTION_EXPANDED
@@ -279,6 +283,7 @@ export const AdminFranchiseForm: React.FC = () => {
   };
 
   /* ---------------- Unsaved Changes & Dirty Tracking ---------------------- */
+  const { setIsFormDirty } = useAdminDirtyForm();
   const initialFormStateRef = useRef<string | null>(null);
 
   const currentFormState = JSON.stringify({
@@ -294,9 +299,26 @@ export const AdminFranchiseForm: React.FC = () => {
     }
   }, [loading, currentFormState]);
 
+  const isSavingSuccessRef = useRef<boolean>(false);
+
   const isDirty =
     initialFormStateRef.current !== null &&
     initialFormStateRef.current !== currentFormState;
+
+  useEffect(() => {
+    setIsFormDirty(isDirty);
+    return () => setIsFormDirty(false);
+  }, [isDirty, setIsFormDirty]);
+
+  const blocker = useBlocker(
+    useCallback(
+      ({ currentLocation, nextLocation }) => {
+        if (isSavingSuccessRef.current) return false;
+        return isDirty && currentLocation.pathname !== nextLocation.pathname;
+      },
+      [isDirty]
+    )
+  );
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -310,16 +332,36 @@ export const AdminFranchiseForm: React.FC = () => {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isDirty]);
 
-  const handleCancel = () => {
-    if (
-      isDirty &&
-      !window.confirm(
-        "You have unsaved changes on this franchise. Are you sure you want to discard them?"
-      )
-    ) {
+  const handleCancel = (targetPath?: string) => {
+    const defaultPath = isEditMode ? `/admin/franchises/${id}` : "/admin/franchises";
+    const path = targetPath || defaultPath;
+    if (isDirty) {
+      setPendingNavigationPath(path);
+      setShowDiscardModal(true);
       return;
     }
-    navigate(isEditMode ? `/admin/franchises/${id}` : "/admin/franchises");
+    navigate(path);
+  };
+
+  const handleCloseDialog = () => {
+    if (blocker.state === "blocked") {
+      blocker.reset();
+    }
+    setShowDiscardModal(false);
+    setPendingNavigationPath(null);
+  };
+
+  const handleConfirmDiscard = () => {
+    setShowDiscardModal(false);
+    setIsFormDirty(false);
+    initialFormStateRef.current = null;
+    if (blocker.state === "blocked") {
+      blocker.proceed();
+    } else {
+      const target = pendingNavigationPath || (isEditMode ? `/admin/franchises/${id}` : "/admin/franchises");
+      setPendingNavigationPath(null);
+      navigate(target);
+    }
   };
 
   /* -------------------- Generic DnD reorder helper ----------------------- */
@@ -529,16 +571,13 @@ export const AdminFranchiseForm: React.FC = () => {
     setPageData((prev) => {
       const target = prev.galleryImages[index];
       if (!target) return prev;
-      const isCurrentlyHero = Boolean(target.isHero || (prev.heroImage && prev.heroImage === target.url));
-      const nextHeroState = !isCurrentlyHero;
       const updated = prev.galleryImages.map((img, i) => ({
         ...img,
-        isHero: i === index ? nextHeroState : false,
+        isHero: i === index,
       }));
-      const newHeroUrl = nextHeroState ? target.url : "";
       return {
         ...prev,
-        heroImage: newHeroUrl,
+        heroImage: target.url,
         galleryImages: updated,
       };
     });
@@ -627,6 +666,8 @@ export const AdminFranchiseForm: React.FC = () => {
         await api.put(`/franchise/${id}/page`, finalPagePayload);
         toast.success("Franchise updated successfully!", { id: toastId });
         localStorage.removeItem(draftKey);
+        isSavingSuccessRef.current = true;
+        setIsFormDirty(false);
         initialFormStateRef.current = null;
         navigate(`/admin/franchises/${id}`);
       } else {
@@ -639,12 +680,16 @@ export const AdminFranchiseForm: React.FC = () => {
             console.error("Failed to save franchise page details after creation:", pageErr);
             toast.error("Franchise created, but editorial page setup had an error. Redirecting to complete...", { id: toastId });
             localStorage.removeItem(draftKey);
+            isSavingSuccessRef.current = true;
+            setIsFormDirty(false);
             initialFormStateRef.current = null;
             navigate(`/admin/franchises/${newId}/edit`);
             return;
           }
           toast.success("Franchise registered successfully!", { id: toastId });
           localStorage.removeItem(draftKey);
+          isSavingSuccessRef.current = true;
+          setIsFormDirty(false);
           initialFormStateRef.current = null;
           navigate(`/admin/franchises/${newId}`);
         } else {
@@ -652,6 +697,7 @@ export const AdminFranchiseForm: React.FC = () => {
         }
       }
     } catch (err: unknown) {
+      isSavingSuccessRef.current = false;
       console.error("Save franchise error:", err);
       const resp = (err as { response?: { data?: { message?: string; errors?: string[] } } })?.response?.data;
       let errMsg = resp?.message || (err instanceof Error ? err.message : "Failed to save franchise");
@@ -747,7 +793,7 @@ export const AdminFranchiseForm: React.FC = () => {
         <div>
           <button
             type="button"
-            onClick={handleCancel}
+            onClick={() => handleCancel()}
             className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2 cursor-pointer"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
@@ -772,7 +818,7 @@ export const AdminFranchiseForm: React.FC = () => {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => navigate(isEditMode ? `/admin/franchises/${id}` : "/admin/franchises")}
+            onClick={() => handleCancel()}
             className="text-xs"
           >
             Cancel
@@ -1466,18 +1512,23 @@ export const AdminFranchiseForm: React.FC = () => {
                             placeholder="Image caption"
                             className="bg-secondary/50 h-8 text-xs"
                           />
-                          <label className="flex items-center gap-2 cursor-pointer pt-1 text-xs select-none">
-                            <input
-                              type="checkbox"
-                              checked={isHero}
-                              onChange={() => handleToggleHeroImage(idx)}
-                              className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
-                            />
-                            <span className={`flex items-center gap-1 text-[11px] ${isHero ? "text-primary font-semibold" : "text-muted-foreground"}`}>
-                              <Star className={`h-3 w-3 ${isHero ? "fill-primary text-primary" : ""}`} />
-                              <span>Show as Hero Image</span>
-                            </span>
-                          </label>
+                          <div className="flex items-center justify-between pt-1">
+                            {isHero ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md border border-primary/30">
+                                <Star className="h-3 w-3 fill-primary text-primary" />
+                                <span>Primary Hero</span>
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleHeroImage(idx)}
+                                className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/80 px-2.5 py-1 rounded-md border border-border transition-colors cursor-pointer"
+                              >
+                                <Star className="h-3 w-3" />
+                                <span>Set as Hero</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -1495,7 +1546,7 @@ export const AdminFranchiseForm: React.FC = () => {
             type="button"
             variant="outline"
             size="sm"
-            onClick={handleCancel}
+            onClick={() => handleCancel()}
             className="text-xs h-9 w-full sm:w-auto border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
           >
             Cancel
@@ -1518,6 +1569,16 @@ export const AdminFranchiseForm: React.FC = () => {
         </div>
       </div>
       </div>
+
+      <UnsavedChangesDialog
+        isOpen={blocker.state === "blocked" || showDiscardModal}
+        onClose={handleCloseDialog}
+        onConfirmDiscard={handleConfirmDiscard}
+        title="Discard Unsaved Changes?"
+        description="You have modified franchise data on this form. If you leave now or cancel, your changes will be discarded."
+        confirmLabel="Discard & Exit"
+        cancelLabel="Keep Editing"
+      />
     </div>
   );
 };
