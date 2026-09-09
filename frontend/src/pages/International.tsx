@@ -333,7 +333,7 @@ const International = () => {
                                 Price
                               </p>
                               <p className="text-base font-bold text-primary sm:text-lg">
-                                {formatAmount(property.price)}
+                                {formatAmount(property.price, property.currency)}
                               </p>
                             </div>
                             {(property.return || property.roi) && (

@@ -279,7 +279,7 @@ const DomesticRealEstate = () => {
                             Price
                           </p>
                           <p className="text-base font-bold text-primary sm:text-lg">
-                            {`${formatAmount(property.price)}${" "}Onwards`}
+                            {`${formatAmount(property.price, property.currency)}${" "}Onwards`}
                           </p>
                         </div>
                         {(property.return || property.roi) && (

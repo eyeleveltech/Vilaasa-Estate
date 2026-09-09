@@ -308,7 +308,7 @@ const FranchiseDetail = () => {
                       {stat.label}
                     </p>
                     <p className="text-foreground text-lg md:text-xl font-medium">
-                      {formatDynamicValue(stat.value)}
+                      {formatDynamicValue(stat.value, franchise?.currency)}
                     </p>
                   </div>
                 ))
@@ -326,7 +326,7 @@ const FranchiseDetail = () => {
                       {stat.label}
                     </p>
                     <p className="text-foreground text-lg md:text-xl font-medium">
-                      {formatDynamicValue(stat.value)}
+                      {formatDynamicValue(stat.value, franchise?.currency)}
                     </p>
                   </div>
                 ))
@@ -337,7 +337,7 @@ const FranchiseDetail = () => {
                     {stat.label}
                   </p>
                   <p className="text-foreground text-lg md:text-xl font-medium">
-                    {stat.value}
+                    {formatDynamicValue(stat.value, franchise?.currency)}
                   </p>
                 </div>
               ))
@@ -439,7 +439,7 @@ const FranchiseDetail = () => {
                         {item.label}
                       </p>
                       <p className="text-foreground text-base sm:text-lg font-medium break-words">
-                        {formatDynamicValue(item.value)}
+                        {formatDynamicValue(item.value, franchise?.currency)}
                       </p>
                     </div>
                   ))
@@ -460,7 +460,7 @@ const FranchiseDetail = () => {
                         {item.label}
                       </p>
                       <p className="text-foreground text-lg font-medium">
-                        {formatDynamicValue(item.value)}
+                        {formatDynamicValue(item.value, franchise?.currency)}
                       </p>
                     </div>
                   ))
@@ -476,8 +476,8 @@ const FranchiseDetail = () => {
 
                     <p className="text-foreground text-lg font-medium">
                       {Array.isArray(item.value)
-                        ? item.value.map((v) => formatDynamicValue(v)).join(" - ")
-                        : formatDynamicValue(item.value)}
+                        ? item.value.map((v) => formatDynamicValue(v, franchise?.currency)).join(" - ")
+                        : formatDynamicValue(item.value, franchise?.currency)}
                     </p>
                   </div>
                 ))

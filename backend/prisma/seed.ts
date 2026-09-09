@@ -191,6 +191,16 @@ async function main() {
     { name: "Private Dolby Atmos Cinema", iconKey: "movie", category: "Lifestyle" },
     { name: "EV Fast-Charging Supercharger Enclave", iconKey: "electric_car", category: "Technology" },
     { name: "Championship 18-Hole Golf Access", iconKey: "golf_course", category: "Sports" },
+    { name: "Private Jacuzzi", iconKey: "diamond", category: "Wellness" },
+    { name: "Outdoor Seating & Sky Lounge", iconKey: "sofa", category: "Lifestyle" },
+    { name: "Championship Table Tennis", iconKey: "table_tennis", category: "Sports" },
+    { name: "Multi-Sport Athletics Arena", iconKey: "sports", category: "Sports" },
+    { name: "Children Play Area & Creche", iconKey: "toys", category: "Family" },
+    { name: "Padel Tennis Court", iconKey: "sports_tennis", category: "Sports" },
+    { name: "Banquet & Party Terrace", iconKey: "celebration", category: "Lifestyle" },
+    { name: "Private Botanical Park", iconKey: "park", category: "Outdoors" },
+    { name: "Beach Cabanas & Sun Umbrellas", iconKey: "umbrella", category: "Waterfront" },
+    { name: "Eco Business Park & Innovation Hub", iconKey: "corporate_fare", category: "Business" },
   ];
 
   const createdAmenities: Record<string, string> = {};

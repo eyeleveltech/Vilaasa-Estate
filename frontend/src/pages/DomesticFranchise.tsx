@@ -270,7 +270,7 @@ const DomesticFranchise = () => {
                           Investment
                         </p>
                         <p className="text-base font-bold text-gold">
-                          {`${formatDynamicValue(franchise.price || franchise.investment)}+`}
+                          {`${formatDynamicValue(franchise.price || franchise.investment, franchise.currency)}+`}
                         </p>
                       </div>
                       <div className="h-8 w-px bg-border" />

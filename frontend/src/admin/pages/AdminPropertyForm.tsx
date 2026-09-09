@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams, Link, useBlocker } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   DndContext,
@@ -68,6 +68,8 @@ import {
 import { SortableArrayItem } from "../components/SortableArrayItem";
 import { DraftSaveBar } from "../components/DraftSaveBar";
 import { FormSectionHeader } from "../components/FormSectionHeader";
+import { UnsavedChangesDialog } from "../components/UnsavedChangesDialog";
+import { useAdminDirtyForm } from "../contexts/AdminDirtyFormContext";
 
 /* -------------------------------------------------------------------------- */
 /*                                CONSTANTS & HELPERS                         */
@@ -103,6 +105,15 @@ const detectFinancialIcon = (label: string, currentIcon?: string): string => {
 
 const detectAmenityIcon = (name: string): string => {
   const lower = (name || "").toLowerCase();
+  if (lower.includes("jacuzzi") || lower.includes("hot tub") || lower.includes("whirlpool") || lower.includes("hydrotherapy")) return "diamond";
+  if (lower.includes("outdoor seating") || lower.includes("seating") || lower.includes("sofa") || lower.includes("patio seating") || lower.includes("lounge seating") || lower.includes("terrace lounge")) return "sofa";
+  if (lower.includes("table tennis") || lower.includes("ping pong") || lower.includes("tt table") || lower.includes("table-tennis")) return "table_tennis";
+  if (lower.includes("padel") || lower.includes("paddle") || lower.includes("pickleball") || lower.includes("squash") || lower.includes("tennis")) return "sports_tennis";
+  if (lower.includes("play area") || lower.includes("kids play") || lower.includes("playground") || lower.includes("children") || lower.includes("creche") || lower.includes("daycare") || lower.includes("toys")) return "toys";
+  if (lower.includes("party") || lower.includes("celebration") || lower.includes("banquet") || lower.includes("ballroom") || lower.includes("event lawn") || lower.includes("festival")) return "celebration";
+  if (lower.includes("park") || lower.includes("central park") || lower.includes("forest") || lower.includes("green space") || lower.includes("woodland")) return "park";
+  if (lower.includes("umbrella") || lower.includes("cabana") || lower.includes("sun lounger") || lower.includes("poolside lounger") || lower.includes("sun deck")) return "umbrella";
+  if (lower.includes("eco business park") || lower.includes("business park") || lower.includes("business hub") || lower.includes("corporate") || lower.includes("office hub") || lower.includes("executive")) return "corporate_fare";
   if (lower.includes("spa") || lower.includes("panchakarma") || lower.includes("wellness") || lower.includes("ayurved") || lower.includes("sauna") || lower.includes("steam") || lower.includes("massage")) return "spa";
   if (lower.includes("water") || lower.includes("lake") || lower.includes("river") || lower.includes("fountain") || lower.includes("aquatic") || lower.includes("pond") || lower.includes("canal") || lower.includes("waterfront")) return "water";
   if (lower.includes("eco") || lower.includes("organic") || lower.includes("green") || lower.includes("biophilic") || lower.includes("sustainab") || lower.includes("nature") || lower.includes("botanical")) return "eco";
@@ -110,20 +121,20 @@ const detectAmenityIcon = (name: string): string => {
   if (lower.includes("boat") || lower.includes("yacht") || lower.includes("marina") || lower.includes("sailing") || lower.includes("kayak")) return "directions_boat";
   if (lower.includes("clubhouse") || lower.includes("club") || lower.includes("lifestyle") || lower.includes("lounge")) return "cottage";
   if (lower.includes("helipad") || lower.includes("heli") || lower.includes("chopper") || lower.includes("aviation") || lower.includes("flight")) return "helicopter";
-  if (lower.includes("pool") || lower.includes("swim") || lower.includes("jacuzzi") || lower.includes("plunge")) return "pool";
+  if (lower.includes("pool") || lower.includes("swim") || lower.includes("plunge")) return "pool";
   if (lower.includes("gym") || lower.includes("fitness") || lower.includes("workout") || lower.includes("crossfit") || lower.includes("training")) return "fitness_center";
+  if (lower.includes("sports") || lower.includes("athletic") || lower.includes("recreation") || lower.includes("arena")) return "sports";
   if (lower.includes("yoga") || lower.includes("meditat") || lower.includes("zen") || lower.includes("mindful")) return "self_improvement";
-  if (lower.includes("tennis") || lower.includes("court") || lower.includes("racquet") || lower.includes("squash") || lower.includes("badminton")) return "sports_tennis";
   if (lower.includes("golf") || lower.includes("putting")) return "sports_golf";
   if (lower.includes("security") || lower.includes("cctv") || lower.includes("guard") || lower.includes("surveillance") || lower.includes("gated")) return "security";
-  if (lower.includes("garden") || lower.includes("park") || lower.includes("lawn") || lower.includes("landscape") || lower.includes("forest")) return "park";
+  if (lower.includes("garden") || lower.includes("lawn") || lower.includes("landscape")) return "park";
   if (lower.includes("bar") || lower.includes("wine") || lower.includes("cellar") || lower.includes("cocktail") || lower.includes("pub")) return "local_bar";
   if (lower.includes("beach") || lower.includes("coast") || lower.includes("shore") || lower.includes("sea") || lower.includes("ocean")) return "beach_access";
   if (lower.includes("theater") || lower.includes("theatre") || lower.includes("cinema") || lower.includes("movie") || lower.includes("screening")) return "theaters";
   if (lower.includes("concierge") || lower.includes("butler") || lower.includes("room service") || lower.includes("valet service")) return "room_service";
-  if (lower.includes("parking") || lower.includes("garage") || lower.includes("valet") || lower.includes("ev charge") || lower.includes("car")) return "local_parking";
+  if (lower.includes("parking") || lower.includes("garage") || lower.includes("valet") || lower.includes("car")) return "local_parking";
+  if (lower.includes("ev charge") || lower.includes("electric car") || lower.includes("supercharger")) return "electric_car";
   if (lower.includes("wifi") || lower.includes("internet") || lower.includes("smart home") || lower.includes("automation")) return "wifi";
-  if (lower.includes("kids") || lower.includes("children") || lower.includes("play") || lower.includes("creche") || lower.includes("daycare")) return "child_care";
   if (lower.includes("pet") || lower.includes("dog")) return "pets";
   if (lower.includes("library") || lower.includes("study") || lower.includes("cowork") || lower.includes("business")) return "menu_book";
   if (lower.includes("deck") || lower.includes("terrace") || lower.includes("view") || lower.includes("skyline") || lower.includes("rooftop")) return "deck";
@@ -132,17 +143,23 @@ const detectAmenityIcon = (name: string): string => {
 };
 
 const COMMON_AMENITY_ICONS = [
-  { label: "Spa / Wellness", icon: "spa" },
-  { label: "Water / Waterfront", icon: "water" },
-  { label: "Eco / Sustainable", icon: "eco" },
-  { label: "Dining / Culinary", icon: "restaurant" },
+  { label: "Jacuzzi / Hydrotherapy", icon: "diamond" },
+  { label: "Outdoor Seating / Lounge", icon: "sofa" },
+  { label: "Table Tennis / Ping Pong", icon: "table_tennis" },
+  { label: "Sports & Athletics Arena", icon: "sports" },
+  { label: "Kids Play Area / Playground", icon: "toys" },
+  { label: "Padel / Tennis Court", icon: "sports_tennis" },
+  { label: "Party Terrace / Banquet", icon: "celebration" },
+  { label: "Private Park & Nature", icon: "park" },
+  { label: "Beach Umbrella & Cabanas", icon: "umbrella" },
+  { label: "Eco Business Park / Hub", icon: "corporate_fare" },
   { label: "Pool / Swimming", icon: "pool" },
+  { label: "Spa / Wellness", icon: "spa" },
   { label: "Fitness Center", icon: "fitness_center" },
   { label: "Yoga / Zen", icon: "self_improvement" },
   { label: "Clubhouse", icon: "cottage" },
   { label: "Boat Club & Marina", icon: "directions_boat" },
   { label: "Helipad", icon: "helicopter" },
-  { label: "Tennis Court", icon: "sports_tennis" },
   { label: "Golf Course", icon: "sports_golf" },
   { label: "Lounge Bar", icon: "local_bar" },
   { label: "Beach Access", icon: "beach_access" },
@@ -150,6 +167,8 @@ const COMMON_AMENITY_ICONS = [
   { label: "Private Garden", icon: "park" },
   { label: "Concierge Butler", icon: "room_service" },
   { label: "Valet Parking", icon: "local_parking" },
+  { label: "EV Charging Enclave", icon: "electric_car" },
+  { label: "Private Cinema", icon: "theaters" },
   { label: "High-Speed WiFi", icon: "wifi" },
   { label: "Star / Bespoke", icon: "star" },
 ];
@@ -187,6 +206,15 @@ const getNearbyCategoryIcon = (category: string): string => {
     case "Heritage": return "castle";
     default: return "near_me";
   }
+};
+
+const extractNumericIrr = (metrics: { label: string; value: string }[]): string | null => {
+  const irrMetric = metrics.find((m) =>
+    /(irr|internal rate|projected return|roi|annual return)/i.test(m.label || "")
+  );
+  if (!irrMetric || !irrMetric.value) return null;
+  const match = irrMetric.value.match(/(\d+(?:\.\d+)?)/);
+  return match ? match[1] : null;
 };
 
 const STATUS_CONFIG: Record<
@@ -380,6 +408,9 @@ export const AdminPropertyForm: React.FC = () => {
   const [priceOnApplication, setPriceOnApplication] = useState<boolean>(false);
   const [rentalYieldPercent, setRentalYieldPercent] = useState<string>("");
   const [expectedIrrPercent, setExpectedIrrPercent] = useState<string>("");
+  const [isAutoIrrSynced, setIsAutoIrrSynced] = useState<boolean>(false);
+  const [showDiscardModal, setShowDiscardModal] = useState<boolean>(false);
+  const [pendingNavigationPath, setPendingNavigationPath] = useState<string | null>(null);
   const [configurations, setConfigurations] = useState<
     { id: string; unitType: string; areaSqFt: string; viewType: string; price: string; isAvailable: boolean }[]
   >([]);
@@ -428,25 +459,30 @@ export const AdminPropertyForm: React.FC = () => {
         setCurrency(prop.currency || "INR");
         setPriceOnApplication(Boolean(prop.priceOnApplication));
         setRentalYieldPercent(prop.rentalYieldPercent?.toString() || "");
-        setExpectedIrrPercent(prop.expectedIrrPercent?.toString() || "");
 
         // Specs
         if (prop.customSpecs && Array.isArray(prop.customSpecs) && prop.customSpecs.length > 0) {
           setCustomSpecs(prop.customSpecs.map((s: { label: string; value: string }, i: number) => ({ id: genId(`spec${i}`), ...s })));
         }
 
-        // Financials
+        // Financials & IRR Pre-Sync
+        let initialIrr = prop.expectedIrrPercent?.toString() || "";
         if (prop.financialMetrics && prop.financialMetrics.length > 0) {
-          setFinancialMetrics(
-            prop.financialMetrics.map((f, i) => ({
-              id: genId(`fin${i}`),
-              label: f.label || "",
-              value: f.value || "",
-              note: f.note || "",
-              icon: f.icon || "payments",
-            }))
-          );
+          const mappedFin = prop.financialMetrics.map((f, i) => ({
+            id: genId(`fin${i}`),
+            label: f.label || "",
+            value: f.value || "",
+            note: f.note || "",
+            icon: f.icon || "payments",
+          }));
+          setFinancialMetrics(mappedFin);
+          const extracted = extractNumericIrr(mappedFin);
+          if (extracted) {
+            initialIrr = extracted;
+            setIsAutoIrrSynced(true);
+          }
         }
+        setExpectedIrrPercent(initialIrr);
 
         // Configurations
         if (prop.configurations && prop.configurations.length > 0) {
@@ -511,12 +547,18 @@ export const AdminPropertyForm: React.FC = () => {
         // Media Gallery
         if (prop.media && Array.isArray(prop.media)) {
           setExistingMedia(prop.media);
+          let heroIdx = prop.media.findIndex(
+            (m) => m.isFeatured || m.mediaType === "HERO_IMAGE"
+          );
+          if (heroIdx < 0 && prop.media.length > 0) {
+            heroIdx = 0;
+          }
           const gal = prop.media.map((m, idx) => ({
             id: m.id || `gal-${idx}`,
             url: m.url,
             caption: m.caption || m.altText || "",
             orderIndex: m.orderIndex ?? idx,
-            isHero: Boolean(m.isFeatured || idx === 0),
+            isHero: idx === heroIdx,
           }));
           setGalleryImages(gal);
         }
@@ -531,6 +573,17 @@ export const AdminPropertyForm: React.FC = () => {
   useEffect(() => {
     void fetchPropertyData();
   }, [fetchPropertyData]);
+
+  // Auto-sync expectedIrrPercent from financialMetrics
+  useEffect(() => {
+    const extracted = extractNumericIrr(financialMetrics);
+    if (extracted) {
+      setExpectedIrrPercent(extracted);
+      setIsAutoIrrSynced(true);
+    } else {
+      setIsAutoIrrSynced(false);
+    }
+  }, [financialMetrics]);
 
   /* ---------------------------- Scope Change ------------------------------ */
   const handleMarketScopeChange = (scope: "DOMESTIC" | "INTERNATIONAL") => {
@@ -575,9 +628,13 @@ export const AdminPropertyForm: React.FC = () => {
   };
 
   /* ---------------- Unsaved Changes & Dirty Tracking ---------------------- */
+  const { setIsFormDirty } = useAdminDirtyForm();
   const initialFormStateRef = useRef<string | null>(null);
 
   const currentFormState = JSON.stringify({
+    marketScope,
+    status,
+    sectionVisibility,
     name,
     tagline,
     description,
@@ -614,9 +671,26 @@ export const AdminPropertyForm: React.FC = () => {
     }
   }, [loading, currentFormState]);
 
+  const isSavingSuccessRef = useRef<boolean>(false);
+
   const isDirty =
     initialFormStateRef.current !== null &&
     initialFormStateRef.current !== currentFormState;
+
+  useEffect(() => {
+    setIsFormDirty(isDirty);
+    return () => setIsFormDirty(false);
+  }, [isDirty, setIsFormDirty]);
+
+  const blocker = useBlocker(
+    useCallback(
+      ({ currentLocation, nextLocation }) => {
+        if (isSavingSuccessRef.current) return false;
+        return isDirty && currentLocation.pathname !== nextLocation.pathname;
+      },
+      [isDirty]
+    )
+  );
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -630,16 +704,34 @@ export const AdminPropertyForm: React.FC = () => {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isDirty]);
 
-  const handleCancel = () => {
-    if (
-      isDirty &&
-      !window.confirm(
-        "You have unsaved changes on this property. Are you sure you want to discard them?"
-      )
-    ) {
+  const handleCancel = (targetPath: string = "/admin/properties") => {
+    if (isDirty) {
+      setPendingNavigationPath(targetPath);
+      setShowDiscardModal(true);
       return;
     }
-    navigate("/admin/properties");
+    navigate(targetPath);
+  };
+
+  const handleCloseDialog = () => {
+    if (blocker.state === "blocked") {
+      blocker.reset();
+    }
+    setShowDiscardModal(false);
+    setPendingNavigationPath(null);
+  };
+
+  const handleConfirmDiscard = () => {
+    setShowDiscardModal(false);
+    setIsFormDirty(false);
+    initialFormStateRef.current = null;
+    if (blocker.state === "blocked") {
+      blocker.proceed();
+    } else {
+      const target = pendingNavigationPath || "/admin/properties";
+      setPendingNavigationPath(null);
+      navigate(target);
+    }
   };
 
   /* -------------------- Generic DnD/Clone helpers ----------------------- */
@@ -858,17 +950,25 @@ export const AdminPropertyForm: React.FC = () => {
     if (e.dataTransfer.files?.length) void handleUploadGalleryImages(e.dataTransfer.files);
   };
 
-  const handleToggleHeroImage = (index: number) => {
+  const handleSelectHeroImage = (index: number) => {
     setGalleryImages((prev) =>
       prev.map((img, i) => ({
         ...img,
-        isHero: i === index ? !img.isHero : false,
+        isHero: i === index,
       }))
     );
   };
 
+  const handleToggleHeroImage = handleSelectHeroImage;
+
   const handleRemoveGalleryImage = (index: number) => {
-    setGalleryImages((prev) => prev.filter((_, i) => i !== index));
+    setGalleryImages((prev) => {
+      const remaining = prev.filter((_, i) => i !== index);
+      if (remaining.length > 0 && !remaining.some((img) => img.isHero)) {
+        remaining[0] = { ...remaining[0], isHero: true };
+      }
+      return remaining;
+    });
   };
 
   const handleUpdateGalleryCaption = (index: number, caption: string) => {
@@ -954,13 +1054,16 @@ export const AdminPropertyForm: React.FC = () => {
 
       const mappedType = mapToPropertyTypeEnum(propertyType);
 
-      const hasExplicitHero = galleryImages.some((img) => img.isHero);
+      let heroIdx = galleryImages.findIndex((img) => img.isHero);
+      if (heroIdx < 0 && galleryImages.length > 0) {
+        heroIdx = 0;
+      }
       const mediaPayload = galleryImages.map((img, idx) => ({
         url: img.url,
         caption: img.caption?.trim() || undefined,
         altText: img.caption?.trim() || undefined,
-        mediaType: (hasExplicitHero ? img.isHero : idx === 0) ? "HERO_IMAGE" : "GALLERY",
-        isFeatured: Boolean(hasExplicitHero ? img.isHero : idx === 0),
+        mediaType: idx === heroIdx ? "HERO_IMAGE" : "GALLERY",
+        isFeatured: idx === heroIdx,
         orderIndex: idx,
       }));
 
@@ -976,7 +1079,7 @@ export const AdminPropertyForm: React.FC = () => {
           caption: m.caption || m.altText || undefined,
           altText: m.altText || m.caption || undefined,
           mediaType: m.mediaType,
-          isFeatured: Boolean(m.isFeatured),
+          isFeatured: false,
           orderIndex: galleryImages.length + idx,
         }));
 
@@ -1017,13 +1120,42 @@ export const AdminPropertyForm: React.FC = () => {
           })),
         nearbyPlaces: nearbyPlaces
           .filter((p) => p.name.trim())
-          .map((p) => ({
-            name: p.name.trim(),
-            distance: p.distance.trim() || (p.travelTime.trim() ? `${p.travelTime.trim()} drive` : "Nearby"),
-            travelTime: p.travelTime.trim() || undefined,
-            category: p.category.trim() || undefined,
-            description: p.description.trim() || undefined,
-          })),
+          .map((p) => {
+            const dist = p.distance.trim();
+            const time = p.travelTime.trim();
+
+            let finalDistance = "Nearby";
+            let finalTravelTime: string | undefined = undefined;
+
+            if (dist && time) {
+              finalDistance = dist;
+              const dNorm = dist.toLowerCase().replace(/\s+/g, " ");
+              const tNorm = time.toLowerCase().replace(/\s+/g, " ");
+              const isRedundant =
+                dNorm === tNorm ||
+                dNorm.includes(tNorm) ||
+                tNorm.includes(dNorm);
+
+              finalTravelTime = isRedundant ? undefined : time;
+            } else if (dist) {
+              finalDistance = dist;
+              finalTravelTime = undefined;
+            } else if (time) {
+              finalDistance = time;
+              finalTravelTime = undefined;
+            }
+
+            // Remove any accidental repeated words like "drive drive"
+            finalDistance = finalDistance.replace(/\b(drive)(\s+\1)+\b/gi, "$1");
+
+            return {
+              name: p.name.trim(),
+              distance: finalDistance,
+              travelTime: finalTravelTime,
+              category: p.category.trim() || undefined,
+              description: p.description.trim() || undefined,
+            };
+          }),
         location: {
           city: city.trim() || (marketScope === "INTERNATIONAL" ? "Dubai" : "Goa"),
           country: country.trim() || (marketScope === "INTERNATIONAL" ? "United Arab Emirates" : "India"),
@@ -1042,6 +1174,8 @@ export const AdminPropertyForm: React.FC = () => {
           queryClient.invalidateQueries({ queryKey: ["properties"] });
           queryClient.invalidateQueries({ queryKey: ["property", id] });
           toast.success("Property updated successfully!");
+          isSavingSuccessRef.current = true;
+          setIsFormDirty(false);
           initialFormStateRef.current = null;
           navigate("/admin/properties");
         }
@@ -1050,11 +1184,14 @@ export const AdminPropertyForm: React.FC = () => {
         if (res.data.success) {
           queryClient.invalidateQueries({ queryKey: ["properties"] });
           toast.success("Property created successfully!");
+          isSavingSuccessRef.current = true;
+          setIsFormDirty(false);
           initialFormStateRef.current = null;
           navigate("/admin/properties");
         }
       }
     } catch (err: unknown) {
+      isSavingSuccessRef.current = false;
       const errMsg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         "Failed to save property";
@@ -1100,7 +1237,7 @@ export const AdminPropertyForm: React.FC = () => {
             type="button"
             variant="ghost"
             size="sm"
-            onClick={handleCancel}
+            onClick={() => handleCancel()}
             className="h-8 w-8 p-0"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -1125,7 +1262,7 @@ export const AdminPropertyForm: React.FC = () => {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => navigate("/admin/properties")}
+            onClick={() => handleCancel("/admin/properties")}
             className="text-xs h-8"
           >
             Cancel
@@ -1640,17 +1777,51 @@ export const AdminPropertyForm: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
-                  Expected Returns / IRR (%)
-                </Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  placeholder="e.g. 18.5"
-                  value={expectedIrrPercent}
-                  onChange={(e) => setExpectedIrrPercent(e.target.value)}
-                  className="bg-secondary/40 h-10 text-xs mt-1 font-mono"
-                />
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                    Expected Returns / IRR (%)
+                  </Label>
+                  {isAutoIrrSynced && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                      ⚡ Synced from Financials
+                    </span>
+                  )}
+                </div>
+                {isAutoIrrSynced ? (
+                  <div className="flex items-center justify-between bg-secondary/30 border border-border/80 rounded-md px-3 h-10 mt-1">
+                    <span className="font-mono text-xs font-bold text-foreground">
+                      {expectedIrrPercent ? `${expectedIrrPercent}% p.a.` : "—"}
+                    </span>
+                    <a
+                      href="#sec-financials"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const el = document.getElementById("sec-financials");
+                        if (el) {
+                          setExpandedSections((p) => ({ ...p, "sec-financials": true }));
+                          el.scrollIntoView({ behavior: "smooth" });
+                        }
+                      }}
+                      className="text-[11px] text-primary hover:underline font-medium"
+                    >
+                      Edit in Section 4 →
+                    </a>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      placeholder="e.g. 18.5 (or add IRR metric in Section 4)"
+                      value={expectedIrrPercent}
+                      onChange={(e) => setExpectedIrrPercent(e.target.value)}
+                      className="bg-secondary/40 h-10 text-xs mt-1 font-mono"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Add an &quot;IRR&quot; card in Section 4 to sync automatically.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -1818,15 +1989,21 @@ export const AdminPropertyForm: React.FC = () => {
 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <label className="flex items-center gap-1.5 text-xs text-foreground cursor-pointer select-none">
-                            <input
-                              type="checkbox"
-                              checked={Boolean(img.isHero)}
-                              onChange={() => handleToggleHeroImage(idx)}
-                              className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
-                            />
-                            <span className="text-[11px] font-semibold">Show as Hero Image</span>
-                          </label>
+                          {img.isHero ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-md border border-amber-400/30">
+                              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                              <span>Primary Hero</span>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleSelectHeroImage(idx)}
+                              className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/80 px-2.5 py-1 rounded-md border border-border transition-colors cursor-pointer"
+                            >
+                              <Star className="h-3 w-3" />
+                              <span>Set as Hero</span>
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => handleRemoveGalleryImage(idx)}
@@ -2156,7 +2333,7 @@ export const AdminPropertyForm: React.FC = () => {
             type="button"
             variant="outline"
             size="sm"
-            onClick={handleCancel}
+            onClick={() => handleCancel()}
             className="text-xs h-9 w-full sm:w-auto border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
           >
             Cancel
@@ -2180,6 +2357,16 @@ export const AdminPropertyForm: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <UnsavedChangesDialog
+        isOpen={blocker.state === "blocked" || showDiscardModal}
+        onClose={handleCloseDialog}
+        onConfirmDiscard={handleConfirmDiscard}
+        title="Discard Unsaved Changes?"
+        description="You have modified property data on this form. If you leave now or cancel, your changes will be discarded."
+        confirmLabel="Discard & Exit"
+        cancelLabel="Keep Editing"
+      />
     </div>
   );
 };

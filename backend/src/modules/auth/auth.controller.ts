@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { randomInt, randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import jwt, { SignOptions } from "jsonwebtoken";
 import { Role } from "@prisma/client";
@@ -197,8 +198,8 @@ export const sendOtp = asyncHandler(async (req: Request, res: Response) => {
 
   const { sendOtpEmail } = await import("../../services/email.service");
 
-  // Generate 6-digit numeric OTP
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  // Generate 6-digit numeric OTP using cryptographically secure PRNG
+  const otp = randomInt(100000, 1000000).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
   let normalizedPhone: string | null = null;
@@ -370,9 +371,16 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
     where: { email: targetEmail },
   });
 
+  // VULN-2 Fix: Prevent administrator privilege escalation / password bypass via OTP
+  if (user && user.role === Role.SUPER_ADMIN) {
+    throw ApiError.forbidden(
+      "Administrator accounts cannot authenticate via OTP. Please sign in with your credentials at /admin/login.",
+    );
+  }
+
   if (!user) {
     const dummyPasswordHash = await bcrypt.hash(
-      `OtpClient@${Date.now()}_${Math.random()}`,
+      `OtpClient@${Date.now()}_${randomBytes(16).toString("hex")}`,
       10,
     );
     const defaultName = targetEmail
