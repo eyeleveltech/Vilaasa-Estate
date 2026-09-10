@@ -245,6 +245,7 @@ export const getPropertyBySlug = asyncHandler(
             },
           },
         },
+        franchisePage: true,
         admin: {
           select: {
             id: true,

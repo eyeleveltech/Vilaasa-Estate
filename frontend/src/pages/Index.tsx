@@ -6,6 +6,7 @@ import { HeroSection } from "@/components/HeroSection";
 import { FilterSection } from "@/components/FilterSection";
 import { QuoteSection } from "@/components/QuoteSection";
 import { DualPortfolioSection } from "@/components/DualPortfolioSection";
+import { AssetManagementSection } from "@/components/AssetManagementSection";
 import { ChannelPartnerSection } from "@/components/ChannelPartnerSection";
 import { CTASection } from "@/components/CTASection";
 import { Footer } from "@/components/Footer";
@@ -26,6 +27,7 @@ const Index = () => {
         <FilterSection />
         <QuoteSection />
         <DualPortfolioSection />
+        <AssetManagementSection />
         <ChannelPartnerSection />
         <CTASection />
       </main>

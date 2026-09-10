@@ -138,9 +138,9 @@ const International = () => {
             <span className="text-gold-accent text-xs font-bold uppercase tracking-[0.22em] md:text-sm md:tracking-[0.3em]">
               International Collection
             </span>
-            <h1 className="font-luxia text-3xl font-light leading-[1.1] text-white sm:text-4xl md:text-6xl lg:text-7xl">
+            <h1 className="font-luxia text-3xl font-light leading-[1.1] tracking-[-0.02em] text-white sm:text-4xl md:text-6xl lg:text-7xl">
               Borders Are Not <br />
-              <span className="italic text-gold-accent">Barriers.</span>
+              <span className="font-serif italic text-gold-accent">Barriers.</span>
             </h1>
             <p className="max-w-xl px-2 text-base leading-relaxed text-white/70 md:px-0 md:text-xl">
               Dollar-denominated assets. World-class infrastructure.
@@ -451,7 +451,7 @@ const International = () => {
             </span>
             <h2 className="mt-4 mb-5 text-3xl font-light text-foreground md:mb-6 md:text-5xl">
               Vetted for{" "}
-              <span className="italic text-gold-accent">performance.</span>
+              <span className="font-serif italic text-gold-accent">Performance.</span>
             </h2>
             <p className="text-sm leading-relaxed text-muted-foreground sm:text-base md:text-lg">
               Every international asset passes through our four-stage due
@@ -512,7 +512,8 @@ const International = () => {
         <div className="max-w-2xl mx-auto flex flex-col items-center gap-6">
           <DiamondIcon className="text-gold-accent" />
           <h2 className="text-2xl font-light text-foreground md:text-4xl">
-            Explore Global Opportunities
+            Explore Global{" "}
+            <span className="font-serif italic text-gold-accent">Opportunities</span>
           </h2>
           <p className="text-sm text-muted-foreground sm:text-base">
             Schedule a private consultation with our international advisory team to

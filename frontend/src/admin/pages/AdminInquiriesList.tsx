@@ -109,7 +109,8 @@ export const AdminInquiriesList: React.FC = () => {
             inq.source === "CONTACT_FORM" ||
             inq.source === "CHANNEL_PARTNER_FORM" ||
             inq.source === "VAULT_CONCIERGE" ||
-            inq.investmentType.toLowerCase() === "franchise",
+            inq.investmentType.toLowerCase() === "franchise" ||
+            inq.investmentType.toLowerCase() === "asset-management",
         );
 
         if (investmentTypeFilter) {
@@ -486,6 +487,7 @@ export const AdminInquiriesList: React.FC = () => {
               <option value="">All Types</option>
               <option value="real-estate">Real Estate</option>
               <option value="franchise">Franchise</option>
+              <option value="asset-management">Asset Management</option>
             </select>
             <ChevronDown className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
           </div>
@@ -599,6 +601,11 @@ export const AdminInquiriesList: React.FC = () => {
                             <Tag className="h-2.5 w-2.5 text-primary" />
                             <span>{(inquiry.source || "WEBSITE").replace(/_/g, " ")}</span>
                           </div>
+                          {inquiry.notes && (
+                            <div className="text-[10px] text-primary/80 mt-1 max-w-[220px] truncate font-mono" title={inquiry.notes}>
+                              💬 {inquiry.notes.split(" | ")[0]}
+                            </div>
+                          )}
                         </td>
 
                         {/* Contact */}
@@ -722,11 +729,52 @@ export const AdminInquiriesList: React.FC = () => {
                             colSpan={7}
                             className="bg-secondary/20 p-4 border-y border-border"
                           >
-                            <div className="space-y-3 pl-8">
+                            <div className="space-y-4 pl-8">
+                              {/* Customer Inbound Requirements & Asset Data Card */}
+                              {inquiry.notes && (
+                                <div className="rounded-lg border border-primary/25 bg-primary/5 p-4 space-y-2.5">
+                                  <div className="flex items-center justify-between border-b border-primary/20 pb-2">
+                                    <div className="flex items-center gap-2 text-primary">
+                                      <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                      <span className="text-xs font-bold uppercase tracking-wider">
+                                        Customer Inbound Requirements &amp; Asset Data
+                                      </span>
+                                    </div>
+                                    {inquiry.investmentType && (
+                                      <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-primary/15 text-primary border border-primary/30">
+                                        {inquiry.investmentType.replace(/-/g, " ")}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {inquiry.notes.includes(" | ") ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+                                      {inquiry.notes.split(" | ").map((part, pIdx) => {
+                                        const colonIndex = part.indexOf(": ");
+                                        const label = colonIndex !== -1 ? part.slice(0, colonIndex) : "Detail";
+                                        const value = colonIndex !== -1 ? part.slice(colonIndex + 2) : part;
+                                        return (
+                                          <div key={pIdx} className="bg-background/90 p-2.5 rounded-md border border-border/80 text-xs shadow-sm">
+                                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-0.5">
+                                              {label}
+                                            </span>
+                                            <span className="font-medium text-foreground">{value}</span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <div className="bg-background/90 p-3 rounded-md border border-border/80 text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed shadow-sm">
+                                      {inquiry.notes}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
                               <div className="flex items-center justify-between border-b border-border pb-2">
                                 <h4 className="text-xs font-semibold text-foreground flex items-center space-x-1.5 uppercase tracking-wider">
                                   <Clock className="h-3.5 w-3.5 text-primary" />
-                                  <span>Activity Timeline & Audit History</span>
+                                  <span>Activity Timeline &amp; Audit History</span>
                                 </h4>
                                 <span className="text-[11px] text-muted-foreground">
                                   Inquiry ID: {inquiry.id}
@@ -873,6 +921,18 @@ export const AdminInquiriesList: React.FC = () => {
                     <p className="text-muted-foreground text-[10px] capitalize">{(inquiry.investmentType || "").replace(/-/g, " ")}</p>
                   </div>
                 </div>
+
+                {/* Customer Requirements / Inbound Notes */}
+                {inquiry.notes && (
+                  <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/20 text-xs space-y-1">
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider block">
+                      Customer Requirements:
+                    </span>
+                    <p className="text-[11px] text-foreground/90 leading-relaxed">
+                      {inquiry.notes}
+                    </p>
+                  </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 pt-1 border-t border-border/60">

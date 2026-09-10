@@ -201,6 +201,16 @@ async function main() {
     { name: "Private Botanical Park", iconKey: "park", category: "Outdoors" },
     { name: "Beach Cabanas & Sun Umbrellas", iconKey: "umbrella", category: "Waterfront" },
     { name: "Eco Business Park & Innovation Hub", iconKey: "corporate_fare", category: "Business" },
+    { name: "Hydrothermal & Ocean Vitality Pool", iconKey: "waves", category: "Wellness" },
+    { name: "Ayurvedic Sanctuary & Holistic Healing", iconKey: "healing", category: "Wellness" },
+    { name: "Gated Perimeter & High Security", iconKey: "shield", category: "Security" },
+    { name: "Tesla & Universal EV Supercharging Hub", iconKey: "ev_station", category: "Technology" },
+    { name: "Clean Solar Microgrid Infrastructure", iconKey: "solar_power", category: "Technology" },
+    { name: "Ultra High-Speed Dedicated Fiber Wi-Fi", iconKey: "wifi", category: "Technology" },
+    { name: "Children's Creative Learning Center", iconKey: "child_care", category: "Family" },
+    { name: "Executive Boardroom & Coworking Lounge", iconKey: "business_center", category: "Business" },
+    { name: "Central HVAC & Hospital-Grade Air Purification", iconKey: "air", category: "Technology" },
+    { name: "Private Pet Park & Grooming Pavilion", iconKey: "pets", category: "Lifestyle" },
   ];
 
   const createdAmenities: Record<string, string> = {};

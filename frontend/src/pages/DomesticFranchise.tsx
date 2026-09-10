@@ -114,8 +114,12 @@ const DomesticFranchise = () => {
               Back to Domestic
             </Link>
 
-            <h1 className="max-w-4xl font-luxia text-3xl font-light italic leading-[1.1] tracking-[-0.02em] text-foreground sm:text-4xl md:text-6xl lg:text-7xl">
-              Franchise Opportunities
+            <span className="text-gold uppercase tracking-[0.22em] text-xs font-bold md:text-sm md:tracking-[0.3em]">
+              High-Yield Aggregation
+            </span>
+
+            <h1 className="max-w-4xl font-luxia text-3xl font-light leading-[1.1] tracking-[-0.02em] text-foreground sm:text-4xl md:text-6xl lg:text-7xl">
+              Franchise <span className="font-serif italic text-gold">Opportunities</span>
             </h1>
 
             <p className="max-w-xl px-2 text-base font-light leading-relaxed text-foreground/80 md:px-0 md:text-xl">

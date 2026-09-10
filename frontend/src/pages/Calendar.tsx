@@ -273,8 +273,8 @@ const Calendar_Page = () => {
             <span className="text-primary uppercase tracking-[0.2em] text-xs font-bold">
               Private Concierge
             </span>
-            <h1 className="mb-4 mt-3 text-3xl font-light sm:mt-4 sm:text-4xl md:mb-6 md:text-5xl lg:text-6xl">
-              Book Your <span className="font-serif italic">Private Visit</span>
+            <h1 className="mb-4 mt-3 text-3xl font-light font-luxia tracking-[-0.02em] leading-[1.1] sm:mt-4 sm:text-4xl md:mb-6 md:text-5xl lg:text-6xl">
+              Book Your <span className="font-serif italic text-primary">Private Visit</span>
             </h1>
             <p className="mx-auto max-w-2xl text-base text-muted-foreground sm:text-lg">
               Select your preferred estate, date, and exclusive time slot for a

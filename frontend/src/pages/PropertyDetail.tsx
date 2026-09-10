@@ -196,7 +196,7 @@ const PropertyDetail = () => {
                 </span>
               </div>
 
-              <h1 className="text-3xl font-light text-foreground sm:text-4xl md:text-6xl">
+              <h1 className="text-3xl font-light text-foreground sm:text-4xl md:text-6xl font-luxia tracking-[-0.02em]">
                 {property.name}
               </h1>
 

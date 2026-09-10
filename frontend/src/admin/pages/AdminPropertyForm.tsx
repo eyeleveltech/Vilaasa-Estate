@@ -65,6 +65,11 @@ import {
   AMENITY_PRESETS,
   NEARBY_CATEGORY_OPTIONS,
 } from "../lib/franchisePageHelpers";
+import {
+  AMENITY_CATEGORY_GROUPS,
+  COMMON_AMENITY_ICONS,
+  detectAmenityIcon,
+} from "@/constants/amenityIcons";
 import { SortableArrayItem } from "../components/SortableArrayItem";
 import { DraftSaveBar } from "../components/DraftSaveBar";
 import { FormSectionHeader } from "../components/FormSectionHeader";
@@ -102,76 +107,6 @@ const detectFinancialIcon = (label: string, currentIcon?: string): string => {
   if (lower.includes("growth") || lower.includes("timeline") || lower.includes("cagr") || lower.includes("appreciation") || lower.includes("breakeven")) return "timelapse";
   return currentIcon || "trending_up";
 };
-
-const detectAmenityIcon = (name: string): string => {
-  const lower = (name || "").toLowerCase();
-  if (lower.includes("jacuzzi") || lower.includes("hot tub") || lower.includes("whirlpool") || lower.includes("hydrotherapy")) return "diamond";
-  if (lower.includes("outdoor seating") || lower.includes("seating") || lower.includes("sofa") || lower.includes("patio seating") || lower.includes("lounge seating") || lower.includes("terrace lounge")) return "sofa";
-  if (lower.includes("table tennis") || lower.includes("ping pong") || lower.includes("tt table") || lower.includes("table-tennis")) return "table_tennis";
-  if (lower.includes("padel") || lower.includes("paddle") || lower.includes("pickleball") || lower.includes("squash") || lower.includes("tennis")) return "sports_tennis";
-  if (lower.includes("play area") || lower.includes("kids play") || lower.includes("playground") || lower.includes("children") || lower.includes("creche") || lower.includes("daycare") || lower.includes("toys")) return "toys";
-  if (lower.includes("party") || lower.includes("celebration") || lower.includes("banquet") || lower.includes("ballroom") || lower.includes("event lawn") || lower.includes("festival")) return "celebration";
-  if (lower.includes("park") || lower.includes("central park") || lower.includes("forest") || lower.includes("green space") || lower.includes("woodland")) return "park";
-  if (lower.includes("umbrella") || lower.includes("cabana") || lower.includes("sun lounger") || lower.includes("poolside lounger") || lower.includes("sun deck")) return "umbrella";
-  if (lower.includes("eco business park") || lower.includes("business park") || lower.includes("business hub") || lower.includes("corporate") || lower.includes("office hub") || lower.includes("executive")) return "corporate_fare";
-  if (lower.includes("spa") || lower.includes("panchakarma") || lower.includes("wellness") || lower.includes("ayurved") || lower.includes("sauna") || lower.includes("steam") || lower.includes("massage")) return "spa";
-  if (lower.includes("water") || lower.includes("lake") || lower.includes("river") || lower.includes("fountain") || lower.includes("aquatic") || lower.includes("pond") || lower.includes("canal") || lower.includes("waterfront")) return "water";
-  if (lower.includes("eco") || lower.includes("organic") || lower.includes("green") || lower.includes("biophilic") || lower.includes("sustainab") || lower.includes("nature") || lower.includes("botanical")) return "eco";
-  if (lower.includes("dining") || lower.includes("restaurant") || lower.includes("culinary") || lower.includes("bistro") || lower.includes("cafe") || lower.includes("kitchen") || lower.includes("gourmet")) return "restaurant";
-  if (lower.includes("boat") || lower.includes("yacht") || lower.includes("marina") || lower.includes("sailing") || lower.includes("kayak")) return "directions_boat";
-  if (lower.includes("clubhouse") || lower.includes("club") || lower.includes("lifestyle") || lower.includes("lounge")) return "cottage";
-  if (lower.includes("helipad") || lower.includes("heli") || lower.includes("chopper") || lower.includes("aviation") || lower.includes("flight")) return "helicopter";
-  if (lower.includes("pool") || lower.includes("swim") || lower.includes("plunge")) return "pool";
-  if (lower.includes("gym") || lower.includes("fitness") || lower.includes("workout") || lower.includes("crossfit") || lower.includes("training")) return "fitness_center";
-  if (lower.includes("sports") || lower.includes("athletic") || lower.includes("recreation") || lower.includes("arena")) return "sports";
-  if (lower.includes("yoga") || lower.includes("meditat") || lower.includes("zen") || lower.includes("mindful")) return "self_improvement";
-  if (lower.includes("golf") || lower.includes("putting")) return "sports_golf";
-  if (lower.includes("security") || lower.includes("cctv") || lower.includes("guard") || lower.includes("surveillance") || lower.includes("gated")) return "security";
-  if (lower.includes("garden") || lower.includes("lawn") || lower.includes("landscape")) return "park";
-  if (lower.includes("bar") || lower.includes("wine") || lower.includes("cellar") || lower.includes("cocktail") || lower.includes("pub")) return "local_bar";
-  if (lower.includes("beach") || lower.includes("coast") || lower.includes("shore") || lower.includes("sea") || lower.includes("ocean")) return "beach_access";
-  if (lower.includes("theater") || lower.includes("theatre") || lower.includes("cinema") || lower.includes("movie") || lower.includes("screening")) return "theaters";
-  if (lower.includes("concierge") || lower.includes("butler") || lower.includes("room service") || lower.includes("valet service")) return "room_service";
-  if (lower.includes("parking") || lower.includes("garage") || lower.includes("valet") || lower.includes("car")) return "local_parking";
-  if (lower.includes("ev charge") || lower.includes("electric car") || lower.includes("supercharger")) return "electric_car";
-  if (lower.includes("wifi") || lower.includes("internet") || lower.includes("smart home") || lower.includes("automation")) return "wifi";
-  if (lower.includes("pet") || lower.includes("dog")) return "pets";
-  if (lower.includes("library") || lower.includes("study") || lower.includes("cowork") || lower.includes("business")) return "menu_book";
-  if (lower.includes("deck") || lower.includes("terrace") || lower.includes("view") || lower.includes("skyline") || lower.includes("rooftop")) return "deck";
-  if (lower.includes("hospital") || lower.includes("clinic") || lower.includes("medical") || lower.includes("health")) return "local_hospital";
-  return "star";
-};
-
-const COMMON_AMENITY_ICONS = [
-  { label: "Jacuzzi / Hydrotherapy", icon: "diamond" },
-  { label: "Outdoor Seating / Lounge", icon: "sofa" },
-  { label: "Table Tennis / Ping Pong", icon: "table_tennis" },
-  { label: "Sports & Athletics Arena", icon: "sports" },
-  { label: "Kids Play Area / Playground", icon: "toys" },
-  { label: "Padel / Tennis Court", icon: "sports_tennis" },
-  { label: "Party Terrace / Banquet", icon: "celebration" },
-  { label: "Private Park & Nature", icon: "park" },
-  { label: "Beach Umbrella & Cabanas", icon: "umbrella" },
-  { label: "Eco Business Park / Hub", icon: "corporate_fare" },
-  { label: "Pool / Swimming", icon: "pool" },
-  { label: "Spa / Wellness", icon: "spa" },
-  { label: "Fitness Center", icon: "fitness_center" },
-  { label: "Yoga / Zen", icon: "self_improvement" },
-  { label: "Clubhouse", icon: "cottage" },
-  { label: "Boat Club & Marina", icon: "directions_boat" },
-  { label: "Helipad", icon: "helicopter" },
-  { label: "Golf Course", icon: "sports_golf" },
-  { label: "Lounge Bar", icon: "local_bar" },
-  { label: "Beach Access", icon: "beach_access" },
-  { label: "Security 24/7", icon: "security" },
-  { label: "Private Garden", icon: "park" },
-  { label: "Concierge Butler", icon: "room_service" },
-  { label: "Valet Parking", icon: "local_parking" },
-  { label: "EV Charging Enclave", icon: "electric_car" },
-  { label: "Private Cinema", icon: "theaters" },
-  { label: "High-Speed WiFi", icon: "wifi" },
-  { label: "Star / Bespoke", icon: "star" },
-];
 
 const detectNearbyCategory = (name: string): string => {
   const lower = (name || "").toLowerCase();
@@ -2085,10 +2020,19 @@ export const AdminPropertyForm: React.FC = () => {
                               <select
                                 value={amenity.iconKey || "star"}
                                 onChange={(e) => handleUpdateAmenity(amenity.id, "iconKey", e.target.value)}
-                                className="bg-secondary/70 border border-border text-[11px] rounded px-2 h-8 text-muted-foreground w-full sm:w-auto sm:max-w-[140px]"
+                                className="bg-secondary/70 border border-border text-[11px] rounded px-2 h-8 text-muted-foreground w-full sm:w-auto sm:max-w-[160px]"
                               >
-                                {COMMON_AMENITY_ICONS.map((p) => (
-                                  <option key={p.icon} value={p.icon}>{p.label}</option>
+                                {!COMMON_AMENITY_ICONS.some((item) => item.icon === amenity.iconKey) && amenity.iconKey && (
+                                  <option value={amenity.iconKey}>Custom ({amenity.iconKey})</option>
+                                )}
+                                {AMENITY_CATEGORY_GROUPS.map((group) => (
+                                  <optgroup key={group.name} label={group.name}>
+                                    {group.icons.map((p) => (
+                                      <option key={`${group.name}-${p.icon}`} value={p.icon}>
+                                        {p.label}
+                                      </option>
+                                    ))}
+                                  </optgroup>
                                 ))}
                               </select>
                             </div>

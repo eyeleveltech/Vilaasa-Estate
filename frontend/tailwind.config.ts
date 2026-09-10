@@ -55,6 +55,7 @@ export default {
         },
       },
       fontFamily: {
+        sans: ["Manrope", "sans-serif"],
         display: ["Manrope", "sans-serif"],
         serif: ["Playfair Display", "serif"],
         luxia: ["Luxia Display", "serif"],
