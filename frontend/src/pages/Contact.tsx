@@ -166,7 +166,7 @@ const Contact = () => {
           >
             <h1 className="mb-4 text-3xl font-light leading-[1.1] text-foreground font-luxia sm:mb-5 sm:text-4xl md:mb-6 md:text-5xl lg:text-6xl">
               Let's Discuss Your <br />
-              <span className="italic text-primary">Portfolio.</span>
+              <span className="font-serif italic text-primary">Portfolio.</span>
             </h1>
             <p className="text-base text-muted-foreground sm:text-lg">
               Whether you are looking to acquire a home or expand a business,

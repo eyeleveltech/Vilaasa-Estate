@@ -120,6 +120,12 @@ export const Footer = () => {
                 International Properties
               </Link>
               <Link
+                to="/asset-management"
+                className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+              >
+                Asset Management
+              </Link>
+              <Link
                 to="/calendar"
                 className="text-muted-foreground hover:text-foreground text-sm transition-colors"
               >

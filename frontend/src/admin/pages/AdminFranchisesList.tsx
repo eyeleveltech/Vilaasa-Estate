@@ -160,6 +160,17 @@ export const AdminFranchisesList: React.FC = () => {
     return `${curr} ${num.toLocaleString()}`;
   };
 
+  const formatPeriodYears = (years?: number | null) => {
+    if (years === undefined || years === null) return "N/A";
+    const num = Number(years);
+    if (isNaN(num) || num <= 0) return "N/A";
+    if (num < 1) {
+      const months = Math.round(num * 12);
+      return `${months} ${months === 1 ? "Month" : "Months"}`;
+    }
+    return `${num % 1 === 0 ? num : num.toFixed(1)} ${num === 1 ? "Year" : "Years"}`;
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -427,9 +438,7 @@ export const AdminFranchisesList: React.FC = () => {
                         <div className="flex items-center gap-1.5">
                           <Clock className="h-3.5 w-3.5" />
                           <span>
-                            {item.paybackPeriodYears
-                              ? `${item.paybackPeriodYears} Years`
-                              : "3.5 Years"}
+                            {formatPeriodYears(item.paybackPeriodYears)}
                           </span>
                         </div>
                       </td>

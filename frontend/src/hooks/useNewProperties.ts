@@ -7,6 +7,7 @@ import {
   DEFAULT_PROPERTY_IMAGE,
 } from "@/types/property";
 import { Property as BackendProperty, ApiResponse } from "@/admin/types/admin.types";
+import { detectAmenityIcon } from "@/constants/amenityIcons";
 
 /**
  * Transforms a backend PostgreSQL Property model into frontend PropertyListItem
@@ -150,37 +151,6 @@ function transformToDetail(prop: BackendProperty): PropertyDetail {
     price: Number(c.price) || 0,
     currency: prop.currency || "INR",
   }));
-
-  const detectAmenityIcon = (name: string): string => {
-    const lower = (name || "").toLowerCase();
-    if (lower.includes("jacuzzi") || lower.includes("hot tub") || lower.includes("whirlpool") || lower.includes("hydrotherapy")) return "diamond";
-    if (lower.includes("outdoor seating") || lower.includes("seating") || lower.includes("sofa") || lower.includes("patio seating") || lower.includes("lounge seating") || lower.includes("terrace lounge")) return "sofa";
-    if (lower.includes("table tennis") || lower.includes("ping pong") || lower.includes("tt table") || lower.includes("table-tennis")) return "table_tennis";
-    if (lower.includes("padel") || lower.includes("paddle") || lower.includes("pickleball") || lower.includes("squash") || lower.includes("tennis")) return "sports_tennis";
-    if (lower.includes("play area") || lower.includes("kids play") || lower.includes("playground") || lower.includes("children") || lower.includes("creche") || lower.includes("toys")) return "toys";
-    if (lower.includes("party") || lower.includes("celebration") || lower.includes("banquet") || lower.includes("ballroom") || lower.includes("event lawn") || lower.includes("festival")) return "celebration";
-    if (lower.includes("park") || lower.includes("central park") || lower.includes("forest") || lower.includes("green space") || lower.includes("woodland")) return "park";
-    if (lower.includes("umbrella") || lower.includes("cabana") || lower.includes("sun lounger") || lower.includes("poolside lounger") || lower.includes("sun deck")) return "umbrella";
-    if (lower.includes("eco business park") || lower.includes("business park") || lower.includes("business hub") || lower.includes("corporate") || lower.includes("office hub") || lower.includes("executive")) return "corporate_fare";
-    if (lower.includes("spa") || lower.includes("wellness") || lower.includes("massage") || lower.includes("sauna") || lower.includes("steam")) return "spa";
-    if (lower.includes("water") || lower.includes("pool") || lower.includes("swim") || lower.includes("plunge")) return "pool";
-    if (lower.includes("gym") || lower.includes("fitness") || lower.includes("workout")) return "fitness_center";
-    if (lower.includes("sports") || lower.includes("athletic") || lower.includes("recreation") || lower.includes("arena")) return "sports";
-    if (lower.includes("security") || lower.includes("cctv") || lower.includes("guard")) return "security";
-    if (lower.includes("lounge") || lower.includes("club")) return "cottage";
-    if (lower.includes("wifi") || lower.includes("smart") || lower.includes("internet")) return "wifi";
-    if (lower.includes("parking") || lower.includes("garage") || lower.includes("valet")) return "local_parking";
-    if (lower.includes("golf") || lower.includes("putting")) return "sports_golf";
-    if (lower.includes("dining") || lower.includes("restaurant") || lower.includes("kitchen")) return "restaurant";
-    if (lower.includes("bar") || lower.includes("wine") || lower.includes("cellar")) return "local_bar";
-    if (lower.includes("yoga") || lower.includes("meditation") || lower.includes("zen")) return "self_improvement";
-    if (lower.includes("beach")) return "beach_access";
-    if (lower.includes("helipad") || lower.includes("heli") || lower.includes("aviation")) return "helicopter";
-    if (lower.includes("boat") || lower.includes("yacht") || lower.includes("marina") || lower.includes("sailing")) return "directions_boat";
-    if (lower.includes("theater") || lower.includes("theatre") || lower.includes("cinema") || lower.includes("movie")) return "theaters";
-    if (lower.includes("pet")) return "pets";
-    return "star";
-  };
 
   const amenities = (prop.amenities || []).map((a) => ({
     name: a.amenity.name,

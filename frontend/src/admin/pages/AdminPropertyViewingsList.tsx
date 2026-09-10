@@ -609,6 +609,11 @@ export const AdminPropertyViewingsList: React.FC = () => {
                           <div className="text-xs text-muted-foreground flex items-center gap-1">
                             <Phone className="h-3 w-3" /> {viewing.phone}
                           </div>
+                          {viewing.notes && (
+                            <div className="text-[10px] text-primary/90 mt-1.5 max-w-[220px] truncate bg-primary/5 border border-primary/20 rounded px-2 py-0.5" title={viewing.notes}>
+                              💬 {viewing.notes}
+                            </div>
+                          )}
                         </div>
                       </td>
 
@@ -767,6 +772,15 @@ export const AdminPropertyViewingsList: React.FC = () => {
                     <p className="text-muted-foreground text-[10px]">{new Date(viewing.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
                   </div>
                 </div>
+
+                {viewing.notes && (
+                  <div className="p-2 rounded bg-primary/5 border border-primary/20 text-[11px] text-foreground/90 leading-snug">
+                    <span className="text-[10px] text-primary uppercase font-bold tracking-wider block mb-0.5">
+                      Client Note / Intent:
+                    </span>
+                    {viewing.notes}
+                  </div>
+                )}
               </div>
             );
           })

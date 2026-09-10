@@ -43,6 +43,7 @@ export const Navbar = () => {
   const navLinks = [
     { label: "Domestic", href: "/domestic" },
     { label: "International", href: "/international" },
+    { label: "Asset Management", href: "/asset-management" },
     { label: "Wealth Projector", href: "/wealth-projector" },
     { label: "Contact", href: "/contact" },
   ];
@@ -62,52 +63,51 @@ export const Navbar = () => {
             : "bg-gradient-to-b from-black/80 to-transparent pb-6 pt-3 md:pb-8 md:pt-4"
         }`}
       >
-        <div className="flex justify-center px-4 md:px-10">
+        <div className="flex justify-center px-4 md:px-8 xl:px-12">
           <div
-            className={`flex w-full max-w-[1280px] items-center justify-between border-b pb-3 transition-colors md:pb-4 ${
+            className={`flex w-full max-w-[1440px] 2xl:max-w-[1600px] items-center justify-between border-b pb-3 transition-colors md:pb-4 ${
               isScrolled ? "border-border/20" : "border-foreground/10"
             }`}
           >
             {/* Logo */}
-            <Link to="/home" className="flex shrink-0 items-center">
+            <Link to="/home" className="flex shrink-0 items-center mr-4 lg:mr-8 xl:mr-12">
               <img
                 src={vilaasaLogo}
                 alt="Vilaasa Estates"
-                className="h-7 w-auto shrink-0 md:h-8 lg:h-9"
+                className="h-6 w-auto shrink-0 sm:h-7 md:h-8"
               />
             </Link>
 
             {/* Desktop Nav */}
-            <div className="hidden lg:flex items-center gap-6 xl:gap-10">
+            <nav className="hidden lg:flex items-center justify-center gap-4 lg:gap-5 xl:gap-7 2xl:gap-9 flex-1 min-w-0">
               {navLinks.map((link) => (
                 <Link
                   key={link.label}
                   to={link.href}
-                  className={`text-xs font-medium uppercase tracking-[0.1em] transition-colors ${
+                  className={`whitespace-nowrap text-[11px] xl:text-xs font-medium uppercase tracking-[0.08em] transition-colors py-1 ${
                     isActivePath(link.href)
-                      ? "text-primary"
+                      ? "text-primary font-semibold"
                       : "text-foreground/80 hover:text-foreground"
                   }`}
                 >
                   {link.label}
                 </Link>
               ))}
-            </div>
+            </nav>
 
             {/* Actions */}
-            <div className="flex items-center gap-2 md:gap-4">
+            <div className="flex items-center gap-2 md:gap-3 xl:gap-4 shrink-0 ml-4 lg:ml-8 xl:ml-12">
               {/* Currency Toggle - Desktop */}
               <div className="hidden md:block">
                 <CurrencyToggle />
               </div>
 
-
               <Link to="/calendar">
-                <Button variant="ghost" className="hidden sm:flex gap-2">
+                <Button variant="ghost" size="sm" className="hidden sm:flex gap-2 text-xs uppercase tracking-wider font-semibold px-3.5">
                   <span className="material-symbols-outlined text-base">
                     calendar_month
                   </span>
-                  Book a Site Visit
+                  <span>Book a Site Visit</span>
                 </Button>
               </Link>
 

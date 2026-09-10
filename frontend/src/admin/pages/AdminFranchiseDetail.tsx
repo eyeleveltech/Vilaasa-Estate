@@ -97,9 +97,20 @@ export const AdminFranchiseDetail: React.FC = () => {
   };
 
   const formatCurrency = (val?: number | string | null, curr = "INR") => {
-    if (val === undefined || val === null) return "₹0";
+    if (val === undefined || val === null) return "N/A";
     const num = Number(val);
-    if (isNaN(num)) return `${curr} 0`;
+    if (isNaN(num) || num === 0) return "N/A";
+    if (curr === "INR") {
+      if (num >= 10000000) {
+        const cr = num / 10000000;
+        return `₹${cr % 1 === 0 ? cr : cr.toFixed(2)} Cr`;
+      }
+      if (num >= 100000) {
+        const l = num / 100000;
+        return `₹${l % 1 === 0 ? l : l.toFixed(2)} L`;
+      }
+      return `₹${num.toLocaleString("en-IN")}`;
+    }
     return `${curr} ${num.toLocaleString()}`;
   };
 
@@ -112,12 +123,81 @@ export const AdminFranchiseDetail: React.FC = () => {
     );
   }
 
+  const franchisePage = (franchise as any).franchisePage;
+
   const heroImg =
     franchise.media?.find((m) => m.isFeatured)?.url ||
     franchise.media?.[0]?.url ||
+    franchisePage?.heroImage ||
     null;
+
   const ticket = franchise.minTicketSize ?? franchise.price;
   const roi = franchise.expectedAnnualRoi ?? franchise.rentalYieldPercent;
+
+  // Support modules fallback to franchisePage.ecosystemCards
+  const supportItems: FranchiseModuleItem[] =
+    Array.isArray(franchise.supportModules) && franchise.supportModules.length > 0
+      ? franchise.supportModules
+      : Array.isArray(franchisePage?.ecosystemCards) && franchisePage.ecosystemCards.length > 0
+      ? franchisePage.ecosystemCards.map((card: any) => ({
+          name: card.title || card.name,
+          icon: card.icon || "storefront",
+          description: card.description,
+        }))
+      : [];
+
+  // Advantage items fallback to franchisePage.benefitCards
+  const advantageItems: FranchiseModuleItem[] =
+    Array.isArray(franchise.advantages) && franchise.advantages.length > 0
+      ? franchise.advantages
+      : Array.isArray(franchisePage?.benefitCards) && franchisePage.benefitCards.length > 0
+      ? franchisePage.benefitCards.map((card: any) => ({
+          name: card.title || card.name,
+          icon: card.icon || "verified_user",
+          description: card.description,
+        }))
+      : [];
+
+  // Financial Blueprint metrics fallback to franchisePage.blueprintMetrics
+  const customSpecsList: { label: string; value: string }[] =
+    Array.isArray(franchise.customSpecs) && franchise.customSpecs.length > 0
+      ? franchise.customSpecs
+      : Array.isArray(franchisePage?.blueprintMetrics) && franchisePage.blueprintMetrics.length > 0
+      ? franchisePage.blueprintMetrics.filter((m: any) => m.label && m.value)
+      : [];
+
+  const rawVisionHeadline = franchise.visionHeadline || franchisePage?.visionHeadline;
+  const visionHeadline = rawVisionHeadline ? rawVisionHeadline.trim() : null;
+
+  const formatPeriod = (years?: number | null, rawText?: string | null) => {
+    if (rawText && rawText.trim() && !/^\d+(\.\d+)?$/.test(rawText.trim())) {
+      return rawText.trim();
+    }
+    if (years === undefined || years === null) return "N/A";
+    const num = Number(years);
+    if (isNaN(num) || num <= 0) return "N/A";
+    if (num < 1) {
+      const months = Math.round(num * 12);
+      return `${months} ${months === 1 ? "Month" : "Months"}`;
+    }
+    return `${num % 1 === 0 ? num : num.toFixed(1)} ${num === 1 ? "Year" : "Years"}`;
+  };
+
+  const paybackText = formatPeriod(
+    franchise.paybackPeriodYears,
+    franchisePage?.metric3Value ||
+      franchisePage?.heroMetrics?.find((m: any) =>
+        /payback/i.test(m.label || ""),
+      )?.value,
+  );
+
+  const lockInText = formatPeriod(
+    franchise.lockInPeriodYears,
+    franchisePage?.metric7Value ||
+      franchisePage?.blueprintMetrics?.find((m: any) =>
+        /lock/i.test(m.label || ""),
+      )?.value,
+  );
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -233,7 +313,7 @@ export const AdminFranchiseDetail: React.FC = () => {
                 <span>Expected ROI</span>
               </div>
               <p className="text-sm font-semibold text-emerald-400 font-mono">
-                {roi ? `${roi}% Annually` : "24% Annually"}
+                {roi ? `${roi}% Annually` : "N/A"}
               </p>
             </div>
 
@@ -243,9 +323,7 @@ export const AdminFranchiseDetail: React.FC = () => {
                 <span>Payback</span>
               </div>
               <p className="text-sm font-semibold text-foreground font-mono">
-                {franchise.paybackPeriodYears
-                  ? `${franchise.paybackPeriodYears} Years`
-                  : "3.5 Years"}
+                {paybackText}
               </p>
             </div>
 
@@ -255,9 +333,7 @@ export const AdminFranchiseDetail: React.FC = () => {
                 <span>Lock-in</span>
               </div>
               <p className="text-sm font-semibold text-foreground font-mono">
-                {franchise.lockInPeriodYears
-                  ? `${franchise.lockInPeriodYears} Years`
-                  : "3.0 Years"}
+                {lockInText}
               </p>
             </div>
 
@@ -267,7 +343,7 @@ export const AdminFranchiseDetail: React.FC = () => {
                 <span>Payout</span>
               </div>
               <p className="text-sm font-semibold text-foreground">
-                {franchise.yieldPayoutFrequency || "Quarterly"}
+                {franchise.yieldPayoutFrequency || "N/A"}
               </p>
             </div>
 
@@ -289,9 +365,9 @@ export const AdminFranchiseDetail: React.FC = () => {
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground">
                   Architectural Vision & Business Model
                 </h3>
-                {franchise.visionHeadline && (
+                {visionHeadline && (
                   <p className="text-base font-medium text-foreground">
-                    &quot;{franchise.visionHeadline}&quot;
+                    &quot;{visionHeadline}&quot;
                   </p>
                 )}
                 {franchise.tagline && (
@@ -305,7 +381,7 @@ export const AdminFranchiseDetail: React.FC = () => {
               </div>
 
               {/* Financial Blueprint (Custom Specs) */}
-              {Array.isArray(franchise.customSpecs) && franchise.customSpecs.length > 0 && (
+              {customSpecsList.length > 0 && (
                 <div className="rounded-xl border border-border bg-card p-6 shadow-xl space-y-4">
                   <div className="flex items-center justify-between border-b border-border pb-3">
                     <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground flex items-center gap-2">
@@ -317,7 +393,7 @@ export const AdminFranchiseDetail: React.FC = () => {
                     </span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {franchise.customSpecs.map((spec: { label: string; value: string }, idx: number) => (
+                    {customSpecsList.map((spec: { label: string; value: string }, idx: number) => (
                       <div
                         key={idx}
                         className="p-3 rounded-lg bg-secondary/30 border border-border"
@@ -339,16 +415,19 @@ export const AdminFranchiseDetail: React.FC = () => {
                 <div className="flex items-center justify-between border-b border-border pb-3">
                   <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-primary" />
-                    <span>Comprehensive Ecosystem (Support & Training)</span>
+                    <span>
+                      {franchisePage?.ecosystemHeading
+                        ? `${franchisePage.ecosystemHeading.trim()}`
+                        : "Comprehensive Ecosystem (Support & Training)"}
+                    </span>
                   </h3>
                   <span className="text-[11px] text-muted-foreground">
-                    Operator-backed
+                    {franchisePage?.ecosystemSubheading || "Operator-backed"}
                   </span>
                 </div>
-                {Array.isArray(franchise.supportModules) &&
-                franchise.supportModules.length > 0 ? (
+                {supportItems.length > 0 ? (
                   <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                    {franchise.supportModules.map((module: FranchiseModuleItem, idx) => {
+                    {supportItems.map((module: FranchiseModuleItem, idx) => {
                       const name = typeof module === "object" && module !== null ? module.name : String(module);
                       const icon = typeof module === "object" && module !== null && module.icon ? module.icon : "storefront";
                       const desc = typeof module === "object" && module !== null ? module.description : null;
@@ -386,16 +465,17 @@ export const AdminFranchiseDetail: React.FC = () => {
                 <div className="flex items-center justify-between border-b border-border pb-3">
                   <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-primary" />
-                    <span>Key Benefits (The FOCO Advantage)</span>
+                    <span>
+                      Key Benefits ({franchise.franchiseModel || "FOCO"} Advantage)
+                    </span>
                   </h3>
                   <span className="text-[11px] text-muted-foreground">
-                    Institutional Moat
+                    {franchisePage?.benefitsSubheading || "Institutional Moat"}
                   </span>
                 </div>
-                {Array.isArray(franchise.advantages) &&
-                franchise.advantages.length > 0 ? (
+                {advantageItems.length > 0 ? (
                   <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                    {franchise.advantages.map((adv: FranchiseModuleItem, idx) => {
+                    {advantageItems.map((adv: FranchiseModuleItem, idx) => {
                       const name = typeof adv === "object" && adv !== null ? adv.name : String(adv);
                       const icon = typeof adv === "object" && adv !== null && adv.icon ? adv.icon : "verified_user";
                       const desc = typeof adv === "object" && adv !== null ? adv.description : null;
@@ -459,7 +539,7 @@ export const AdminFranchiseDetail: React.FC = () => {
                   <div className="flex items-center justify-between text-xs border-b border-border pb-2">
                     <span className="text-muted-foreground">Operating Model</span>
                     <span className="font-semibold text-primary">
-                      {franchise.franchiseModel || "FOCO"}
+                      {franchise.franchiseModel || "N/A"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs border-b border-border pb-2">
@@ -606,7 +686,12 @@ export const AdminFranchiseDetail: React.FC = () => {
                   {inquiries.map((inq) => (
                     <tr key={inq.id} className="hover:bg-secondary/20 transition-colors">
                       <td className="px-5 py-3.5 font-medium text-foreground">
-                        {inq.name}
+                        <div>{inq.name}</div>
+                        {inq.notes && (
+                          <div className="text-[10px] text-primary/80 font-normal mt-0.5 max-w-[200px] truncate" title={inq.notes}>
+                            💬 {inq.notes}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3.5 space-y-0.5">
                         <div className="flex items-center gap-1.5 text-muted-foreground">

@@ -32,6 +32,7 @@ const FranchiseDetail = lazy(() => import("./pages/FranchiseDetail"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Calendar = lazy(() => import("./pages/Calendar"));
 const WealthProjector = lazy(() => import("./pages/WealthProjector"));
+const AssetManagement = lazy(() => import("./pages/AssetManagement"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const SplashGateway = lazy(() =>
   import("./components/SplashGateway").then((m) => ({
@@ -174,6 +175,7 @@ const router = createBrowserRouter(
       <Route path="/contact" element={<Contact />} />
       <Route path="/calendar" element={<Calendar />} />
       <Route path="/wealth-projector" element={<WealthProjector />} />
+      <Route path="/asset-management" element={<AssetManagement />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/disclaimer" element={<Disclaimer />} />
