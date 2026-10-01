@@ -1,4 +1,6 @@
-export type Role = "SUPER_ADMIN" | "CHANNEL_PARTNER";
+import type { FranchisePageData } from "../lib/franchisePageHelpers";
+
+export type Role = "SUPER_ADMIN" | "ADMIN" | "CHANNEL_PARTNER";
 
 export type PropertyType =
   | "RESIDENTIAL_VILLA"
@@ -215,6 +217,7 @@ export interface Property {
   nearbyPlaces?: NearbyPlace[];
   financialMetrics?: PropertyFinancialMetric[];
   constructionAsset?: ConstructionAsset | null;
+  franchisePage?: FranchisePageData | null;
   _count?: {
     configurations?: number;
     media?: number;
@@ -327,6 +330,22 @@ export interface PropertyStats {
   byCountry: Record<string, number>;
   totalInquiries: number;
   recentInquiries: Inquiry[];
+}
+
+export interface VaultAdminOverview {
+  totalAum: number;
+  totalInvested: number;
+  totalAppreciation: number;
+  appreciationPercent: number;
+  totalMonthlyRental: number;
+  annualRentalIncome: number;
+  totalInvestors: number;
+  totalUnits: number;
+  byOccupancy: {
+    OCCUPIED: number;
+    VACANT: number;
+    UNDER_MAINTENANCE: number;
+  };
 }
 
 export interface ApiResponse<T> {

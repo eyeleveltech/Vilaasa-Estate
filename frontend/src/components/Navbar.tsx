@@ -44,8 +44,8 @@ export const Navbar = () => {
     { label: "Domestic", href: "/domestic" },
     { label: "International", href: "/international" },
     { label: "Asset Management", href: "/asset-management" },
+    { label: "Property Management", href: "/property-management" },
     { label: "Wealth Projector", href: "/wealth-projector" },
-    { label: "Contact", href: "/contact" },
   ];
 
   const isActivePath = (href: string) =>
@@ -102,12 +102,12 @@ export const Navbar = () => {
                 <CurrencyToggle />
               </div>
 
-              <Link to="/calendar">
+              <Link to="/contact">
                 <Button variant="ghost" size="sm" className="hidden sm:flex gap-2 text-xs uppercase tracking-wider font-semibold px-3.5">
                   <span className="material-symbols-outlined text-base">
-                    calendar_month
+                    mail
                   </span>
-                  <span>Book a Site Visit</span>
+                  <span>Contact</span>
                 </Button>
               </Link>
 
@@ -159,12 +159,12 @@ export const Navbar = () => {
               </div>
 
 
-              <Link to="/calendar" onClick={() => setIsMobileMenuOpen(false)}>
+              <Link to="/contact" onClick={() => setIsMobileMenuOpen(false)}>
                 <Button variant="ghost" className="mt-4 w-full gap-2">
                   <span className="material-symbols-outlined text-base">
-                    calendar_month
+                    mail
                   </span>
-                  Book a Site Visit
+                  Contact
                 </Button>
               </Link>
             </div>

@@ -57,7 +57,7 @@ const capabilities = [
     subtitle: "Buy-Side Sourcing & Feasibility",
     points: [
       "Off-market luxury villas & prime penthouses scouting",
-      "Cross-border transaction structuring (India & Dubai)",
+      "Cross-border transaction structuring",
       "Strict financial IRR modeling & downside risk sensitivity",
     ],
   },
@@ -122,7 +122,7 @@ const capabilities = [
     title: "Risk & Compliance Oversight",
     subtitle: "Regulatory & Title Protection",
     points: [
-      "RERA / Dubai Land Department compliance verification",
+      "All land department compliance verification",
       "Municipal approvals, structural audits & comprehensive insurance",
       "Clear legal encumbrance checks and succession planning",
     ],
@@ -174,7 +174,7 @@ const AssetManagement = () => {
     <div className="overflow-x-hidden bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary">
       <SEO
         title="Luxury Real Estate Asset Management | Vilaasa Estates"
-        description="Strategic asset management solutions designed to enhance property performance, optimise returns, and unlock long-term value across India and Dubai."
+        description="Strategic asset management solutions designed to enhance property performance, optimise returns, and unlock long-term value."
         canonical="https://www.vilaasaestates.com/asset-management"
       />
 
@@ -221,7 +221,7 @@ const AssetManagement = () => {
                 We provide strategic asset management solutions designed to enhance property
                 performance, optimise returns, and unlock long-term value. From financial oversight and
                 repositioning to turnkey leasing and peak monetisation, we take a holistic approach to
-                your real estate wealth across India and Dubai.
+                your real estate wealth.
               </p>
 
               <div className="flex flex-wrap items-center gap-4 pt-2">
@@ -259,7 +259,7 @@ const AssetManagement = () => {
                 <div className="space-y-1">
                   <div className="flex items-center gap-1.5 text-primary text-xs font-bold uppercase tracking-wider">
                     <span className="material-symbols-outlined text-base">public</span>
-                    <span>India &amp; Dubai</span>
+                    <span>Global</span>
                   </div>
                   <p className="text-xs text-muted-foreground leading-snug">
                     Cross-border operational oversight spanning key global luxury hubs.

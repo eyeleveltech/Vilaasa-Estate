@@ -9,16 +9,17 @@ test('Check Detail pages at 320px', async ({ page }) => {
 
   // Check domestic real estate & first property detail
   await page.goto('http://localhost:8080/domestic/real-estate', { waitUntil: 'networkidle' });
-  const firstPropLink = await page.locator('a[href*="/property/"]').first().getAttribute('href');
-  console.log('Testing property detail link:', firstPropLink);
+  const firstPropCard = page.locator('div[role="button"]:has-text("View")').first();
+  await firstPropCard.click();
+  await page.waitForURL(/\/property\/.+/);
+  const currentUrl = page.url();
+  console.log('Navigated to property detail:', currentUrl);
 
-  if (firstPropLink) {
-    await page.goto(`http://localhost:8080${firstPropLink}`, { waitUntil: 'networkidle' });
-    const detailOverflow = await page.evaluate(() => {
-      const docWidth = document.documentElement.clientWidth;
-      const scrollWidth = document.documentElement.scrollWidth;
-      const overflowing: { tag: string; className: string; right: number; width: number }[] = [];
-      document.querySelectorAll('*').forEach((el) => {
+  const detailOverflow = await page.evaluate(() => {
+    const docWidth = document.documentElement.clientWidth;
+    const scrollWidth = document.documentElement.scrollWidth;
+    const overflowing: { tag: string; className: string; right: number; width: number }[] = [];
+    document.querySelectorAll('*').forEach((el) => {
         const rect = el.getBoundingClientRect();
         if (rect.right > docWidth + 1) {
           overflowing.push({
@@ -32,20 +33,19 @@ test('Check Detail pages at 320px', async ({ page }) => {
       return { docWidth, scrollWidth, hasOverflow: scrollWidth > docWidth, overflowing: overflowing.slice(0, 10) };
     });
     console.log('Property Detail 320px Overflow:', JSON.stringify(detailOverflow, null, 2));
-  }
-
   // Check domestic franchise & first franchise detail
   await page.goto('http://localhost:8080/domestic/franchise', { waitUntil: 'networkidle' });
-  const firstFranLink = await page.locator('a[href*="/franchise/"]').first().getAttribute('href');
-  console.log('Testing franchise detail link:', firstFranLink);
+  const firstFranCard = page.locator('div[role="button"]:has-text("View")').first();
+  await firstFranCard.click();
+  await page.waitForURL(/\/franchise\/.+/);
+  const currentFranUrl = page.url();
+  console.log('Navigated to franchise detail:', currentFranUrl);
 
-  if (firstFranLink) {
-    await page.goto(`http://localhost:8080${firstFranLink}`, { waitUntil: 'networkidle' });
-    const franOverflow = await page.evaluate(() => {
-      const docWidth = document.documentElement.clientWidth;
-      const scrollWidth = document.documentElement.scrollWidth;
-      const overflowing: { tag: string; className: string; right: number; width: number }[] = [];
-      document.querySelectorAll('*').forEach((el) => {
+  const franOverflow = await page.evaluate(() => {
+    const docWidth = document.documentElement.clientWidth;
+    const scrollWidth = document.documentElement.scrollWidth;
+    const overflowing: { tag: string; className: string; right: number; width: number }[] = [];
+    document.querySelectorAll('*').forEach((el) => {
         const rect = el.getBoundingClientRect();
         if (rect.right > docWidth + 1) {
           overflowing.push({
@@ -59,5 +59,4 @@ test('Check Detail pages at 320px', async ({ page }) => {
       return { docWidth, scrollWidth, hasOverflow: scrollWidth > docWidth, overflowing: overflowing.slice(0, 10) };
     });
     console.log('Franchise Detail 320px Overflow:', JSON.stringify(franOverflow, null, 2));
-  }
 });

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { SEO } from "@/components/SEO";
 import { Navbar } from "@/components/Navbar";
@@ -273,10 +274,24 @@ const Contact = () => {
                 info@vilaasaestates.com
               </a>
             </div>
+
+            {/* Added Book a Site Visit CTA */}
+            <div className="mt-8 pt-8 border-t border-border/40">
+              <Link to="/calendar">
+                <Button
+                  variant="hero"
+                  size="lg"
+                  className="w-full sm:w-auto uppercase tracking-widest font-semibold"
+                >
+                  Book a Site Visit
+                </Button>
+              </Link>
+            </div>
           </motion.div>
 
           {/* Right - Contact Form */}
           <motion.div
+            id="callback-form"
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
