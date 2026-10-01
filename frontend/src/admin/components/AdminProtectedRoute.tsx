@@ -18,7 +18,7 @@ export const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({
   }
 
   // Positive role verification: Only SUPER_ADMIN and ADMIN can access executive admin routes
-  if (user && user.role !== "SUPER_ADMIN" && user.role !== "ADMIN") {
+  if (user && (user.role as string) !== "SUPER_ADMIN" && (user.role as string) !== "ADMIN") {
     if (user.role === "CHANNEL_PARTNER") {
       return <Navigate to="/partner/dashboard" replace />;
     }

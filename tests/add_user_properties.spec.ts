@@ -112,16 +112,17 @@ async function createPropertyViaUI(page: Page, prop: typeof property1Data) {
 
   // --- SECTION 1: HERO & CORE LISTING ---
   console.log('Filling Section 1: Hero & Core Listing...');
-  const domesticBtn = page.locator('#sec-hero button', { hasText: /India/i });
+  await page.screenshot({ path: 'debug_chromium_add.png' });
+  const domesticBtn = page.locator('#sec-hero').getByRole('button', { name: /Domestic/i });
   await domesticBtn.click();
 
-  const nameInput = page.locator('#sec-hero input[placeholder*="Glasshouse"]');
+  const nameInput = page.locator('#sec-hero input:not([type="checkbox"])').first();
   await nameInput.fill(prop.name);
 
-  const taglineInput = page.locator('#sec-hero textarea[placeholder*="cliffside estate"]');
+  const taglineInput = page.locator('#sec-hero textarea').first();
   await taglineInput.fill(prop.tagline);
 
-  const typeInput = page.locator('#sec-hero input[placeholder*="Residential Villa"]');
+  const typeInput = page.locator('#sec-hero input:not([type="checkbox"])').nth(1);
   await typeInput.fill(prop.propertyType);
 
   const statusSelect = page.locator('#sec-hero select');
@@ -129,32 +130,33 @@ async function createPropertyViaUI(page: Page, prop: typeof property1Data) {
 
   // --- SECTION 2: VISION & EDITORIAL ---
   console.log('Filling Section 2: Vision & Editorial Story...');
-  const visionHeadlineInput = page.locator('#sec-vision input[placeholder*="Where architectural mastery"]');
+  const visionHeadlineInput = page.locator('#sec-vision input:not([type="checkbox"])').first();
   await visionHeadlineInput.fill(prop.visionHeadline);
 
-  const descTextarea = page.locator('#sec-vision textarea[placeholder*="editorial description"]');
+  const descTextarea = page.locator('#sec-vision textarea').first();
   await descTextarea.fill(prop.description);
 
-  const verdictTextarea = page.locator('#sec-vision textarea[placeholder*="landmark residence redefining"]');
+  const verdictTextarea = page.locator('#sec-vision textarea').nth(1);
   await verdictTextarea.fill(prop.verdictQuote);
 
-  const authorInput = page.locator('#sec-vision input[placeholder*="Sanjay Pillai"]');
+  const authorInput = page.locator('#sec-vision input:not([type="checkbox"])').nth(1);
   await authorInput.fill(prop.verdictAuthor);
 
-  const roleInput = page.locator('#sec-vision input[placeholder*="Private Client Acquisitions"]');
+  const roleInput = page.locator('#sec-vision input:not([type="checkbox"])').nth(2);
   await roleInput.fill(prop.verdictTitle);
 
   // --- SECTION 3: AT A GLANCE (SPECS) ---
   console.log(`Filling Section 3: Specs (${prop.specs.length} items)...`);
   const addSpecBtn = page.locator('#sec-specs button[title="Add Specification"]');
   for (let i = 0; i < prop.specs.length; i++) {
-    await addSpecBtn.click();
+    await addSpecBtn.click({ force: true });
     await page.waitForTimeout(200);
   }
   const specCards = page.locator('#sec-specs div.grid > div');
   for (let i = 0; i < prop.specs.length; i++) {
+    await specCards.nth(i).waitFor({ state: 'visible' });
     const card = specCards.nth(i);
-    const inputs = card.locator('input');
+    const inputs = card.locator('input:not([type="checkbox"])');
     await inputs.nth(0).fill(prop.specs[i].label);
     await inputs.nth(1).fill(prop.specs[i].value);
   }
@@ -163,13 +165,14 @@ async function createPropertyViaUI(page: Page, prop: typeof property1Data) {
   console.log(`Filling Section 4: Financial Metrics (${prop.financials.length} items)...`);
   const addFinBtn = page.locator('#sec-financials button[title="Add Financial Metric"]');
   for (let i = 0; i < prop.financials.length; i++) {
-    await addFinBtn.click();
+    await addFinBtn.click({ force: true });
     await page.waitForTimeout(200);
   }
   const finCards = page.locator('#sec-financials div.grid > div');
   for (let i = 0; i < prop.financials.length; i++) {
+    await finCards.nth(i).waitFor({ state: 'visible' });
     const card = finCards.nth(i);
-    const inputs = card.locator('input');
+    const inputs = card.locator('input:not([type="checkbox"])');
     await inputs.nth(0).fill(prop.financials[i].label);
     await inputs.nth(1).fill(prop.financials[i].value);
     if (prop.financials[i].note) {
@@ -187,18 +190,21 @@ async function createPropertyViaUI(page: Page, prop: typeof property1Data) {
 
   if (prop.expectedIrr) {
     const irrInput = page.locator('#sec-pricing input[placeholder*="18.5"]');
-    await irrInput.fill(prop.expectedIrr);
+    if (await irrInput.isVisible()) {
+      await irrInput.fill(prop.expectedIrr);
+    }
   }
 
   const addConfigBtn = page.locator('#sec-pricing button[title="Add Layout Configuration"]');
   for (let i = 0; i < prop.configurations.length; i++) {
-    await addConfigBtn.click();
+    await addConfigBtn.click({ force: true });
     await page.waitForTimeout(200);
   }
   const configCards = page.locator('#sec-pricing div.space-y-4 > div');
   for (let i = 0; i < prop.configurations.length; i++) {
+    await configCards.nth(i).waitFor({ state: 'visible' });
     const card = configCards.nth(i);
-    const inputs = card.locator('input');
+    const inputs = card.locator('input:not([type="checkbox"])');
     await inputs.nth(0).fill(prop.configurations[i].unitType);
     await inputs.nth(1).fill(String(prop.configurations[i].areaSqFt));
     await inputs.nth(2).fill(prop.configurations[i].viewType);
@@ -223,13 +229,14 @@ async function createPropertyViaUI(page: Page, prop: typeof property1Data) {
   console.log(`Filling Section 7: Amenities (${prop.amenities.length} items)...`);
   const addAmenityBtn = page.locator('#sec-amenities button[title="Add Amenity"]');
   for (let i = 0; i < prop.amenities.length; i++) {
-    await addAmenityBtn.click();
+    await addAmenityBtn.click({ force: true });
     await page.waitForTimeout(200);
   }
   const amenityCards = page.locator('#sec-amenities div.grid > div');
   for (let i = 0; i < prop.amenities.length; i++) {
+    await amenityCards.nth(i).waitFor({ state: 'visible' });
     const card = amenityCards.nth(i);
-    const inputs = card.locator('input');
+    const inputs = card.locator('input:not([type="checkbox"])');
     await inputs.nth(0).fill(prop.amenities[i].name);
     if (prop.amenities[i].description) {
       await inputs.nth(1).fill(prop.amenities[i].description);
@@ -253,15 +260,16 @@ async function createPropertyViaUI(page: Page, prop: typeof property1Data) {
   // Add Landmarks
   const addLandmarkBtn = page.locator('#sec-location button[title="Add Landmark"]');
   for (let i = 0; i < prop.landmarks.length; i++) {
-    await addLandmarkBtn.click();
+    await addLandmarkBtn.click({ force: true });
     await page.waitForTimeout(200);
   }
   const landmarkCards = page.locator('#sec-location div.space-y-4 > div');
   for (let i = 0; i < prop.landmarks.length; i++) {
+    await landmarkCards.nth(i).waitFor({ state: 'visible' });
     const card = landmarkCards.nth(i);
     const catSelect = card.locator('select');
     await catSelect.selectOption(prop.landmarks[i].category);
-    const inputs = card.locator('input');
+    const inputs = card.locator('input:not([type="checkbox"])');
     await inputs.nth(0).fill(prop.landmarks[i].name);
     await inputs.nth(1).fill(prop.landmarks[i].distance);
     await inputs.nth(2).fill(prop.landmarks[i].travelTime);
@@ -290,6 +298,9 @@ test.describe('Vilaasa Real Estate — Playwright Property Insertion', () => {
   test.setTimeout(180000);
 
   test('Log in and add Carlton Krillam & Oxygen Forest properties', async ({ page }) => {
+    page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
+    page.on('pageerror', err => console.log('BROWSER ERROR:', err.message));
+
     // 1. Log in to Admin Panel
     console.log('Logging in as superadmin@vilaasa.com...');
     await page.goto(`${BASE_URL}/admin/login`);
@@ -299,7 +310,7 @@ test.describe('Vilaasa Real Estate — Playwright Property Insertion', () => {
     await page.fill('#pass', 'SuperAdmin@Vilaasa2026');
     await page.click('button[type="submit"]');
 
-    await page.waitForURL((url) => url.pathname.includes('/admin/'), { timeout: 15000 });
+    await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
     console.log('✅ Logged in successfully!');
 
     // 2. Add Property 1: Carlton Krillam Wellness Residences

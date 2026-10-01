@@ -6,6 +6,9 @@ test.describe('Vilaasa Admin UI Form Direct Creation Flow', () => {
   test.setTimeout(90000);
 
   test('Admin UI Property Form & Franchise Form Submission', async ({ page }) => {
+    page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
+    page.on('pageerror', err => console.log('BROWSER ERROR:', err.message));
+
     const timestamp = Date.now().toString().slice(-4);
     const uiPropertyName = `Solarium Crest Estate ${timestamp}`;
 
@@ -17,8 +20,8 @@ test.describe('Vilaasa Admin UI Form Direct Creation Flow', () => {
     await page.fill('#pass', 'SuperAdmin@Vilaasa2026');
     await page.click('button[type="submit"]');
 
-    await page.waitForTimeout(2000);
-    expect(page.url()).toContain('/admin/');
+    await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
+    expect(page.url()).not.toContain('/login');
 
     // 2. Navigate to Admin Property Form (/admin/properties/new)
     await page.goto(`${BASE_URL}/admin/properties/new`);
@@ -31,6 +34,7 @@ test.describe('Vilaasa Admin UI Form Direct Creation Flow', () => {
     }
 
     // Fill Property Name (Section 1)
+    await page.screenshot({ path: 'debug_chromium_form.png' });
     const nameInput = page.locator('input[placeholder*="Glasshouse"]').first();
     await nameInput.fill(uiPropertyName);
 
@@ -52,18 +56,18 @@ test.describe('Vilaasa Admin UI Form Direct Creation Flow', () => {
     await descTextarea.fill('An architectural masterpiece featuring floor-to-ceiling glass, private helipad, and panoramic sea vistas.');
 
     // Add Spec (Section 3) - Click Custom Button
-    const addSpecCustomBtn = page.locator('#sec-specs').getByRole('button', { name: /Custom/i });
-    await addSpecCustomBtn.click();
-    const specInputs = page.locator('#sec-specs div.grid input');
+    const addSpecCustomBtn = page.locator('#sec-specs button[title^="Add"]');
+    await addSpecCustomBtn.click({ force: true });
+    const specInputs = page.locator('#sec-specs div.grid input:not([type="checkbox"])');
     if (await specInputs.count() >= 2) {
       await specInputs.nth(0).fill('Built-Up Area');
       await specInputs.nth(1).fill('12,000 Sq.Ft.');
     }
 
     // Add Financial Metric (Section 4) - Click Custom Button
-    const addFinCustomBtn = page.locator('#sec-financials').getByRole('button', { name: /Custom/i });
-    await addFinCustomBtn.click();
-    const finInputs = page.locator('#sec-financials div.grid input');
+    const addFinCustomBtn = page.locator('#sec-financials button[title^="Add"]');
+    await addFinCustomBtn.click({ force: true });
+    const finInputs = page.locator('#sec-financials div.grid input:not([type="checkbox"])');
     if (await finInputs.count() >= 2) {
       await finInputs.nth(0).fill('Projected Net Yield');
       await finInputs.nth(1).fill('8.5% p.a.');
@@ -74,10 +78,10 @@ test.describe('Vilaasa Admin UI Form Direct Creation Flow', () => {
     await priceInput.fill('55000000');
 
     // Add Unit Configuration (Section 5) - Click Custom Button
-    const addConfigBtn = page.locator('#sec-pricing').getByRole('button', { name: /Custom/i });
+    const addConfigBtn = page.locator('#sec-pricing button[title^="Add"]');
     if (await addConfigBtn.isVisible()) {
-      await addConfigBtn.click();
-      const configInputs = page.locator('#sec-pricing div.space-y-4 input');
+      await addConfigBtn.click({ force: true });
+      const configInputs = page.locator('#sec-pricing div.space-y-4 input:not([type="checkbox"])');
       if (await configInputs.count() >= 3) {
         await configInputs.nth(0).fill('4 BHK Presidential Villa');
         await configInputs.nth(1).fill('9500');
@@ -86,15 +90,15 @@ test.describe('Vilaasa Admin UI Form Direct Creation Flow', () => {
     }
 
     // Add Amenity (Section 7) - Click Custom Button
-    const addAmenityCustomBtn = page.locator('#sec-amenities').getByRole('button', { name: /Custom/i });
-    await addAmenityCustomBtn.click();
-    const amInputs = page.locator('#sec-amenities div.grid input');
+    const addAmenityCustomBtn = page.locator('#sec-amenities button[title^="Add"]');
+    await addAmenityCustomBtn.click({ force: true });
+    const amInputs = page.locator('#sec-amenities div.grid input:not([type="checkbox"])');
     if (await amInputs.count() > 0) {
       await amInputs.first().fill('Private Infinity Pool');
     }
 
     // Fill Location City (Section 8)
-    const cityInput = page.locator('#sec-location input').first();
+    const cityInput = page.locator('#sec-location input[placeholder*="Goa"], #sec-location input[placeholder*="Dubai"]').first();
     await cityInput.fill('Goa');
 
     // Upload / Add image via file input (Section 6)

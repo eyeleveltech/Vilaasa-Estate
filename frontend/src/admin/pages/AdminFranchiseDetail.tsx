@@ -29,6 +29,9 @@ import {
   Inquiry,
   ApiResponse,
   FranchiseModuleItem,
+  SupportCard,
+  BenefitCard,
+  MetricBadge,
 } from "../types/admin.types";
 import { MediaUploader } from "../components/MediaUploader";
 import { Button } from "@/components/ui/button";
@@ -123,7 +126,7 @@ export const AdminFranchiseDetail: React.FC = () => {
     );
   }
 
-  const franchisePage = (franchise as any).franchisePage;
+  const franchisePage = franchise.franchisePage;
 
   const heroImg =
     franchise.media?.find((m) => m.isFeatured)?.url ||
@@ -139,8 +142,8 @@ export const AdminFranchiseDetail: React.FC = () => {
     Array.isArray(franchise.supportModules) && franchise.supportModules.length > 0
       ? franchise.supportModules
       : Array.isArray(franchisePage?.ecosystemCards) && franchisePage.ecosystemCards.length > 0
-      ? franchisePage.ecosystemCards.map((card: any) => ({
-          name: card.title || card.name,
+      ? franchisePage.ecosystemCards.map((card: SupportCard) => ({
+          name: card.title,
           icon: card.icon || "storefront",
           description: card.description,
         }))
@@ -151,8 +154,8 @@ export const AdminFranchiseDetail: React.FC = () => {
     Array.isArray(franchise.advantages) && franchise.advantages.length > 0
       ? franchise.advantages
       : Array.isArray(franchisePage?.benefitCards) && franchisePage.benefitCards.length > 0
-      ? franchisePage.benefitCards.map((card: any) => ({
-          name: card.title || card.name,
+      ? franchisePage.benefitCards.map((card: BenefitCard) => ({
+          name: card.title,
           icon: card.icon || "verified_user",
           description: card.description,
         }))
@@ -163,7 +166,9 @@ export const AdminFranchiseDetail: React.FC = () => {
     Array.isArray(franchise.customSpecs) && franchise.customSpecs.length > 0
       ? franchise.customSpecs
       : Array.isArray(franchisePage?.blueprintMetrics) && franchisePage.blueprintMetrics.length > 0
-      ? franchisePage.blueprintMetrics.filter((m: any) => m.label && m.value)
+      ? franchisePage.blueprintMetrics
+          .filter((m: MetricBadge) => Boolean(m.label && m.value))
+          .map((m: MetricBadge) => ({ label: m.label, value: m.value }))
       : [];
 
   const rawVisionHeadline = franchise.visionHeadline || franchisePage?.visionHeadline;
@@ -186,7 +191,7 @@ export const AdminFranchiseDetail: React.FC = () => {
   const paybackText = formatPeriod(
     franchise.paybackPeriodYears,
     franchisePage?.metric3Value ||
-      franchisePage?.heroMetrics?.find((m: any) =>
+      franchisePage?.heroMetrics?.find((m: MetricBadge) =>
         /payback/i.test(m.label || ""),
       )?.value,
   );
@@ -194,7 +199,7 @@ export const AdminFranchiseDetail: React.FC = () => {
   const lockInText = formatPeriod(
     franchise.lockInPeriodYears,
     franchisePage?.metric7Value ||
-      franchisePage?.blueprintMetrics?.find((m: any) =>
+      franchisePage?.blueprintMetrics?.find((m: MetricBadge) =>
         /lock/i.test(m.label || ""),
       )?.value,
   );
